@@ -9,12 +9,12 @@
           <button @click="allTechSelected()">All</button>
         </li>
         <li>
-          <button @click="searchInput('affaire')">Choisir l'affaire</button>
+          <!-- <button @click="searchInput('affaire')">Choisir l'affaire</button> -->
           <select v-model="affaireSelected">
             <option
-              v-for="affaire in inputType"
+              v-for="affaire in affaires"
               :key="affaire.affairid"
-              :value="affaire"
+              :value="affaire.name"
               >{{ affaire.name }}
             </option>
           </select>
@@ -23,7 +23,7 @@
     </div>
 
     <form>
-      <div v-for="affaire in affaires" :key="affaire.affairid">
+      <div v-for="affaire in search" :key="affaire.affairid">
         <div class="entete">
           <input
             v-model="affaire.name"
@@ -149,7 +149,7 @@
 </template>
 
 <script>
-import { ref } from "vue";
+import { ref, computed } from "vue";
 import { Api } from "../js/api.js";
 const url = "https://cinod.fr/cables/api.php";
 const api = new Api(url);
@@ -162,32 +162,51 @@ export default {
     let affaire = ref([]);
     let affaires = ref([]);
 
-    let searchby = {
-      tech_id: 135
-      //name: 'Casino de Paris'
-    };
+    // function affair techSelected button to change technician => liste d'affaires
+    let dataTech = ref("");
+    let searchby = ref([]);
+    let affaireSelected = ref([]);
+    function techSelected(argid) {
+      dataTech.value = argid;
 
-    api
-      .call("affair_get", searchby)
-      .then(response => {
-        affaires.value = response;
-        console.log("affair_get:", response);
-      })
-      .catch(response => {
-        console.log("affair_get:", response);
-      });
+      let searchby = {
+        tech_id: dataTech.value
+        //name: 'Casino de Paris'
+      };
+      console.log("searchby", searchby);
 
-    const inputType = ref([]);
-    const affaireSelected = ref("");
-
-    function searchInput(arg) {
-      inputType.value = arg;
+      api
+        .call("affair_get", searchby)
+        .then(response => {
+          affaires.value = response;
+          console.log("affair_get:", response);
+          console.log("affaireSelected", affaireSelected.value);
+        })
+        .catch(response => {
+          console.log("affair_get:", response);
+        });
     }
+    // choose affaire from tech
+    const search = computed(() => {
+      return affaires.value.filter(affaire => {
+        return affaire.name.includes(affaireSelected.value);
+      });
+    });
+
+    // const selecteAffaire = ref([]);
+
+    // function select() {
+    //   selecteAffaire.value = affaireSelected;
+    //   console.log("affaireSelected", affaireSelected.value);
+    // }
 
     return {
-      searchInput,
+      searchby,
+      search,
+      techSelected,
+      // selecteAffaire,
       affaireSelected,
-      inputType,
+      // select,
       affaires,
       affaire
     };
