@@ -1,5 +1,5 @@
 <template>
-  <Formaffaire />>
+  <Formaffaire @lessonaffaire="affaireToList" />
   <div class="about">
     <h1>CableTech page</h1>
 
@@ -25,20 +25,18 @@
         <div class="number">
           <input type="checkbox" />
           <div class="name">
-            <h3>{{ cable.name }}</h3>
+            <h3>{{ cable.name }}{{ cable.cableid }}</h3>
           </div>
-          <div><input v-model="cable.reserved" name="secu" /></div>
 
-          <div><input v-model="cable.reserved" name="reserved" /></div>
-          <div><button id="id" :href="cable.link">link</button></div>
-          <div><input v-model="cable.total" name="total" /></div>
+          <div><input name="reserved" /></div>
+          <div><button :href="cable.link">link</button></div>
         </div>
       </div>
     </div>
   </div>
   <div><button>getorder</button></div>
   <div v-for="order in orders" :key="order.orderid">
-    {{ order.count }}
+    {{ order.count }} {{ orer.cableid }}
   </div>
 </template>
 <script>
@@ -50,15 +48,15 @@ var api = new Api(url);
 // @ is an alias to /src
 import { ref } from "vue";
 
-import cablageServices from "@/services/cablage.js";
+// import cablageServices from "@/services/cablage.js";
 
 export default {
   name: "Cabletech",
   components: { Formaffaire },
 
   setup() {
+    // cable list name total link info
     let cables = ref([]);
-
     api
       .call("cable_get")
       .then(response => {
@@ -68,36 +66,39 @@ export default {
       .catch(response => {
         console.log("err_cable_get:", response);
       });
-    // {
-    //        cableid,
-    //        affairid,
-    //        tech_id,
-    //        count,
-    //        [done]: <is set to false if missing>
-    //      },
 
+    // affairid from component Formaffaire
+    let dataAffaire = ref("");
+    let affairid = ref("");
     let orders = ref([]);
-    let affairid = 1;
-    let searchby = [{ tech_id: 1 }];
-    api
-      .call("order_get", searchby)
-      .then(function(response) {
-        console.log("order_get:", response);
-        orders.value = response;
-      })
-      .catch(function(response) {
-        console.log("order_get:", response);
-      });
+    // function affaireToList(data) {
+    //   dataAffaire.value = data;
 
-    function update_cable(param) {
-      console.log("cablemaster | cableupdate", param);
-      cablageServices.cableupdate([param]);
-    }
+    // order get with affairid
+    const affaireToList = function(data) {
+      dataAffaire.value = data;
+      let searchby = { affairid: dataAffaire.value };
+
+      console.log("searchby | affairid", searchby);
+
+      api
+        .call("order_get", searchby)
+        .then(response => {
+          console.log("order_get:", response);
+          orders.value = response;
+        })
+        .catch(function(response) {
+          console.log("order_get:", response);
+        });
+      console.log("affairid", data);
+    };
+
     return {
-      update_cable,
       cables,
+      affaireToList,
       affairid,
-      orders
+      orders,
+      dataAffaire
     };
   }
 };

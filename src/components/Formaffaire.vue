@@ -6,16 +6,16 @@
           <button @click="techSelected(135)">John</button>
           <button @click="techSelected(3)">Edward</button>
           <button @click="techSelected(32)">francky</button>
-          <button @click="allTechSelected()">All</button>
+          <button @click="techSelected()">All</button>
         </li>
         <li>
           <!-- <button @click="searchInput('affaire')">Choisir l'affaire</button> -->
-          <select v-model="affaireSelected">
+          <select v-model="affaireSelectedId" @change="SelectAffaire">
             <option
-              v-for="affaire in affaires"
-              :key="affaire.affairid"
-              :value="affaire.name"
-              >{{ affaire.name }}
+              v-for="affairere in affaireSelectedTech"
+              :key="affairere.affairid"
+              :value="affairere"
+              >{{ affairere.name }}
             </option>
           </select>
         </li>
@@ -23,7 +23,7 @@
     </div>
 
     <form>
-      <div v-for="affaire in search" :key="affaire.affairid">
+      <div v-for="affaire in affaireSelected" :key="affaire.affairid">
         <div class="entete">
           <input
             v-model="affaire.name"
@@ -149,64 +149,75 @@
 </template>
 
 <script>
-import { ref, computed } from "vue";
+import { ref } from "vue";
 import { Api } from "../js/api.js";
 const url = "https://cinod.fr/cables/api.php";
 const api = new Api(url);
 
 export default {
   name: "Formaffaire",
-
+  emits: ["lessonaffaire"],
   setup(props, context) {
-    context.emit("lessonaffaire", affaire);
+    context.emit("lessonaffaire", affaireSelectedId);
     let affaire = ref([]);
     let affaires = ref([]);
 
     // function affair techSelected button to change technician => liste d'affaires
     let dataTech = ref("");
     let searchby = ref([]);
+    let affaireSelectedId = ref([]);
+    let affaireSelectedTech = ref([]);
     let affaireSelected = ref([]);
+
+    // button technician id   => affaireSelectedTech
     function techSelected(argid) {
       dataTech.value = argid;
 
-      let searchby = {
-        tech_id: dataTech.value
-        //name: 'Casino de Paris'
-      };
+      let searchby = { tech_id: dataTech.value };
+
       console.log("searchby", searchby);
 
       api
         .call("affair_get", searchby)
         .then(response => {
-          affaires.value = response;
-          console.log("affair_get:", response);
-          console.log("affaireSelected", affaireSelected.value);
+          affaireSelectedTech.value = response;
+
+          console.log("affaireSelectedTech", affaireSelectedTech.value);
+          console.log("affaireSelected", affaireSelectedId.value);
         })
         .catch(response => {
           console.log("affair_get:", response);
         });
     }
-    // choose affaire from tech
-    const search = computed(() => {
-      return affaires.value.filter(affaire => {
-        return affaire.name.includes(affaireSelected.value);
-      });
-    });
+    // choose affaire from affaireSelectedTech to affaireSelected
 
-    // const selecteAffaire = ref([]);
+    function selectAffaire() {
+      affaireSelected.value = affaireSelectedId.value;
+    }
 
-    // function select() {
-    //   selecteAffaire.value = affaireSelected;
-    //   console.log("affaireSelected", affaireSelected.value);
+    // let affaireSelectedToList = ref([]);
+    // function toListeAffaire() {
+    //   let searchby = { name: affaireSelected.value };
+
+    //   api
+    //     .call("affair_get", searchby)
+    //     .then(response => {
+    //       affaireSelectedToList.value = response;
+    //       console.log("affaireSelectedTopList", affaireSelected.value);
+    //     })
+    //     .catch(response => {
+    //       console.log("affair_get:", response);
+    //     });
     // }
 
     return {
       searchby,
-      search,
+      selectAffaire,
       techSelected,
-      // selecteAffaire,
+      // toListeAffaire,
+      affaireSelectedId,
       affaireSelected,
-      // select,
+      affaireSelectedTech,
       affaires,
       affaire
     };
