@@ -23,7 +23,7 @@
       </ul>
     </div>
 
-    <form>
+    <form @subbmit.prevent="saveAffaire">
       <div v-for="affaire in search" :key="affaire.affairid">
         <div class="entete">
           <input
@@ -126,7 +126,9 @@
             </div>
             <div style="display:flex">
               <div>
-                <input @click="submit" class="button" type="submit" />
+                <button @click="submit" class="button" type="submit">
+                  Enregistrer
+                </button>
 
                 <label for="end">Terminé </label>
                 <input type="checkbox" name="end" />
@@ -159,7 +161,6 @@ export default {
   name: "Formaffaire",
 
   setup(props, context) {
-    context.emit("lessonaffaire", affaireSelected);
     let affaire = ref([]);
     let affaires = ref([]);
 
@@ -170,7 +171,7 @@ export default {
     let affaireSelectedTech = ref([]);
     let affaireSelected = ref([]);
     let selectAffaire = ref([]);
-    search = ref([]);
+    // search = ref([]);
 
     // button technician id   => affaireSelectedTech
     function techSelected(argid) {
@@ -178,15 +179,13 @@ export default {
 
       let searchby = { tech_id: dataTech.value };
 
-      console.log("searchby", searchby);
-
       api
         .call("affair_get", searchby)
         .then(response => {
           affaireSelectedTech.value = response;
 
           console.log("affaireSelectedTech", affaireSelectedTech.value);
-          console.log("affaireSelected", affaireSelectedId.value);
+          console.log("affaireSelectedId.value", affaireSelectedId.value);
         })
         .catch(response => {
           console.log("affair_get:", response);
@@ -198,28 +197,10 @@ export default {
         return t.affairid.includes(affaireSelectedId.value.affairid);
       });
     });
-    console.log("search", search);
+    let affairtruc = ref("");
 
-    // choose affaire from affaireSelectedTech to affaireSelected
-
-    // function selectAffaire() {
-    //   affaireSelected.value = affaireSelectedId.value;
-    // }
-
-    // let affaireSelectedToList = ref([]);
-    // function toListeAffaire() {
-    //   let searchby = { name: affaireSelected.value };
-
-    //   api
-    //     .call("affair_get", searchby)
-    //     .then(response => {
-    //       affaireSelectedToList.value = response;
-    //       console.log("affaireSelectedTopList", affaireSelected.value);
-    //     })
-    //     .catch(response => {
-    //       console.log("affair_get:", response);
-    //     });
-    // }
+    console.log("search.value.affairid", affairtruc);
+    context.emit("lessonaffaire", 3);
 
     return {
       searchby,
@@ -232,7 +213,8 @@ export default {
       affaires,
       affaire,
       search,
-      affaireSelect
+      affaireSelect,
+      affairtruc
       // displayAffaire
     };
   }

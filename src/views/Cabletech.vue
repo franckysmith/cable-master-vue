@@ -25,10 +25,17 @@
         <div class="number">
           <input type="checkbox" />
           <div class="name">
-            <h3>{{ cable.name }}{{ cable.cableid }}</h3>
+            <h3>{{ cable.name }} | '{{ cable.cableid }}</h3>
           </div>
 
-          <div><input name="reserved" /></div>
+          <div v-for="order in orders" :key="order.orderid">
+            <input
+              name="reserved"
+              v-model="order.count"
+              v-if="cable.cableid == order.cableid"
+            />
+            <input v-else name="reserved" v-model="reserved" />
+          </div>
           <div><button :href="cable.link">link</button></div>
         </div>
       </div>
@@ -46,7 +53,7 @@ var url = "https://cinod.fr/cables/api.php";
 
 var api = new Api(url);
 // @ is an alias to /src
-import { ref } from "vue";
+import { ref, computed } from "vue";
 
 // import cablageServices from "@/services/cablage.js";
 
@@ -71,18 +78,21 @@ export default {
     let dataAffaire = ref("");
     let affairid = ref("");
     let orders = ref([]);
+    let reserved = ref("");
+    let cable = ref([]);
+    let order = ref([]);
+    // let search = ref("");
     // function affaireToList(data) {
     //   dataAffaire.value = data;
 
     // order get with affairid
-    const affaireToList = function(data) {
+    function affaireToList(data) {
+      console.log("searchbyaff", searchbyaff);
       dataAffaire.value = data;
-      let searchby = { affairid: dataAffaire.value };
-
-      console.log("searchby | affairid", searchby);
+      let searchbyaff = { affairid: dataAffaire.value };
 
       api
-        .call("order_get", searchby)
+        .call("order_get", searchbyaff)
         .then(response => {
           console.log("order_get:", response);
           orders.value = response;
@@ -90,15 +100,27 @@ export default {
         .catch(function(response) {
           console.log("order_get:", response);
         });
+
       console.log("affairid", data);
-    };
+    }
+
+    //display count if
+
+    const search = computed(() => {
+      if (cable.value.cableid == order.value.cableid) {
+        return (reserved = order.value.count);
+      }
+      return reserved.value;
+    });
 
     return {
       cables,
       affaireToList,
       affairid,
       orders,
-      dataAffaire
+      dataAffaire,
+      reserved,
+      search
     };
   }
 };
