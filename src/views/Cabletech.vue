@@ -36,7 +36,7 @@
   </div>
   <div><button>getorder</button></div>
   <div v-for="order in orders" :key="order.orderid">
-    {{ order.count }} {{ orer.cableid }}
+    {{ order.count }} {{ order.cableid }}
   </div>
 </template>
 <script>

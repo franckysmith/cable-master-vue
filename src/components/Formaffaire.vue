@@ -10,11 +10,12 @@
         </li>
         <li>
           <!-- <button @click="searchInput('affaire')">Choisir l'affaire</button> -->
-          <select v-model="affaireSelectedId" @change="SelectAffaire">
+          <select v-model="affaireSelectedId">
             <option
               v-for="affairere in affaireSelectedTech"
               :key="affairere.affairid"
               :value="affairere"
+              placeholder="choisir"
               >{{ affairere.name }}
             </option>
           </select>
@@ -23,7 +24,7 @@
     </div>
 
     <form>
-      <div v-for="affaire in affaireSelected" :key="affaire.affairid">
+      <div v-for="affaire in search" :key="affaire.affairid">
         <div class="entete">
           <input
             v-model="affaire.name"
@@ -149,16 +150,16 @@
 </template>
 
 <script>
-import { ref } from "vue";
+import { ref, computed } from "vue";
 import { Api } from "../js/api.js";
 const url = "https://cinod.fr/cables/api.php";
 const api = new Api(url);
 
 export default {
   name: "Formaffaire",
-  emits: ["lessonaffaire"],
+
   setup(props, context) {
-    context.emit("lessonaffaire", affaireSelectedId);
+    context.emit("lessonaffaire", affaireSelected);
     let affaire = ref([]);
     let affaires = ref([]);
 
@@ -168,6 +169,8 @@ export default {
     let affaireSelectedId = ref([]);
     let affaireSelectedTech = ref([]);
     let affaireSelected = ref([]);
+    let selectAffaire = ref([]);
+    search = ref([]);
 
     // button technician id   => affaireSelectedTech
     function techSelected(argid) {
@@ -189,11 +192,19 @@ export default {
           console.log("affair_get:", response);
         });
     }
+    let affaireSelect = ref([]);
+    let search = computed(() => {
+      return affaireSelectedTech.value.filter(t => {
+        return t.affairid.includes(affaireSelectedId.value.affairid);
+      });
+    });
+    console.log("search", search);
+
     // choose affaire from affaireSelectedTech to affaireSelected
 
-    function selectAffaire() {
-      affaireSelected.value = affaireSelectedId.value;
-    }
+    // function selectAffaire() {
+    //   affaireSelected.value = affaireSelectedId.value;
+    // }
 
     // let affaireSelectedToList = ref([]);
     // function toListeAffaire() {
@@ -219,7 +230,10 @@ export default {
       affaireSelected,
       affaireSelectedTech,
       affaires,
-      affaire
+      affaire,
+      search,
+      affaireSelect
+      // displayAffaire
     };
   }
 };
