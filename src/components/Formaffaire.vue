@@ -9,8 +9,14 @@
           <button @click="techSelected()">All</button>
         </li>
         <li>
-          <!-- <button @click="searchInput('affaire')">Choisir l'affaire</button> -->
-          <select v-model="affaireSelectedId">
+          <!-- <label for="selectaff">Choisir une affaire: </label> -->
+          <option value="" selected disabled>Sélectionner :</option>
+          <select
+            v-model="affaireSelectedId"
+            @change="selectedaff(affaireSelectedId)"
+            id="selectaff"
+          >
+            <option value="" disabled selected hidden>select food</option>
             <option
               v-for="affairere in affaireSelectedTech"
               :key="affairere.affairid"
@@ -26,6 +32,7 @@
     <form @subbmit.prevent="saveAffaire">
       <div v-for="affaire in search" :key="affaire.affairid">
         <div class="entete">
+          affairid:{{ affaire.affairid }}
           <input
             v-model="affaire.name"
             class="titre_affaire"
@@ -165,42 +172,41 @@ export default {
     let affaires = ref([]);
 
     // function affair techSelected button to change technician => liste d'affaires
-    let dataTech = ref("");
+
     let searchby = ref([]);
+    let affaireSelect = ref([]);
     let affaireSelectedId = ref([]);
     let affaireSelectedTech = ref([]);
     let affaireSelected = ref([]);
     let selectAffaire = ref([]);
+
     // search = ref([]);
 
     // button technician id   => affaireSelectedTech
-    function techSelected(argid) {
-      dataTech.value = argid;
 
-      let searchby = { tech_id: dataTech.value };
+    function techSelected(param) {
+      let searchby = { tech_id: param };
 
       api
         .call("affair_get", searchby)
         .then(response => {
           affaireSelectedTech.value = response;
-
-          console.log("affaireSelectedTech", affaireSelectedTech.value);
-          console.log("affaireSelectedId.value", affaireSelectedId.value);
         })
         .catch(response => {
           console.log("affair_get:", response);
         });
     }
-    let affaireSelect = ref([]);
+    function selectedaff(data) {
+      context.emit("lessonaffaire", data.affairid);
+      // affairidToCablagetech = data.affairid;
+      console.log("selectedaff", data.affairid);
+    }
+
     let search = computed(() => {
       return affaireSelectedTech.value.filter(t => {
         return t.affairid.includes(affaireSelectedId.value.affairid);
       });
     });
-    let affairtruc = ref("");
-
-    console.log("search.value.affairid", affairtruc);
-    context.emit("lessonaffaire", 3);
 
     return {
       searchby,
@@ -214,8 +220,10 @@ export default {
       affaire,
       search,
       affaireSelect,
-      affairtruc
-      // displayAffaire
+      // affairtruc,
+      selectedaff
+
+      // affairidToCablagetech
     };
   }
 };
@@ -263,5 +271,8 @@ input {
 }
 .tech {
   width: 200px;
+}
+li ul {
+  list-style: none;
 }
 </style>

@@ -13,32 +13,43 @@
           <input class="button" value="Spécial" />
           <input class="button" value="Micros" />
         </div>
-        <div><input class="button" type="submit" value="Save" /></div>
       </div>
 
-      <div class="head">
-        <div style="padding-left:22px">requis</div>
-        <div>spare</div>
-        <div style="padding-left:28px">dispo</div>
-      </div>
-      <div class="content-number" v-for="cable in cables" :key="cable.cableid">
-        <div class="number">
-          <input type="checkbox" />
-          <div class="name">
-            <h3>{{ cable.name }} | '{{ cable.cableid }}</h3>
-          </div>
-
-          <div v-for="order in orders" :key="order.orderid">
-            <input
-              name="reserved"
-              v-model="order.count"
-              v-if="cable.cableid == order.cableid"
-            />
-            <input v-else name="reserved" v-model="reserved" />
-          </div>
-          <div><button :href="cable.link">link</button></div>
+      <form @subbmit.prevent="update_order(orders)">
+        <button @click="submit" class="button" type="submit">Save</button>
+        <div class="head">
+          <div style="padding-left:22px">requis</div>
+          <div>spare</div>
+          <div style="padding-left:28px">dispo</div>
         </div>
-      </div>
+        <div
+          class="content-number"
+          v-for="cable in cables"
+          :key="cable.cableid"
+        >
+          <div class="number">
+            <input type="checkbox" />
+            <div class="name">
+              <h3>{{ cable.name }} | '{{ cable.cableid }}</h3>
+            </div>
+
+            <div v-for="order in orders" :key="order.orderid">
+              <input
+                v-if="order.cableid == cable.cableid"
+                name="reserved"
+                v-model="order.count"
+              />
+              <input v-else />
+            </div>
+            <div><button :href="cable.link">link</button></div>
+            <div><button :href="cable.info">info</button></div>
+
+            <div>
+              <button>{{ cable.total }}</button>
+            </div>
+          </div>
+        </div>
+      </form>
     </div>
   </div>
   <div><button>getorder</button></div>
@@ -47,15 +58,14 @@
   </div>
 </template>
 <script>
-import Formaffaire from "@/components/Formaffaire.vue";
 import { Api } from "../js/api.js";
 var url = "https://cinod.fr/cables/api.php";
-
 var api = new Api(url);
-// @ is an alias to /src
-import { ref, computed } from "vue";
+import cablageServices from "@/services/cablage.js";
 
-// import cablageServices from "@/services/cablage.js";
+import Formaffaire from "@/components/Formaffaire.vue";
+
+import { ref } from "vue";
 
 export default {
   name: "Cabletech",
@@ -75,21 +85,19 @@ export default {
       });
 
     // affairid from component Formaffaire
-    let dataAffaire = ref("");
+
     let affairid = ref("");
     let orders = ref([]);
     let reserved = ref("");
-    let cable = ref([]);
-    let order = ref([]);
+    // let cable = ref([]);
+    // let order = ref([]);
     // let search = ref("");
     // function affaireToList(data) {
     //   dataAffaire.value = data;
 
     // order get with affairid
     function affaireToList(data) {
-      console.log("searchbyaff", searchbyaff);
-      dataAffaire.value = data;
-      let searchbyaff = { affairid: dataAffaire.value };
+      let searchbyaff = { affairid: data };
 
       api
         .call("order_get", searchbyaff)
@@ -97,30 +105,44 @@ export default {
           console.log("order_get:", response);
           orders.value = response;
         })
+        // .then(() => {
+        //   for (let i = 0; i <= orders.value.lenght; i++) {
+        //     if (cable.value.cableid.includes(orders[i].cableid)) {
+        //       reserved = order.value.count;
+        //     }
+        //   }
+        // })
         .catch(function(response) {
           console.log("order_get:", response);
         });
 
-      console.log("affairid", data);
+      console.log("affairid | Cabletech", data);
+    }
+
+    // save/update order
+
+    function update_order(param) {
+      console.log("cabletech | orderupdate", param);
+      cablageServices.orderupdate([param]);
     }
 
     //display count if
 
-    const search = computed(() => {
-      if (cable.value.cableid == order.value.cableid) {
-        return (reserved = order.value.count);
-      }
-      return reserved.value;
-    });
+    // const search = computed(() => {
+    //   if (cable.value.cableid == order.value.cableid) {
+    //     return (reserved = order.value.count);
+    //   }
+    //   return reserved;
+    // });
 
     return {
       cables,
       affaireToList,
       affairid,
       orders,
-      dataAffaire,
-      reserved,
-      search
+      update_order,
+      reserved
+      // search
     };
   }
 };
