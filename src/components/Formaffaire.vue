@@ -32,7 +32,6 @@
     <form @subbmit.prevent="saveAffaire">
       <div v-for="affaire in search" :key="affaire.affairid">
         <div class="entete">
-          affairid:{{ affaire.affairid }}
           <input
             v-model="affaire.name"
             class="titre_affaire"

@@ -6,46 +6,53 @@
     <p></p>
     <div>
       <div>
-        <div class="poste">
-          <input class="button" value="HP" />
-          <input class="button" value="Module" />
-          <input class="button" value="Elec" />
-          <input class="button" value="Spécial" />
-          <input class="button" value="Micros" />
+        <div class="post">
+          <button @click="selectype('speaker')">HP</button>
+          <button value="elec" @click="selectype('electrical')">Elec</button>
+
+          <button value="Module" @click="selectype('module')">Modules</button>
+          <button value="Special" @click="selectype('special')">
+            Special
+          </button>
+          <button value="Micros" @click="selectype('microphone')">
+            Micros
+          </button>
         </div>
       </div>
 
-      <form @subbmit.prevent="update_order(orders)">
+      <form @subbmit.prevent="update_order()">
         <button @click="submit" class="button" type="submit">Save</button>
         <div class="head">
           <div style="padding-left:22px">requis</div>
           <div>spare</div>
           <div style="padding-left:28px">dispo</div>
         </div>
-        <div
-          class="content-number"
-          v-for="cable in cables"
-          :key="cable.cableid"
-        >
-          <div class="number">
-            <input type="checkbox" />
-            <div class="name">
-              <h3>{{ cable.name }} | '{{ cable.cableid }}</h3>
-            </div>
+        <div>
+          <div
+            class="content-number"
+            v-for="cable in cables"
+            :key="cable.cableid"
+          >
+            <div class="number" v-if="cable.type == typechoose">
+              <input type="checkbox" />
+              <div class="name">
+                <h3>{{ cable.name }} | '{{ cable.cableid }}</h3>
+              </div>
 
-            <div v-for="order in orders" :key="order.orderid">
-              <input
-                v-if="order.cableid == cable.cableid"
-                name="reserved"
-                v-model="order.count"
-              />
-              <input v-else />
-            </div>
-            <div><button :href="cable.link">link</button></div>
-            <div><button :href="cable.info">info</button></div>
+              <div v-for="order in orders" :key="order.orderid">
+                <input
+                  v-if="order.cableid == cable.cableid"
+                  name="reserved"
+                  v-model="order.count"
+                />
+                <input v-else />
+              </div>
+              <div><button :href="cable.link">link</button></div>
+              <div><button :href="cable.info">info</button></div>
 
-            <div>
-              <button>{{ cable.total }}</button>
+              <div>
+                <button>{{ cable.type }}</button>
+              </div>
             </div>
           </div>
         </div>
@@ -89,6 +96,8 @@ export default {
     let affairid = ref("");
     let orders = ref([]);
     let reserved = ref("");
+    let typechoose = ref("");
+
     // let cable = ref([]);
     // let order = ref([]);
     // let search = ref("");
@@ -105,13 +114,7 @@ export default {
           console.log("order_get:", response);
           orders.value = response;
         })
-        // .then(() => {
-        //   for (let i = 0; i <= orders.value.lenght; i++) {
-        //     if (cable.value.cableid.includes(orders[i].cableid)) {
-        //       reserved = order.value.count;
-        //     }
-        //   }
-        // })
+
         .catch(function(response) {
           console.log("order_get:", response);
         });
@@ -119,21 +122,17 @@ export default {
       console.log("affairid | Cabletech", data);
     }
 
-    // save/update order
+    // choose display type (buttons)
+    function selectype(data) {
+      console.log("typechoose", data);
+      typechoose.value = data;
+    }
 
+    // save/update order
     function update_order(param) {
       console.log("cabletech | orderupdate", param);
       cablageServices.orderupdate([param]);
     }
-
-    //display count if
-
-    // const search = computed(() => {
-    //   if (cable.value.cableid == order.value.cableid) {
-    //     return (reserved = order.value.count);
-    //   }
-    //   return reserved;
-    // });
 
     return {
       cables,
@@ -141,7 +140,9 @@ export default {
       affairid,
       orders,
       update_order,
-      reserved
+      reserved,
+      selectype,
+      typechoose
       // search
     };
   }
@@ -166,7 +167,7 @@ input {
   box-sizing: border-box;
   box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
 }
-.button {
+.post button {
   margin: 10px;
   padding: 5px;
   min-width: 50px;

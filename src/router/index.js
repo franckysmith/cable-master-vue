@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from "vue-router";
 import Cablemaster from "../views/Cablemaster.vue";
+// import Affairmaster from "../views/Affairmaster.vue";
 import Cabletech from "../views/Cabletech.vue";
 
 const routes = [
@@ -8,6 +9,11 @@ const routes = [
     name: "Cablemaster",
     component: Cablemaster
   },
+  // {
+  //   path: "/affairmaster",
+  //   name: "Affairmaster",
+  //   component: Affairmaster
+  // },
   {
     path: "/cabletech",
     name: "Cabletech",

@@ -1,40 +1,66 @@
 <template>
-  <div class="home"></div>
-  <div class="head">
-    <div>secu</div>
-    <div style="padding-left:28px">total</div>
-    <div style="padding-left:22px">réservé</div>
-  </div>
-  <div class="content-number" v-for="cable in cables" :key="cable.cableid">
-    <div class="number">
-      <div class="name"><input v-model="cable.name" /></div>
-      <div><input v-model="cable.reserved" name="secu" /></div>
-      <div><input v-model="cable.total" name="total" /></div>
-      <div><input v-model="cable.reserved" name="reserved" /></div>
-      <div><button id="id" :href="cable.link">link</button></div>
-      <div>
-        <button @click="update_cable(cable)" name="save">save</button>
-      </div>
-      <div>
-        <button @click="delete_cable(cable.cableid)" name="delete">
-          delete
-        </button>
-      </div>
-    </div>
-    <div class="number2">
-      <div><input v-model="cable.info" placeholder="details" /></div>
-      <div>
-        <input style="color:#c9c9c9" v-model="cable.link" placeholder="link" />
+  <div>
+    <AddCable />
+    <div class="post">
+      <button @click="selectype('speaker')">HP</button>
+      <button value="elec" @click="selectype('electrical')">Elec</button>
 
-        <select v-model="cable.type">
-          <option
-            v-for="choix in typeChoose"
-            :key="choix.id"
-            :value="choix.value"
-            :placeholder="choix.value"
-            >{{ choix.name }}
-          </option>
-        </select>
+      <button value="Module" @click="selectype('module')">Modules</button>
+      <button value="Special" @click="selectype('special')">
+        Special
+      </button>
+      <button value="Micros" @click="selectype('microphone')">
+        Micros
+      </button>
+      <div><button @click="ajouter = 1">Ajouter un élément</button></div>
+    </div>
+  </div>
+  <div class="home">
+    <div class="head">
+      <div>tampon</div>
+      <div style="padding-left:28px">total</div>
+      <div style="padding-left:22px">réservé</div>
+    </div>
+
+    <div class="content-number" v-for="cable in cables" :key="cable.cableid">
+      <div class="number" v-if="cable.type == typechoose">
+        <div class="number">
+          <div class="name"><input v-model="cable.name" /></div>
+          <div><input v-model="cable.reserved" name="secu" /></div>
+          <div><input v-model="cable.total" name="total" /></div>
+          <div><input v-model="cable.reserved" name="reserved" /></div>
+          <div>
+            <button id="id" :href="cable.link">link</button>
+          </div>
+          <div>
+            <button @click="update_cable(cable)" name="save">save</button>
+          </div>
+          <div>
+            <button @click="delete_cable(cable.cableid)" name="delete">
+              delete
+            </button>
+          </div>
+        </div>
+        <div class="number2">
+          <div><input v-model="cable.info" placeholder="details" /></div>
+          <div>
+            <input
+              style="color:#c9c9c9"
+              v-model="cable.link"
+              placeholder="link"
+            />
+
+            <select v-model="cable.type" @change="update_cable(cable)">
+              <option
+                v-for="choix in listeType"
+                :key="choix.id"
+                :value="choix.value"
+                :placeholder="choix.value"
+                >{{ choix.name }}
+              </option>
+            </select>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -43,19 +69,20 @@
 <script>
 import { Api } from "../js/api.js";
 var url = "https://cinod.fr/cables/api.php";
-
 var api = new Api(url);
-// @ is an alias to /src
-import { ref } from "vue";
+
+import { ref, onMounted } from "vue";
 
 import cablageServices from "@/services/cablage.js";
-
+import AddCable from "@/components/AddCable.vue";
 export default {
   name: "Cablemaster",
-
+  components: { AddCable },
   setup() {
     let cables = ref([]);
-    const typeChoose = ref([
+    let typechoose = ref("");
+    // let ajouter = ref("");
+    const listeType = ref([
       {
         id: 1,
         name: "électricité",
@@ -70,17 +97,36 @@ export default {
         id: 3,
         name: "microphone",
         value: "microphone"
+      },
+      {
+        id: 2,
+        name: "module",
+        value: "module"
+      },
+      {
+        id: 3,
+        name: "special",
+        value: "special"
       }
     ]);
-    api
-      .call("cable_get")
-      .then(response => {
-        cables.value = response;
-        console.log("cable_get:", response);
-      })
-      .catch(response => {
-        console.log("err_cable_get:", response);
-      });
+
+    // choose display type (buttons)
+    function selectype(data) {
+      console.log("typechoose", data);
+      typechoose.value = data;
+    }
+
+    let cable_get = onMounted(() => {
+      api
+        .call("cable_get")
+        .then(response => {
+          cables.value = response;
+          console.log("cable_get:", response);
+        })
+        .catch(response => {
+          console.log("err_cable_get:", response);
+        });
+    });
 
     function add_cable(data) {
       console.log("cablemaster | cableadd()", data);
@@ -90,6 +136,7 @@ export default {
     function delete_cable(data) {
       console.log("cablemaster | cabledelete()", data);
       cablageServices.cabledelete([data]);
+      cable_get();
     }
 
     function update_cable(param) {
@@ -101,7 +148,10 @@ export default {
       update_cable,
       cables,
       delete_cable,
-      typeChoose
+      listeType,
+      selectype,
+      typechoose,
+      cable_get
     };
   }
 };

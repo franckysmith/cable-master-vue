@@ -51,7 +51,7 @@ function cableadd(data) {
 
   api
     .call("cable_add", data)
-    .then(response => {
+    .then(function(response) {
       console.log("cable_add:", response);
     })
     .catch(response => {

@@ -44,7 +44,7 @@ var data = [
   }
 ];
 
-api.call('cable_add', data).then(function(response) {
+api.call('cable_add', data).then(response => { 
   console.log('cable_add:');
   console.log(response);
 }).catch(function(response) {
