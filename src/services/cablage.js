@@ -200,6 +200,7 @@ function affairedelete(data) {
     });
 }
 
+/*//---- 'order_get' ----*/
 function orderread() {
   // {
   //        cableid,

@@ -7,7 +7,7 @@
             <input v-model="name" placeholder="Nouvel élément" />
 
             <input id="case" v-model="total" placeholder="dispo" />
-            <input id="case" v-model="reserved" placeholder="tampon" />
+            <input id="case2" v-model="reserved" placeholder="tampon" />
           </div>
 
           <div class="menuder">
@@ -72,6 +72,16 @@ export default {
         id: 5,
         name: "special",
         value: "special"
+      },
+      {
+        id: 6,
+        name: "multi",
+        value: "multi"
+      },
+      {
+        id: 7,
+        name: "c_type",
+        value: "c_type"
       }
     ]);
     const total = ref("");
@@ -134,7 +144,8 @@ export default {
   flex-direction: column;
   text-align: left;
 }
-#case {
+#case,
+#case2 {
   width: 40px;
   margin: 10px;
 }

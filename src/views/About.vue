@@ -1,11 +1,10 @@
 <template>
   <div class="about">
     <h2>
-      about page avec une list de Cables sans utiliser la composition api et
-      "services"
+      Page de test
     </h2>
-    <div v-for="cable in cables" :key="cable.cableid">
-      type de cables : {{ cable.name }}
+    <div v-for="cable in cables" :key="cable.cableid" class="test">
+      {{ cable.name }}
     </div>
   </div>
 </template>
@@ -37,3 +36,10 @@ export default {
   }
 };
 </script>
+
+<style scoped>
+.test {
+  text-align: left;
+  margin-left: 10px;
+}
+</style>

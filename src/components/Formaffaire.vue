@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div class="search">
+    <div class="search-tech-aff">
       <ul>
         <li style="display flex,padding:10px">
           <button @click="techSelected(135)">John</button>
@@ -9,14 +9,12 @@
           <button @click="techSelected()">All</button>
         </li>
         <li>
-          <!-- <label for="selectaff">Choisir une affaire: </label> -->
           <option value="" selected disabled>Sélectionner :</option>
           <select
             v-model="affaireSelectedId"
             @change="selectedaff(affaireSelectedId)"
             id="selectaff"
           >
-            <option value="" disabled selected hidden>select food</option>
             <option
               v-for="affairere in affaireSelectedTech"
               :key="affairere.affairid"
@@ -29,70 +27,88 @@
       </ul>
     </div>
 
-    <form @subbmit.prevent="saveAffaire">
+    <form>
       <div v-for="affaire in search" :key="affaire.affairid">
         <div class="entete">
           <input
             v-model="affaire.name"
             class="titre_affaire"
-            type="text"
             placeholder="Nom de l'affaire"
           />
+          <input
+            v-model="affaire.ref"
+            class="ref_affaire"
+            placeholder="Référence"
+          />
 
-          <input class="button" type="submit" value="Ma liste" />
-          <input class="button" type="submit" value="New" />
+          <button class="button" @clic.prevent="add_affair()" value="New">
+            New
+          </button>
         </div>
         <div class="dates">
-          <label for="prepa">Prépa</label>
-          <input
-            v-model="affaire.prep_date"
-            style="width:140px"
-            type="date"
-            name="retour"
-          />
-          <label for="r_am">matin</label>
-          <input v-model="affaire.prep_time" type="checkbox" name="r_am" />
-          <label for="r_pm">aprèsMidi</label>
-          <input type="checkbox" name="r_pm" />
-        </div>
-        <div>
-          <div class="dates">
-            <label for="sortie">Sortie</label>
+          <label
+            >Prépa
             <input
-              v-model="affaire.receipt_date"
-              style="width:140px"
-              type="date"
-              name="sortie"
-            />
-            <label for="s_matin">matin</label>
-            <input
-              v-model="affaire.receipt_time"
-              :true-value="1"
-              :false-value="0"
-              type="checkbox"
-              name="s_matin"
-            />
-            <label for="s_apm">aprèsMidi</label>
-            <input
-              v-model="affaire.receipt_time"
-              :true-value="0"
-              :false-value="1"
-              type="checkbox"
-              name="s_apm"
-            />
-          </div>
-          <div class="dates">
-            <label for="retour">Retour</label>
-            <input
-              v-model="affaire.return_date"
+              v-model="affaire.prep_date"
               style="width:140px"
               type="date"
               name="retour"
-            />
-            <label for="r_am">matin</label>
-            <input v-model="affaire.return_time" type="checkbox" name="r_am" />
-            <label for="r_pm">aprèsMidi</label>
-            <input type="checkbox" name="r_pm" />
+          /></label>
+          <label
+            >précisez
+            <select v-model="affaire.prep_time">
+              <option value="morning">matin</option>
+              <option value="afternoon">après-midi</option>
+            </select>
+          </label>
+          <label
+            >aprèsMidi <input type="checkbox" name="r_pm" value="afternoon"
+          /></label>
+        </div>
+        <div>
+          <div class="dates">
+            <label for="sortie"
+              >Sortie
+              <input
+                v-model="affaire.receipt_date"
+                style="width:140px"
+                type="date"
+                name="sortie"
+            /></label>
+            <label for="s_matin"
+              >matin
+              <input
+                v-model="affaire.receipt_time"
+                :value="morning"
+                type="checkbox"
+                name="s_matin"
+            /></label>
+            <label for="s_apm"
+              >aprèsMidi
+              <input
+                v-model="affaire.receipt_time"
+                :true-value="0"
+                :false-value="1"
+                type="checkbox"
+                name="s_apm"
+            /></label>
+          </div>
+          <div class="dates">
+            <label for="retour"
+              >Retour
+              <input
+                v-model="affaire.return_date"
+                style="width:140px"
+                type="date"
+                name="retour"
+            /></label>
+            <label for="r_am"
+              >matin
+              <input v-model="affaire.return_time" type="checkbox" name="r_am"
+            /></label>
+            <label for="r_pm"
+              >aprèsMidi <input type="checkbox" name="r_pm"
+            /></label>
           </div>
 
           <div class="cont_2">
@@ -127,21 +143,33 @@
                 type="checkbox"
                 name="scene"
               />
-              <input class="button" type="submit" value="Résumé" />
-              <input class="button" type="submit" value="note" />
+              <button @click.prevent="note = true" v-if="!note">note</button>
+              <button @click.prevent="note = false" v-if="note">
+                fermer note
+              </button>
+              <textarea
+                cols="50"
+                rows="10"
+                v-if="note"
+                v-model="affaire.tech_note"
+              ></textarea>
             </div>
             <div style="display:flex">
               <div>
-                <button @click="submit" class="button" type="submit">
+                <button
+                  @click.prevent="update_affair(affaire)"
+                  class="button"
+                  type="submit"
+                >
                   Enregistrer
                 </button>
 
-                <label for="end">Terminé </label>
+                <label for="end">en ligne </label>
                 <input type="checkbox" name="end" />
               </div>
 
               <div>
-                <label for="update">Update </label>
+                <label for="update">Update le: </label>
                 <input
                   v-model="affaire.timestamp"
                   style="width:150px"
@@ -163,6 +191,8 @@ import { Api } from "../js/api.js";
 const url = "https://cinod.fr/cables/api.php";
 const api = new Api(url);
 
+import cablageServices from "@/services/cablage.js";
+
 export default {
   name: "Formaffaire",
 
@@ -178,11 +208,13 @@ export default {
     let affaireSelectedTech = ref([]);
     let affaireSelected = ref([]);
     let selectAffaire = ref([]);
+    let note = ref(false);
+    let tech_id = ref("");
+    let tech_name = ref("");
+    let name = ref("");
+    // let firstadd = ref("");
 
-    // search = ref([]);
-
-    // button technician id   => affaireSelectedTech
-
+    // get affair by techid
     function techSelected(param) {
       let searchby = { tech_id: param };
 
@@ -195,12 +227,29 @@ export default {
           console.log("affair_get:", response);
         });
     }
+    // emit vers views/Cabletech
     function selectedaff(data) {
       context.emit("lessonaffaire", data.affairid);
-      // affairidToCablagetech = data.affairid;
       console.log("selectedaff", data.affairid);
     }
+    // update affair
+    function update_affair(param) {
+      console.log("formaffair | affairupdate", param);
+      cablageServices.affaireupdate(param);
+    }
 
+    // add affair
+    function add_affair() {
+      let firstadd = {
+        tech_id: tech_id.value,
+        tech_name: tech_name.value,
+        name: name.value
+      };
+      console.log("Formaffaire |add_affair", firstadd);
+      cablageServices.affaireadd(firstadd);
+    }
+
+    // select affairid par technicien v-for in search
     let search = computed(() => {
       return affaireSelectedTech.value.filter(t => {
         return t.affairid.includes(affaireSelectedId.value.affairid);
@@ -211,7 +260,8 @@ export default {
       searchby,
       selectAffaire,
       techSelected,
-      // toListeAffaire,
+      update_affair,
+      add_affair,
       affaireSelectedId,
       affaireSelected,
       affaireSelectedTech,
@@ -219,16 +269,21 @@ export default {
       affaire,
       search,
       affaireSelect,
-      // affairtruc,
-      selectedaff
+      selectedaff,
 
-      // affairidToCablagetech
+      note
     };
   }
 };
 </script>
 
 <style>
+.search-tech-aff li {
+  margin-bottom: 15px;
+}
+.search-tech-aff select {
+  margin-bottom: 15px;
+}
 input {
   padding: 5px;
 }
@@ -247,6 +302,14 @@ input {
   box-sizing: border-box;
   box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
 }
+.ref_affaire {
+  width: 100px;
+  height: 32px;
+  left: 34px;
+  top: 63px;
+  box-sizing: border-box;
+}
+
 .button {
   margin: 10px;
   padding: 5px;
@@ -271,7 +334,7 @@ input {
 .tech {
   width: 200px;
 }
-li ul {
+li {
   list-style: none;
 }
 </style>

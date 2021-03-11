@@ -3,8 +3,10 @@
   <div class="about">
     <h1>CableTech page</h1>
 
-    <p></p>
-    <div>
+    <button class="button2" @click.prevent="resume = !true" v-if="resume">
+      fermer la liste
+    </button>
+    <div v-if="!resume">
       <div>
         <div class="post">
           <button @click="selectype('speaker')">HP</button>
@@ -14,18 +16,25 @@
           <button value="Special" @click="selectype('special')">
             Special
           </button>
+          <button value="multi" @click="selectype('multi')">
+            multis
+          </button>
           <button value="Micros" @click="selectype('microphone')">
             Micros
+          </button>
+          <button value="c_type" @click="selectype('c_type')">
+            caisses-type
           </button>
         </div>
       </div>
 
       <form @subbmit.prevent="update_order()">
-        <button @click="submit" class="button" type="submit">Save</button>
+        <button @click="submit" class="button2" type="submit">Save</button>
+        <button class="button2" @click.prevent="resume = true">liste</button>
         <div class="head">
-          <div style="padding-left:22px">requis</div>
-          <div>spare</div>
-          <div style="padding-left:28px">dispo</div>
+          <div>requis</div>
+          <div style="padding-left:30px">spare</div>
+          <div style="padding-left:25px">dispo</div>
         </div>
         <div>
           <div
@@ -36,7 +45,7 @@
             <div class="number" v-if="cable.type == typechoose">
               <input type="checkbox" />
               <div class="name">
-                <h3>{{ cable.name }} | '{{ cable.cableid }}</h3>
+                <h3>{{ cable.name }}</h3>
               </div>
 
               <div v-for="order in orders" :key="order.orderid">
@@ -49,20 +58,22 @@
               </div>
               <div><button :href="cable.link">link</button></div>
               <div><button :href="cable.info">info</button></div>
-
-              <div>
-                <button>{{ cable.type }}</button>
-              </div>
             </div>
           </div>
         </div>
       </form>
     </div>
   </div>
-  <div><button>getorder</button></div>
+  <div v-if="resume">
+    <div class="content-resume" v-for="cable in cables" :key="cable.cableid">
+      <div>{{ cable.name }}</div>
+      <div>{{ cable.total }}</div>
+    </div>
+  </div>
+  <!-- <div><button>getorder</button></div>
   <div v-for="order in orders" :key="order.orderid">
     {{ order.count }} {{ order.cableid }}
-  </div>
+  </div> -->
 </template>
 <script>
 import { Api } from "../js/api.js";
@@ -72,7 +83,7 @@ import cablageServices from "@/services/cablage.js";
 
 import Formaffaire from "@/components/Formaffaire.vue";
 
-import { ref } from "vue";
+import { ref, computed } from "vue";
 
 export default {
   name: "Cabletech",
@@ -96,9 +107,10 @@ export default {
     let affairid = ref("");
     let orders = ref([]);
     let reserved = ref("");
-    let typechoose = ref("");
+    let typechoose = ref("microphone");
+    let resume = ref("false");
+    let cable = ref("");
 
-    // let cable = ref([]);
     // let order = ref([]);
     // let search = ref("");
     // function affaireToList(data) {
@@ -122,7 +134,7 @@ export default {
       console.log("affairid | Cabletech", data);
     }
 
-    // choose display type (buttons)
+    // choose display cable_type (buttons)
     function selectype(data) {
       console.log("typechoose", data);
       typechoose.value = data;
@@ -133,6 +145,11 @@ export default {
       console.log("cabletech | orderupdate", param);
       cablageServices.orderupdate([param]);
     }
+    // soustraction total et reserved
+    const cableTotalTech = computed(() => {
+      console.log("cableTotalTech", cable.value.total);
+      return cable.value.total + cable.value.reserved;
+    });
 
     return {
       cables,
@@ -142,8 +159,9 @@ export default {
       update_order,
       reserved,
       selectype,
-      typechoose
-      // search
+      typechoose,
+      resume,
+      cableTotalTech
     };
   }
 };
@@ -172,6 +190,16 @@ input {
   padding: 5px;
   min-width: 50px;
   background: #4dcc59;
+  border: 1px solid #000000;
+  box-sizing: border-box;
+  box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+  border-radius: 4px;
+}
+.button2 {
+  margin: 10px;
+  padding: 5px;
+  min-width: 50px;
+  background: #e9ac07;
   border: 1px solid #000000;
   box-sizing: border-box;
   box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
@@ -215,6 +243,8 @@ input {
 }
 .number {
   display: flex;
+  border-width: 0px 0px 1px 0px;
+  border-style: solid;
 }
 .number2 {
   display: flex;
@@ -225,10 +255,7 @@ input {
   margin-right: 15px;
   width: 200px;
 }
-.content-number {
-  border-width: 0px 0px 1px 0px;
-  border-style: solid;
-}
+
 .number input {
   width: 30px;
   margin: 10px;
@@ -253,5 +280,11 @@ button {
   width: 160px;
   /* margin-left: 5px; */
   background-color: #c1c7c33a;
+}
+.content-resume {
+  display: flex;
+  text-align: left;
+  width: 400px;
+  justify-content: space-between;
 }
 </style>

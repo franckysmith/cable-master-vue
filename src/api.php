@@ -671,7 +671,7 @@ api::$FIELDS = [
   'cable_add' =>
   [
     'name'      =>  RSTR(25),
-    'type'      =>  ENUM('electrical', 'speaker', 'microphone', 'module', 'special'),
+    'type'      =>  ENUM('electrical', 'speaker', 'microphone', 'module', 'special','multi','c_type'),
     'total'     =>  UINT,
     'reserved'  =>  UINT,
     'info'      =>  STR(255),
@@ -682,7 +682,7 @@ api::$FIELDS = [
   [
     'cableid'   =>  RID,
     'name'      =>  STR(25),
-    'type'      =>  ENUM('electrical', 'speaker', 'microphone','module', 'special'),
+    'type'      =>  ENUM('electrical', 'speaker', 'microphone', 'module', 'special','multi','c_type'),
     'total'     =>  UINT,
     'reserved'  =>  UINT,
     'info'      =>  STR(255),
@@ -713,7 +713,9 @@ api::$FIELDS = [
     'return_time'   =>  ANY,
     'front'         =>  ANY,
     'monitor'       =>  ANY,
-    'stage'         =>  ANY
+    'stage'         =>  ANY,
+    'master_note'   =>  ANY,
+    'tech_note'     =>  ANY
   ],
   
   'affair_add' =>
