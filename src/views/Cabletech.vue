@@ -10,21 +10,12 @@
       <div>
         <div class="post">
           <button @click="selectype('speaker')">HP</button>
-          <button value="elec" @click="selectype('electrical')">Elec</button>
-
-          <button value="Module" @click="selectype('module')">Modules</button>
-          <button value="Special" @click="selectype('special')">
-            Special
-          </button>
-          <button value="multi" @click="selectype('multi')">
-            multis
-          </button>
-          <button value="Micros" @click="selectype('microphone')">
-            Micros
-          </button>
-          <button value="c_type" @click="selectype('c_type')">
-            caisses-type
-          </button>
+          <button @click="selectype('electrical')">Elec</button>
+          <button @click="selectype('module')">Modules</button>
+          <button @click="selectype('special')">Special</button>
+          <button @click="selectype('multi')">multis</button>
+          <button @click="selectype('microphone')">Micros</button>
+          <button @click="selectype('c_type')">caisses-type</button>
         </div>
       </div>
 
@@ -32,9 +23,9 @@
         <button @click="submit" class="button2" type="submit">Save</button>
         <button class="button2" @click.prevent="resume = true">liste</button>
         <div class="head">
-          <div>requis</div>
-          <div style="padding-left:30px">spare</div>
-          <div style="padding-left:25px">dispo</div>
+          <div>count</div>
+          <div style="padding-left:28px">spare</div>
+          <div style="padding-left:28px">total</div>
         </div>
         <div>
           <div
@@ -48,13 +39,14 @@
                 <h3>{{ cable.name }}</h3>
               </div>
 
-              <div v-for="order in orders" :key="order.orderid">
-                <input
-                  v-if="order.cableid == cable.cableid"
-                  name="reserved"
-                  v-model="order.count"
-                />
-                <input v-else />
+              <div>
+                <input name="count" v-model="cable.count" />
+              </div>
+              <div>
+                <input name="spare_count" v-model="cable.spare_count" />
+              </div>
+              <div>
+                <input name="total" v-model="cable.total" />
               </div>
               <div><button :href="cable.link">link</button></div>
               <div><button :href="cable.info">info</button></div>
@@ -108,7 +100,7 @@ export default {
     let orders = ref([]);
     let reserved = ref("");
     let typechoose = ref("microphone");
-    let resume = ref("false");
+    let resume = ref(false);
     let cable = ref("");
 
     // let order = ref([]);

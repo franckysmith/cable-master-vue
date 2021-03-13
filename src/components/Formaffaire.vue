@@ -27,160 +27,163 @@
       </ul>
     </div>
 
-    <form>
-      <div v-for="affaire in search" :key="affaire.affairid">
-        <div class="entete">
-          <input
-            v-model="affaire.name"
-            class="titre_affaire"
-            placeholder="Nom de l'affaire"
-          />
-          <input
-            v-model="affaire.ref"
-            class="ref_affaire"
-            placeholder="Référence"
-          />
+    <form v-for="affaire in search" :key="affaire.affairid">
+      <div class="entete">
+        <input
+          class="name-aff"
+          v-model="affaire.name"
+          placeholder="Nom de l'affaire"
+        />
+        <input
+          v-model="affaire.ref"
+          class="ref_affaire"
+          placeholder="Référence"
+        />
 
-          <button class="button" @clic.prevent="add_affair()" value="New">
-            New
-          </button>
-        </div>
+        <button class="button" @clic.prevent="add_affair()" value="New">
+          New
+        </button>
+      </div>
+      <div class="content-dates">
         <div class="dates">
           <label
             >Prépa
             <input
+              class="date-size"
               v-model="affaire.prep_date"
-              style="width:140px"
               type="date"
               name="retour"
           /></label>
-          <label
-            >précisez
-            <select v-model="affaire.prep_time">
-              <option value="morning">matin</option>
-              <option value="afternoon">après-midi</option>
-            </select>
-          </label>
+          <label for="s_matin"
+            >matin
+            <input
+              v-model="affaire.prep_time"
+              :value="morning"
+              type="checkbox"
+              name="s_matin"
+          /></label>
           <label
             >aprèsMidi <input type="checkbox" name="r_pm" value="afternoon"
           /></label>
         </div>
-        <div>
-          <div class="dates">
-            <label for="sortie"
-              >Sortie
-              <input
-                v-model="affaire.receipt_date"
-                style="width:140px"
-                type="date"
-                name="sortie"
-            /></label>
-            <label for="s_matin"
-              >matin
-              <input
-                v-model="affaire.receipt_time"
-                :value="morning"
-                type="checkbox"
-                name="s_matin"
-            /></label>
-            <label for="s_apm"
-              >aprèsMidi
-              <input
-                v-model="affaire.receipt_time"
-                :true-value="0"
-                :false-value="1"
-                type="checkbox"
-                name="s_apm"
-            /></label>
-          </div>
-          <div class="dates">
-            <label for="retour"
-              >Retour
-              <input
-                v-model="affaire.return_date"
-                style="width:140px"
-                type="date"
-                name="retour"
-            /></label>
-            <label for="r_am"
-              >matin
-              <input v-model="affaire.return_time" type="checkbox" name="r_am"
-            /></label>
-            <label for="r_pm"
-              >aprèsMidi <input type="checkbox" name="r_pm"
-            /></label>
-          </div>
+        <div class="dates">
+          <label for="sortie"
+            >Sortie
+            <input
+              class="date-size"
+              v-model="affaire.receipt_date"
+              type="date"
+              name="sortie"
+          /></label>
+          <label for="s_matin"
+            >matin
+            <input
+              v-model="affaire.receipt_time"
+              :value="morning"
+              type="checkbox"
+              name="s_matin"
+          /></label>
+          <label for="s_apm"
+            >aprèsMidi
+            <input
+              v-model="affaire.receipt_time"
+              :true-value="0"
+              :false-value="1"
+              type="checkbox"
+              name="s_apm"
+          /></label>
+        </div>
+        <div class="dates">
+          <label for="retour"
+            >Retour
+            <input
+              class="date-size"
+              v-model="affaire.return_date"
+              type="date"
+              name="retour"
+          /></label>
+          <label for="r_am"
+            >matin
+            <input v-model="affaire.return_time" type="checkbox" name="r_am"
+          /></label>
+          <label for="r_pm"
+            >aprèsMidi <input type="checkbox" name="r_pm"
+          /></label>
+        </div>
+      </div>
 
-          <div class="cont_2">
-            <div class="tech">
-              <input
-                v-model="affaire.tech_name"
-                type="text"
-                placeholder="Nom du technicien"
-              />
+      <div class="cont_2">
+        <div class="tech">
+          <input
+            class="tech-name"
+            v-model="affaire.tech_name"
+            type="text"
+            placeholder="Nom du technicien"
+          />
 
-              <label for="face">face</label>
-              <input
-                v-model="affaire.front"
-                :true-value="1"
-                :false-value="0"
-                type="checkbox"
-                name="face"
-              />
-              <label for="mon"> mon</label>
-              <input
-                v-model="affaire.monitor"
-                :true-value="1"
-                :false-value="0"
-                type="checkbox"
-                name="mon"
-              />
-              <label for="scene"> scène</label>
-              <input
-                v-model="affaire.stage"
-                :true-value="1"
-                :false-value="0"
-                type="checkbox"
-                name="scene"
-              />
-              <button @click.prevent="note = true" v-if="!note">note</button>
-              <button @click.prevent="note = false" v-if="note">
-                fermer note
-              </button>
-              <textarea
-                cols="50"
-                rows="10"
-                v-if="note"
-                v-model="affaire.tech_note"
-              ></textarea>
-            </div>
-            <div style="display:flex">
-              <div>
-                <button
-                  @click.prevent="update_affair(affaire)"
-                  class="button"
-                  type="submit"
-                >
-                  Enregistrer
-                </button>
+          <label for="face">face</label>
+          <input
+            v-model="affaire.front"
+            :true-value="1"
+            :false-value="0"
+            type="checkbox"
+            name="face"
+          />
+          <label for="mon"> mon</label>
+          <input
+            v-model="affaire.monitor"
+            :true-value="1"
+            :false-value="0"
+            type="checkbox"
+            name="mon"
+          />
+          <label for="scene"> scène</label>
+          <input
+            v-model="affaire.stage"
+            :true-value="1"
+            :false-value="0"
+            type="checkbox"
+            name="scene"
+          />
 
-                <label for="end">en ligne </label>
-                <input type="checkbox" name="end" />
-              </div>
+          <button @click.prevent="note = true" v-if="!note">note</button>
+          <button @click.prevent="note = false" v-if="note">
+            fermer note
+          </button>
+        </div>
 
-              <div>
-                <label for="update">Update le: </label>
-                <input
-                  v-model="affaire.timestamp"
-                  style="width:150px"
-                  type="timestamp"
-                  name="update"
-                />
-              </div>
-            </div>
+        <div class="contentUpdate">
+          <div>
+            <button
+              @click.prevent="update_affair(affaire)"
+              class="button"
+              type="submit"
+            >
+              Enregistrer
+            </button>
+
+            <label for="end"
+              >en ligne <input type="checkbox" name="end"
+            /></label>
+
+            <label for="update"
+              >Update le:
+              <input
+                v-model="affaire.timestamp"
+                style="width:150px"
+                type="timestamp"
+                name="update"
+            /></label>
           </div>
         </div>
       </div>
+      <textarea
+        cols="50"
+        rows="10"
+        v-if="note"
+        v-model="affaire.tech_note"
+        placeholder="Laisser ici un message pour l'atelier piles etc ...."
+      ></textarea>
     </form>
   </div>
 </template>
@@ -287,9 +290,34 @@ export default {
 input {
   padding: 5px;
 }
+.contentUpdate {
+  /* display: flex; */
+}
+.cont_2 {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.cont_2 input {
+  margin: 5px;
+}
+.date-size {
+  width: 120px;
+}
 .entete {
   display: flex;
   justify-content: space-around;
+}
+.name-aff {
+  width: 200px;
+  height: 32px;
+  left: 34px;
+  top: 63px;
+
+  background: linear-gradient(180deg, #ffffff 0%, rgba(255, 255, 255, 0) 100%);
+  border: 1px solid #000000;
+  box-sizing: border-box;
+  box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
 }
 .titre_affaire {
   width: 200px;
@@ -309,6 +337,9 @@ input {
   top: 63px;
   box-sizing: border-box;
 }
+.tech-name {
+  width: 120px;
+}
 
 .button {
   margin: 10px;
@@ -325,16 +356,11 @@ input {
   display: flex;
   justify-content: space-around;
 }
-.cont_2 {
-  display: flex;
-}
-.cont_2 input {
-  margin: 5px;
-}
-.tech {
-  width: 200px;
-}
+
 li {
   list-style: none;
+}
+ul {
+  padding-inline-start: 0px;
 }
 </style>

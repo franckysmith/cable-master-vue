@@ -1,32 +1,23 @@
 <template>
   <div>
-    <div v-show="isPopUpOpen"><AddCable /></div>
+    <div v-show="displayAddCable"><AddCable /></div>
     <div class="post">
       <button @click="selectype('speaker')">HP</button>
-      <button value="elec" @click="selectype('electrical')">Elec</button>
-
-      <button value="Module" @click="selectype('module')">Modules</button>
-      <button value="Special" @click="selectype('special')">
-        Special
-      </button>
-      <button value="multi" @click="selectype('multi')">
-        multis
-      </button>
-      <button value="Micros" @click="selectype('microphone')">
-        Micros
-      </button>
-      <button value="c_type" @click="selectype('c_type')">
-        caisses-type
-      </button>
-      <button value="" @click="selectype('all')">
-        All
-      </button>
+      <button @click="selectype('electrical')">Elec</button>
+      <button @click="selectype('module')">Modules</button>
+      <button @click="selectype('special')">Special</button>
+      <button @click="selectype('multi')">multis</button>
+      <button @click="selectype('microphone')">Micros</button>
+      <button @click="selectype('c_type')">caisses-type</button>
+      <button @click="selectype('microphone', 'speaker')">All</button>
     </div>
     <div class="ajouter">
-      <button @click="isPopUpOpen = true" v-show="!isPopUpOpen">
+      <button @click="displayAddCable = true" v-show="!isPopUpOpen">
         Ajouter un élément
       </button>
-      <button @click="isPopUpOpen = false" v-show="isPopUpOpen">fermer</button>
+      <button @click="displayAddCable = false" v-show="isPopUpOpen">
+        fermer
+      </button>
     </div>
   </div>
   <div class="home">
@@ -34,36 +25,18 @@
       <div>tampon</div>
       <div style="padding-left:28px">total</div>
       <div style="padding-left:22px">réservé</div>
+      <div style="padding-left:18px">ordre</div>
     </div>
 
     <div class="content-number" v-for="cable in cables" :key="cable.cableid">
       <div class="number" v-if="cable.type == typechoose">
-        <div class="number">
+        <div class="number1">
           <div class="name"><input v-model="cable.name" /></div>
           <div><input v-model="cable.reserved" name="tampon" /></div>
           <div><input v-model="cable.total" name="total" /></div>
           <div><input v-model="cable.reserved" name="reserved" /></div>
-          <div>
-            <button id="id" :href="cable.link">link</button>
-          </div>
-          <div>
-            <button @click="update_cable(cable)" name="save">save</button>
-          </div>
-          <div>
-            <button @click="delete_cable(cable.cableid)" name="delete">
-              delete
-            </button>
-          </div>
-        </div>
-        <div class="number2">
-          <div><input v-model="cable.info" placeholder="details" /></div>
-          <div>
-            <input
-              style="color:#c9c9c9"
-              v-model="cable.link"
-              placeholder="link"
-            />
-
+          <div><input name="ordre" /></div>
+          <div class="type">
             <select v-model="cable.type" @change="update_cable(cable)">
               <option
                 v-for="choix in listeType"
@@ -73,6 +46,33 @@
                 >{{ choix.name }}
               </option>
             </select>
+          </div>
+          <div>
+            <button id="id" :href="cable.link">link</button>
+          </div>
+          <div>
+            <button @click="update_cable(cable)" name="save">save</button>
+          </div>
+          <div>
+            <button @click="sureToDelete = true">delete</button>
+            <div v-show="sureToDelete">
+              <button @click="delete_cable(cable.cableid)" name="delete">
+                oui
+              </button>
+              <button @click="sureToDelete = false">non</button>
+            </div>
+          </div>
+        </div>
+        <div class="number2">
+          <div class="info">
+            <input v-model="cable.info" placeholder="details" />
+          </div>
+          <div>
+            <input
+              style="color:#c9c9c9"
+              v-model="cable.link"
+              placeholder="link"
+            />
           </div>
         </div>
       </div>
@@ -95,7 +95,8 @@ export default {
   setup() {
     let cables = ref([]);
     let typechoose = ref("speaker");
-    let isPopUpOpen = ref("");
+    let displayAddCable = ref("");
+    let sureToDelete = ref("");
 
     // let ajouter = ref("");
     const listeType = ref([
@@ -115,12 +116,12 @@ export default {
         value: "microphone"
       },
       {
-        id: 2,
+        id: 4,
         name: "module",
         value: "module"
       },
       {
-        id: 3,
+        id: 5,
         name: "special",
         value: "special"
       },
@@ -178,7 +179,8 @@ export default {
       selectype,
       typechoose,
       cable_get,
-      isPopUpOpen
+      displayAddCable,
+      sureToDelete
     };
   }
 };
@@ -187,17 +189,25 @@ export default {
 .head {
   display: flex;
   margin-left: 215px;
-
   text-align: left;
+  font-size: 12px;
 }
 .ajouter {
   margin: 10px;
 }
-.number {
-  display: flex;
-  border-width: 0px 0px 1px 0px;
-  border-style: solid;
+.info input {
+  width: 400px;
 }
+.number {
+  width: 620px;
+  border-width: 0px 0px 1px 0px;
+  /* border-style: solid; */
+  margin: 5px;
+}
+.number1 {
+  display: flex;
+}
+
 .number2 {
   display: flex;
   /* flex: auto 2; */
@@ -205,12 +215,12 @@ export default {
 }
 .number2 input {
   margin-right: 15px;
-  width: 200px;
+  /* width: 100px; */
 }
 
-.number input {
-  width: 30px;
-  margin: 10px;
+.number1 input {
+  width: 25px;
+  margin: 6px;
 }
 .number button {
   line-height: 10px;
@@ -239,5 +249,10 @@ export default {
   width: 180px;
   margin-left: 15px;
   background-color: #c1c7c33a;
+}
+.type {
+  line-height: 30px;
+
+  margin: 5px;
 }
 </style>
