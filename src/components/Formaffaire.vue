@@ -30,85 +30,79 @@
     <form v-for="affaire in search" :key="affaire.affairid">
       <div class="entete">
         <input
-          class="name-aff"
+          class="entete-name-aff"
           v-model="affaire.name"
           placeholder="Nom de l'affaire"
         />
         <input
           v-model="affaire.ref"
-          class="ref_affaire"
+          class="entete-ref_aff"
           placeholder="Référence"
         />
 
-        <button class="button" @clic.prevent="add_affair()" value="New">
+        <button class="button" @clic="add_affair()" value="New">
           New
         </button>
       </div>
+      <div class="label">
+        <div>matin</div>
+        <div style="margin-left:20px">ap-midi</div>
+      </div>
       <div class="content-dates">
         <div class="dates">
-          <label
-            >Prépa
-            <input
-              class="date-size"
-              v-model="affaire.prep_date"
-              type="date"
-              name="retour"
-          /></label>
-          <label for="s_matin"
-            >matin
-            <input
-              v-model="affaire.prep_time"
-              :value="morning"
-              type="checkbox"
-              name="s_matin"
-          /></label>
-          <label
-            >aprèsMidi <input type="checkbox" name="r_pm" value="afternoon"
-          /></label>
+          <h4>Prépa</h4>
+
+          <input
+            class="date-size"
+            v-model="affaire.prep_date"
+            type="date"
+            name="retour"
+          />
+
+          <input
+            v-model="affaire.prep_time"
+            value="morning"
+            type="checkbox"
+            name="s_matin"
+          />
+          <input type="checkbox" name="r_pm" value="afternoon" />
         </div>
         <div class="dates">
-          <label for="sortie"
-            >Sortie
-            <input
-              class="date-size"
-              v-model="affaire.receipt_date"
-              type="date"
-              name="sortie"
-          /></label>
-          <label for="s_matin"
-            >matin
-            <input
-              v-model="affaire.receipt_time"
-              :value="morning"
-              type="checkbox"
-              name="s_matin"
-          /></label>
-          <label for="s_apm"
-            >aprèsMidi
-            <input
-              v-model="affaire.receipt_time"
-              :true-value="0"
-              :false-value="1"
-              type="checkbox"
-              name="s_apm"
-          /></label>
+          <h4>Sortie</h4>
+
+          <input
+            class="date-size"
+            v-model="affaire.receipt_date"
+            type="date"
+            name="sortie"
+          />
+          <input
+            v-model="affaire.receipt_time"
+            value="morning"
+            type="checkbox"
+            name="s_matin"
+          />
+
+          <input
+            v-model="affaire.receipt_time"
+            :true-value="0"
+            :false-value="1"
+            type="checkbox"
+            name="s_apm"
+          />
         </div>
         <div class="dates">
-          <label for="retour"
-            >Retour
-            <input
-              class="date-size"
-              v-model="affaire.return_date"
-              type="date"
-              name="retour"
-          /></label>
-          <label for="r_am"
-            >matin
-            <input v-model="affaire.return_time" type="checkbox" name="r_am"
-          /></label>
-          <label for="r_pm"
-            >aprèsMidi <input type="checkbox" name="r_pm"
-          /></label>
+          <h4>Retour</h4>
+
+          <input
+            class="date-size"
+            v-model="affaire.return_date"
+            type="date"
+            name="retour"
+          />
+
+          <input v-model="affaire.return_time" type="checkbox" name="r_am" />
+          <input type="checkbox" name="r_pm" />
         </div>
       </div>
 
@@ -145,17 +139,12 @@
             type="checkbox"
             name="scene"
           />
-
-          <button @click.prevent="note = true" v-if="!note">note</button>
-          <button @click.prevent="note = false" v-if="note">
-            fermer note
-          </button>
         </div>
 
         <div class="contentUpdate">
-          <div>
+          <div class="content-update1">
             <button
-              @click.prevent="update_affair(affaire)"
+              @click="update_affair(affaire)"
               class="button"
               type="submit"
             >
@@ -165,7 +154,12 @@
             <label for="end"
               >en ligne <input type="checkbox" name="end"
             /></label>
-
+            <button @click="note = true" v-if="!note">note</button>
+            <button @click="note = false" v-if="note">
+              fermer note
+            </button>
+          </div>
+          <div>
             <label for="update"
               >Update le:
               <input
@@ -181,7 +175,7 @@
         cols="50"
         rows="10"
         v-if="note"
-        v-model="affaire.tech_note"
+        v-model.lazy="affaire.tech_note"
         placeholder="Laisser ici un message pour l'atelier piles etc ...."
       ></textarea>
     </form>
@@ -290,9 +284,7 @@ export default {
 input {
   padding: 5px;
 }
-.contentUpdate {
-  /* display: flex; */
-}
+
 .cont_2 {
   display: flex;
   flex-direction: column;
@@ -301,42 +293,56 @@ input {
 .cont_2 input {
   margin: 5px;
 }
+.content-update1 {
+  display: flex;
+  justify-content: space-around;
+  align-items: baseline;
+}
+.content-dates {
+  line-height: 0px;
+}
+.dates {
+  padding: 0px;
+  align-items: baseline;
+  display: flex;
+  justify-content: space-evenly;
+  width: 400px;
+}
 .date-size {
   width: 120px;
 }
 .entete {
   display: flex;
   justify-content: space-around;
+  width: 400px;
+  margin: auto;
+  align-items: baseline;
 }
-.name-aff {
+
+.entete-name-aff {
   width: 200px;
   height: 32px;
-  left: 34px;
-  top: 63px;
+  /* left: 34px; */
+  /* top: 63px; */
 
   background: linear-gradient(180deg, #ffffff 0%, rgba(255, 255, 255, 0) 100%);
   border: 1px solid #000000;
   box-sizing: border-box;
   box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
 }
-.titre_affaire {
-  width: 200px;
-  height: 32px;
-  left: 34px;
-  top: 63px;
+.entete-ref_aff {
+  width: 60px;
+  margin: 6px;
 
   background: linear-gradient(180deg, #ffffff 0%, rgba(255, 255, 255, 0) 100%);
   border: 1px solid #000000;
   box-sizing: border-box;
   box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
 }
-.ref_affaire {
-  width: 100px;
-  height: 32px;
-  left: 34px;
-  top: 63px;
-  box-sizing: border-box;
+form {
+  width: 400px;
 }
+
 .tech-name {
   width: 120px;
 }
@@ -351,12 +357,12 @@ input {
   box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
   border-radius: 4px;
 }
-.dates {
-  margin: 10px;
-  display: flex;
-  justify-content: space-around;
-}
 
+.label {
+  display: flex;
+  margin-left: 260px;
+  padding: 10px;
+}
 li {
   list-style: none;
 }

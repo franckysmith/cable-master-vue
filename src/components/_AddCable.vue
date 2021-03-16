@@ -1,21 +1,17 @@
 <template>
   <div classe="contener">
-    <form @submit.prevent="add_cable(cable)">
+    <form>
       <div class="form">
         <div class="form1">
           <div class="number">
-            <input v-model="cable.name" placeholder="Nouvel élément" />
+            <input v-model="name" placeholder="Nouvel élément" />
 
-            <input id="case" v-model.number="cable.total" placeholder="dispo" />
-            <input
-              id="case2"
-              v-model.number="cable.reserved"
-              placeholder="tampon"
-            />
+            <input id="case" v-model.number="total" placeholder="dispo" />
+            <input id="case2" v-model.number="reserved" placeholder="tampon" />
           </div>
 
           <div class="menuder">
-            <select v-model="cable.type">
+            <select v-model="type">
               <option value="choisir" placeholder="choisir"></option>
               <option
                 v-for="choix in listeType"
@@ -27,13 +23,13 @@
           </div>
         </div>
         <div class="infolink">
-          <input v-model="cable.info" placeholder="info" />
-          <input v-model="cable.link" placeholder="Link" />
+          <input v-model="info" placeholder="info" />
+          <input v-model="link" placeholder="Link" />
         </div>
       </div>
 
       <div>
-        <button type="submit" id="enregistrer">enregistrer</button>
+        <button @click="add_cable" id="enregistrer">enregistrer</button>
       </div>
     </form>
     ----------------------
@@ -50,7 +46,6 @@ export default {
 
   setup() {
     let cables = ref([]);
-    let cable = ref([]);
     let typechoose = ref("");
     const listeType = ref([
       {
@@ -89,10 +84,25 @@ export default {
         value: "c_type"
       }
     ]);
+    const total = ref("");
+    const type = ref("");
+    const name = ref("");
+    const link = ref("");
+    const info = ref("");
+    const reserved = ref("");
 
-    function add_cable(data) {
-      console.log("cableadd | ", data);
-      cablageServices.cableadd([data]);
+    function add_cable() {
+      const data = [
+        {
+          name: name.value,
+          type: type.value,
+          total: total.value,
+          link: link.value,
+          info: info.value,
+          reserved: reserved.value
+        }
+      ];
+      cablageServices.cableadd(data);
     }
 
     return {
@@ -100,8 +110,12 @@ export default {
       cables,
       listeType,
       typechoose,
-
-      cable
+      name,
+      type,
+      total,
+      info,
+      link,
+      reserved
     };
   }
 };
@@ -144,7 +158,7 @@ export default {
   font-size: 10px;
   font-weight: 600;
   text-align: left;
-  width: 120px;
+  width: 180px;
   margin-left: 15px;
   background-color: #c1c7c33a;
 }

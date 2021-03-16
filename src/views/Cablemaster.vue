@@ -1,4 +1,13 @@
 <template>
+  <div class="modaldelete">
+    <ModalDelete
+      :cableToDelete="cableToDelete"
+      @close="isOpen = false"
+      @supp="delete_cable(cableToDelete.cableid)"
+      v-if="isOpen"
+    />
+  </div>
+
   <div>
     <div v-show="displayAddCable"><AddCable /></div>
     <div class="post">
@@ -12,19 +21,19 @@
       <button @click="selectype('microphone', 'speaker')">All</button>
     </div>
     <div class="ajouter">
-      <button @click="displayAddCable = true" v-show="!isPopUpOpen">
+      <button @click="displayAddCable = true" v-show="!displayAddCable">
         Ajouter un élément
       </button>
-      <button @click="displayAddCable = false" v-show="isPopUpOpen">
+      <button @click="displayAddCable = false" v-show="displayAddCable">
         fermer
       </button>
     </div>
   </div>
   <div class="home">
     <div class="head">
-      <div>tampon</div>
-      <div style="padding-left:28px">total</div>
-      <div style="padding-left:22px">réservé</div>
+      <div style="padding-left:8px">tampon</div>
+      <div style="padding-left:20px">total</div>
+      <div style="padding-left:28px">poids</div>
       <div style="padding-left:18px">ordre</div>
     </div>
 
@@ -34,15 +43,14 @@
           <div class="name"><input v-model="cable.name" /></div>
           <div><input v-model="cable.reserved" name="tampon" /></div>
           <div><input v-model="cable.total" name="total" /></div>
-          <div><input v-model="cable.reserved" name="reserved" /></div>
-          <div><input name="ordre" /></div>
+          <div><input v-model="cable.weight" name="poids" /></div>
+          <div><input v-model="cable.sortno" name="ordre" /></div>
           <div class="type">
             <select v-model="cable.type" @change="update_cable(cable)">
               <option
                 v-for="choix in listeType"
                 :key="choix.id"
                 :value="choix.value"
-                :placeholder="choix.value"
                 >{{ choix.name }}
               </option>
             </select>
@@ -51,16 +59,14 @@
             <button id="id" :href="cable.link">link</button>
           </div>
           <div>
-            <button @click="update_cable(cable)" name="save">save</button>
+            <button type="submit" @click="update_cable(cable)" name="save">
+              save
+            </button>
           </div>
           <div>
-            <button @click="sureToDelete = true">delete</button>
-            <div v-show="sureToDelete">
-              <button @click="delete_cable(cable.cableid)" name="delete">
-                oui
-              </button>
-              <button @click="sureToDelete = false">non</button>
-            </div>
+            <button @click="suppCable(cable)">delete</button>
+
+            <!-- <button @click="delete_cable(cable.cableid)" name="delete"> -->
           </div>
         </div>
         <div class="number2">
@@ -87,18 +93,23 @@ var api = new Api(url);
 
 import { ref, onMounted } from "vue";
 
+import ModalDelete from "@/components/ModalDelete.vue";
 import cablageServices from "@/services/cablage.js";
 import AddCable from "@/components/AddCable.vue";
+
 export default {
   name: "Cablemaster",
-  components: { AddCable },
+  components: { AddCable, ModalDelete },
+
   setup() {
     let cables = ref([]);
     let typechoose = ref("speaker");
-    let displayAddCable = ref("");
+    let displayAddCable = ref(false);
     let sureToDelete = ref("");
-
-    // let ajouter = ref("");
+    let cable = ref([]);
+    let isModalDelete = ref(false);
+    let isOpen = ref("");
+    let cableToDelete = ref([]);
     const listeType = ref([
       {
         id: 1,
@@ -155,17 +166,25 @@ export default {
         });
     });
 
+    // suppresion cable => modalDelete
+    const suppCable = function(data) {
+      isOpen.value = true;
+      cableToDelete.value = data;
+      console.log("suppCable", data);
+      cable_get();
+    };
+    // ajouter un cable
     function add_cable(data) {
       console.log("cablemaster | cableadd()", data);
       cablageServices.cableadd(data);
     }
-
+    // effacer un cabl
     function delete_cable(data) {
       console.log("cablemaster | cabledelete()", data);
       cablageServices.cabledelete([data]);
       cable_get();
     }
-
+    // update un cable
     function update_cable(param) {
       console.log("cablemaster | cableupdate", param);
       cablageServices.cableupdate([param]);
@@ -174,13 +193,18 @@ export default {
       add_cable,
       update_cable,
       cables,
+      cableToDelete,
       delete_cable,
       listeType,
       selectype,
       typechoose,
       cable_get,
       displayAddCable,
-      sureToDelete
+      sureToDelete,
+      suppCable,
+      isOpen,
+      isModalDelete,
+      cable
     };
   }
 };
@@ -197,6 +221,10 @@ export default {
 }
 .info input {
   width: 400px;
+}
+.modaldelete {
+  width: 400px;
+  margin: auto;
 }
 .number {
   width: 620px;
@@ -219,8 +247,8 @@ export default {
 }
 
 .number1 input {
-  width: 25px;
-  margin: 6px;
+  width: 30px;
+  margin: 4px;
 }
 .number button {
   line-height: 10px;

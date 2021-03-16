@@ -1,6 +1,6 @@
 <template>
   <Formaffaire @lessonaffaire="affaireToList" />
-  <div class="about">
+  <div class="content-liste">
     <h1>CableTech page</h1>
 
     <button class="button2" @click.prevent="resume = !true" v-if="resume">
@@ -24,10 +24,10 @@
         <button class="button2" @click.prevent="resume = true">liste</button>
         <div class="head">
           <div>count</div>
-          <div style="padding-left:28px">spare</div>
-          <div style="padding-left:28px">total</div>
+          <div style="padding-left:10px">spare</div>
+          <div style="padding-left:13px">total</div>
         </div>
-        <div>
+        <div class="content-all">
           <div
             class="content-number"
             v-for="cable in cables"
@@ -48,8 +48,13 @@
               <div>
                 <input name="total" v-model="cable.total" />
               </div>
+
               <div><button :href="cable.link">link</button></div>
               <div><button :href="cable.info">info</button></div>
+
+              <div>
+                <p>{{ cable.info }}</p>
+              </div>
             </div>
           </div>
         </div>
@@ -58,14 +63,22 @@
   </div>
   <div v-if="resume">
     <div class="content-resume" v-for="cable in cables" :key="cable.cableid">
-      <div>{{ cable.name }}</div>
-      <div>{{ cable.total }}</div>
+      <table>
+        <tr>
+          <th>
+            {{ cable.name }}
+          </th>
+          <th>
+            {{ cable.total }}
+          </th>
+        </tr>
+      </table>
     </div>
   </div>
-  <!-- <div><button>getorder</button></div>
+  <div><button>getorder</button></div>
   <div v-for="order in orders" :key="order.orderid">
     {{ order.count }} {{ order.cableid }}
-  </div> -->
+  </div>
 </template>
 <script>
 import { Api } from "../js/api.js";
@@ -197,10 +210,26 @@ input {
   box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
   border-radius: 4px;
 }
+.content-liste {
+  margin: auto;
+  text-align: center;
+}
+.content-resume {
+  display: flex;
+  text-align: left;
+  width: 400px;
+  justify-content: space-between;
+}
 .dates {
   margin: 10px;
   display: flex;
   justify-content: space-around;
+}
+.content-number {
+  width: 400px;
+  display: flex;
+  /* flex-wrap: wrap; */
+  /* margin: auto; */
 }
 .cont_2 {
   display: flex;
@@ -211,8 +240,24 @@ input {
 .tech {
   width: 200px;
 }
-.poste {
+table {
+  margin: 10px 0px 10px 0px;
+  border: solid 1px;
+  border-collapse: separate;
+  border-spacing: 0px;
+  text-align: left;
+  -webkit-box-shadow: 0px 0px 30px -2px rgba(0, 0, 0, 0.75);
+  -moz-box-shadow: 0px 0px 30px -2px rgba(0, 0, 0, 0.75);
+  box-shadow: 0px 0px 30px -2px rgba(0, 0, 0, 0.75);
+}
+th {
+  width: 250px;
+  padding-left: 5px;
+}
+
+.post {
   margin: 10px 0px 20px 0px;
+  width: 400px;
 }
 .list {
   margin: 5px 25px;
@@ -229,28 +274,20 @@ input {
 }
 .head {
   display: flex;
-  margin-left: 215px;
-
+  /* margin: auto; */
+  width: 400px;
   text-align: left;
+  padding-left: 155px;
 }
 .number {
   display: flex;
   border-width: 0px 0px 1px 0px;
   border-style: solid;
 }
-.number2 {
-  display: flex;
-  /* flex: auto 2; */
-  margin: 0px 15px 20px;
-}
-.number2 input {
-  margin-right: 15px;
-  width: 200px;
-}
 
 .number input {
-  width: 30px;
-  margin: 10px;
+  width: 18px;
+  margin: 6px;
 }
 .number button {
   line-height: 10px;
@@ -269,14 +306,8 @@ button {
   font-size: 15px;
   font-weight: 500;
   text-align: left;
-  width: 160px;
+  width: 130px;
   /* margin-left: 5px; */
   background-color: #c1c7c33a;
-}
-.content-resume {
-  display: flex;
-  text-align: left;
-  width: 400px;
-  justify-content: space-between;
 }
 </style>
