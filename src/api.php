@@ -76,8 +76,8 @@ class api extends errorhandled {
   {
     $method = (string)@$_GET['method'];
     
-    if(defined('API_CORS_DEBUG_ORIGIN'))
-      header('Access-Control-Allow-Origin: '.API_CORS_DEBUG_ORIGIN);
+    if(defined('API_CORS_ALLOWED_ORIGINS') && in_array(@$_SERVER['HTTP_ORIGIN'], API_CORS_ALLOWED_ORIGINS))
+      header('Access-Control-Allow-Origin: '.$_SERVER['HTTP_ORIGIN']);
     
     if(self::$data === null) {
       self::$data = json_decode($body = file_get_contents('php://input'), true);
@@ -93,7 +93,7 @@ class api extends errorhandled {
     
     switch($method) {
       
-        // Gets all cables from 'cable' table.
+        // Gets all cables from 'cable' table sorted by 'sortno, name'.
         // Input:
         //    nothing
         // Output:
@@ -102,6 +102,8 @@ class api extends errorhandled {
         //        cableid,
         //        name,
         //        type,
+        //        sortno,
+        //        weight,
         //        total,
         //        reserved,
         //        ordered,
@@ -114,7 +116,7 @@ class api extends errorhandled {
       
       case 'cable_get':
         
-        $rows = db::rows('*', 'cable');
+        $rows = db::rows('*', 'cable', '', '', 'sortno, name');
         
         //---- calc 'ordered' fields and merge them into $result ----
         
@@ -139,6 +141,7 @@ class api extends errorhandled {
         //      {
         //        name,
         //        [type],
+        //        [weight],
         //        [total]:    <is set to 0 if missing>,
         //        [reserved]: <is set to 0 if missing>,
         //        [info],
@@ -197,6 +200,7 @@ class api extends errorhandled {
         //        cableid,
         //        [name],
         //        [type],
+        //        [weight],
         //        [total],
         //        [reserved],
         //        [info],
@@ -250,7 +254,7 @@ class api extends errorhandled {
         //    nothing, or
         //    {
         //      error  
-        //    } in case of missing or invalid cable id
+        //    } in case of missing or invalid cable id, or if orders exist on deleted cables
         
       case 'cable_delete':
         
@@ -274,7 +278,7 @@ class api extends errorhandled {
               self::trigger(db::error());   // we don't handle such an error
             
             $result['error'] =  'The cable '.json_encode(compact('cableid')).
-                                ' cannot be deleted as there are orders for it in the system';
+                                ' cannot be deleted as it is referenced in orders or in MFCs';
             break;            
           }
         }
@@ -302,7 +306,8 @@ class api extends errorhandled {
         //      [return_time],
         //      [front],
         //      [monitor],
-        //      [stage]
+        //      [stage],
+        //      [done]
         //    },
         //    or nothing to get all affairs
         // Note:
@@ -327,6 +332,7 @@ class api extends errorhandled {
         //        stage,
         //        master_note,        
         //        tech_note,
+        //        done,
         //        timestamp
         //      },
         //      ...
@@ -359,7 +365,8 @@ class api extends errorhandled {
         //      [monitor]:      <is set to 0 if missing>,
         //      [stage]:        <is set to 0 if missing>,
         //      [master_note],
-        //      [tech_note]
+        //      [tech_note],
+        //      [done]:         <is set to false if missing>
         //    }
         // Output:
         //    {
@@ -385,7 +392,8 @@ class api extends errorhandled {
             self::trigger(db::error());   // we don't handle such an error
             
           extract($values);
-          $result['error'] = 'A try to add duplicate affair: '.json_encode(@compact('name', 'receipt_date', 'ref'));
+          $duplicate = json_encode(@compact('tech_id', 'name', 'ref', 'receipt_date'));
+          $result['error'] =  "A try to add duplicate affair: $duplicate";
           break;
         }
             
@@ -412,7 +420,8 @@ class api extends errorhandled {
         //      [monitor],
         //      [stage],
         //      [master_note],
-        //      [tech_note]
+        //      [tech_note],
+        //      [done]
         //    }
         // Output:
         //    nothing if succeeded, or
@@ -462,7 +471,13 @@ class api extends errorhandled {
           break;
         }
         
-        db::delete('affair', self::$data['affairid']);
+        if(!db::delete('affair', self::$data['affairid'], false /* silent */)) {
+          if(db::errNo() != db::ER_ROW_IS_REFERENCED)
+            self::trigger(db::error());   // we don't handle such an error
+          
+          $result['error'] =  'The affair '.json_encode(self::$data['affairid']).
+                              ' cannot be deleted as it is referenced in orders or in MFCs';
+        }
         
         break;
 
@@ -490,6 +505,12 @@ class api extends errorhandled {
         //        tech_id,
         //        count,
         //        done,
+        //        tfc1,
+        //        tfc2,
+        //        tfc3,
+        //        tfc4,
+        //        tfc5,
+        //        tfc_done,
         //        timestamp
         //      },
         //      ...
@@ -571,7 +592,13 @@ class api extends errorhandled {
         //        [affairid],
         //        [tech_id],
         //        [count],
-        //        [done]
+        //        [done],
+        //        [tfc1],
+        //        [tfc2],
+        //        [tfc3],
+        //        [tfc4],
+        //        [tfc5],
+        //        [tfc_done]
         //      },
         //      ...
         //    ]
@@ -654,6 +681,239 @@ class api extends errorhandled {
         break;
       
       
+        // Gets all MFCs from 'mfc' table sorted by 'name'
+        // Input:
+        //    nothing
+        // Output:
+        //    [
+        //      {
+        //        mfcid,
+        //        name,
+        //        info,
+        //        tech_id,
+        //        affairid
+        //      },
+        //      ...
+        //    ]
+      
+      case 'mfc_get':
+        
+        $result = db::rows('*', 'mfc', '', '', 'name');
+        
+        break;
+      
+        
+        // Adds a new MFC to 'mfc' table.
+        // Input:
+        //    {
+        //      name,
+        //      [info],
+        //      [tech_id],
+        //      [affairid]
+        //    }
+        // Output:
+        //    {
+        //      mfcid: <id of just added MFC>
+        //    }, or
+        //    {
+        //      error:  <error message if any field violates self::$FIELDS['mfc_add'] constraints or an MFC with same
+        //              'name' already exists>
+        //    }
+      
+      case 'mfc_add':
+
+        if($error = form::checkErrors(self::$FIELDS[$method], self::$data)) {
+          $result['error'] = current($error);
+          $result['field'] = current(array_keys($error));
+          break;
+        }
+        
+        $values = form::prepareValues(self::$FIELDS[$method], self::$data);
+        
+        if(!($mfcid = db::insert('mfc', $values, false /* insert */, '', false /* silent */))) {
+          if(db::errNo() != db::ER_DUP_ENTRY)
+            self::trigger(db::error());   // we don't handle such an error
+            
+          $result['error'] = "MFC '{$values['name']}' already exists";
+          $result['field'] = 'name';
+          break;
+        }
+            
+        $result = compact('mfcid');
+        
+        break;
+      
+      
+        // Updates an existing MFC in 'mfc' table.
+        // Input:
+        //    {
+        //      mfcid,
+        //      [name],
+        //      [info],
+        //      [tech_id],
+        //      [affairid]
+        //    }
+        // Output:
+        //    nothing if succeeded, or
+        //    {
+        //      error:  <error message if any field violates self::$FIELDS['mfc_update'] constraints or an MFC with same
+        //              'name' already exists>
+        //    }
+     
+      case 'mfc_update':
+        
+        if($error = form::checkErrors(self::$FIELDS[$method], self::$data)) {
+          $result['error'] = current($error);
+          $result['field'] = current(array_keys($error));
+          break;
+        }
+        
+        $values = form::prepareValues(self::$FIELDS[$method], self::$data);
+        
+        if(!db::update('mfc', $values, $values['mfcid'], false /* silent */))
+          switch(db::errNo()) {
+            case db::ER_DUP_ENTRY:   
+              $result['error'] = "MFC '{$values['name']}' already exists";
+              $result['field'] = 'name';
+              break;
+            case db::ER_NO_REFERENCED_ROW:
+              $result['error'] = "No affair exists with affairid={$values['affairid']}";
+              $result['field'] = 'affairid';
+              break;
+            default:
+              self::trigger(db::error()); // we don't handle other errors
+          }
+        
+        break;
+      
+      
+        // Deletes an MFC from 'mfc' table.
+        // Input:
+        //    {
+        //      mfcid: <id of an MFC to delete>
+        //    }
+        // Output:
+        //    nothing, or
+        //    {
+        //      error  
+        //    } in case of missing or invalid MFC id
+        
+      case 'mfc_delete':
+
+        if($error = form::checkErrors(self::$FIELDS[$method], self::$data)) {
+          $result['error'] = current($error);
+          $result['field'] = current(array_keys($error));
+          break;
+        }
+        
+        if(!db::delete('mfc', self::$data['mfcid'], false /* silent */)) {
+          if(db::errNo() != db::ER_ROW_IS_REFERENCED)
+            self::trigger(db::error());   // we don't handle such an error
+          
+          $result['error'] =  'The MFC '.json_encode(self::$data).
+                              ' cannot be deleted as there are cables in it';
+        }
+        
+        break;
+      
+      
+        // Gets cables put in the MFC sorted by 'sortno, name'.
+        // Input:
+        //    {
+        //      mfcid:  <id of an MFC to get cables from>  
+        //    }
+        // Output:
+        //    [
+        //      {
+        //        cableid,
+        //        name,
+        //        type,
+        //        weight,
+        //        info,
+        //        link,
+        //        count:  <how many in this MFC>
+        //      },
+        //      ...
+        //    ]
+      
+      case 'cablemfc_get':
+        
+        if($error = form::checkErrors(self::$FIELDS[$method], self::$data)) {
+          $result['error'] = current($error);
+          $result['field'] = current(array_keys($error));
+          break;
+        }
+        
+        $mfcid = self::$data['mfcid'];
+        
+        $result = db::rows('cablemfc.cableid,name,type,weight,info,link,count', 'cablemfc,cable',
+                           "mfcid=$mfcid AND cable.cableid=cablemfc.cableid", '', 'sortno,name');
+        break;
+      
+      
+        // Sets new counts for specified cables in the MFC as follows:
+        //    * if a cable is already in the MFC, its count is updated
+        //    * if a cable is not in the MFC, it is added with the specified count
+        //    * if new count is zero, the cable is deleted
+        // Input:
+        //    {
+        //      mfcid:  <if of an MFC to set cable for>,
+        //      cables:
+        //      [
+        //        {
+        //          cableid,
+        //          count:  <new count to set, zero means to delete the cable>
+        //        },
+        //        ...
+        //      ]
+        //    }
+        // Output:
+        //    nothing
+      
+      case 'cablemfc_set':
+        
+        // check 'mfcid' with 'cablemfc_get' constraint
+        if($error = form::checkErrors(self::$FIELDS['cablemfc_get'], self::$data)) {
+          $result['error'] = current($error);
+          $result['field'] = current(array_keys($error));
+          break;
+        }
+        
+        $mfcid = self::$data['mfcid'];
+        
+        if(!is_array(@self::$data['cables'])) {
+          $result['error'] = "Input data has no 'cables' of array type";
+          break;
+        }
+        
+        db::query('BEGIN');
+        
+        foreach(self::$data['cables'] as &$cable) {
+          if($error = form::checkErrors(self::$FIELDS[$method], $cable)) {
+            $result['error'] = current($error);
+            $result['field'] = current(array_keys($error));
+            break;
+          }
+          extract($cable);  // get $cableid and $count
+          
+          if($count == 0) {
+            db::delete('cablemfc', compact('mfcid', 'cableid'));
+            continue;
+          }
+          
+          if(db::insert('cablemfc', compact('mfcid', 'cableid', 'count'), true, '', false) === false) {
+            if(db::errNo() != db::ER_NO_REFERENCED_ROW)
+              self::trigger(db::error());   // we don't handle such an error
+            $result['error'] = "Either mfcid=$mfcid or cableid=$cableid are referencing non-existing object";
+            break;
+          }
+        }
+        
+        if(!isset($result['error']))
+          db::query('COMMIT');
+          
+        break;  
+      
       default:
       
         $result['error'] = $method != '' ? "Not supported method '$method'" : "Not specified method";
@@ -672,6 +932,8 @@ api::$FIELDS = [
   [
     'name'      =>  RSTR(25),
     'type'      =>  ENUM('electrical', 'speaker', 'microphone', 'module', 'special', 'multi', 'c_type'),
+    //'sortno'    =>  UINT, auto-assigned so omitted
+    'weight'    =>  UINT,
     'total'     =>  UINT,
     'reserved'  =>  UINT,
     'info'      =>  STR(255),
@@ -683,6 +945,8 @@ api::$FIELDS = [
     'cableid'   =>  RID,
     'name'      =>  STR(25),
     'type'      =>  ENUM('electrical', 'speaker', 'microphone', 'module', 'special', 'multi', 'c_type'),
+    'sortno'    =>  UINT,
+    'weight'    =>  UINT,
     'total'     =>  UINT,
     'reserved'  =>  UINT,
     'info'      =>  STR(255),
@@ -713,7 +977,8 @@ api::$FIELDS = [
     'return_time'   =>  ANY,
     'front'         =>  ANY,
     'monitor'       =>  ANY,
-    'stage'         =>  ANY
+    'stage'         =>  ANY,
+    'done'          =>  ANY
   ],
   
   'affair_add' =>
@@ -732,7 +997,8 @@ api::$FIELDS = [
     'monitor'       =>  BOOL,
     'stage'         =>  BOOL,
     'master_note'   =>  ANY,
-    'tech_note'     =>  ANY
+    'tech_note'     =>  ANY,
+    'done'          =>  BOOL
   ],
   
   'affair_update' =>
@@ -752,7 +1018,8 @@ api::$FIELDS = [
     'monitor'       =>  BOOL,
     'stage'         =>  BOOL,
     'master_note'   =>  ANY,
-    'tech_note'     =>  ANY
+    'tech_note'     =>  ANY,
+    'done'          =>  BOOL
   ],
   
   'affair_delete' =>
@@ -770,6 +1037,7 @@ api::$FIELDS = [
     'affairid'      =>  ANY,
     'tech_id'       =>  ANY,
     'count'         =>  ANY,
+    'spare_count'   =>  ANY,
     'done'          =>  ANY
   ],
   
@@ -778,7 +1046,8 @@ api::$FIELDS = [
     'cableid'       =>  RID,
     'affairid'      =>  RID,
     'tech_id'       =>  RID,
-    'count'         =>  RID,  // RID not RUINT to prevent 0
+    'count'         =>  RID,    // RID not RUINT to prevent 0
+    'spare_count'   =>  RUINT,  // 0 is allowed
     'done'          =>  BOOL
   ],
   
@@ -788,13 +1057,55 @@ api::$FIELDS = [
     'cableid'       =>  ID,
     'affairid'      =>  ID,
     'tech_id'       =>  ID,
-    'count'         =>  ID,  // ID not UINT to prevent 0
-    'done'          =>  BOOL
+    'count'         =>  ID,     // ID not UINT to prevent 0
+    'spare_count'   =>  UINT,   // 0 is allowed
+    'done'          =>  BOOL,
+    'tfc1'          =>  UINT,
+    'tfc2'          =>  UINT,
+    'tfc3'          =>  UINT,
+    'tfc4'          =>  UINT,
+    'tfc5'          =>  UINT,
+    'tfc_done'      =>  BOOL
   ],
   
   'order_delete' =>
   [
     'orderid'       =>  RID
+  ],
+  
+  'mfc_add' =>
+  [
+    'name'      =>  RSTR(50),
+    'info'      =>  STR(255),
+    'tech_id'   =>  ID,
+    'affairid'  =>  ID
+  ],
+  
+  'mfc_update' =>
+  [
+    'mfcid'     =>  RID,
+    'name'      =>  STR(50),
+    'info'      =>  STR(255),
+    'tech_id'   =>  ID,
+    'affairid'  =>  ID
+  ],
+  
+  'mfc_delete' =>
+  [
+    'mfcid'     =>  RID
+  ],
+  
+  'cablemfc_get' =>
+  [
+    'mfcid'     =>  RID
+  ],
+  
+        // Each individual cable constraints; to check 'mfcid', 'cablemfc_get' is used, see above
+  
+  'cablemfc_set' =>
+  [
+    'cableid'   =>  RID,
+    'count'     =>  RUINT   // may be 0
   ]
 ];
 

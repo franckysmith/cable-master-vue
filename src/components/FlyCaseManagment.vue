@@ -1,76 +1,69 @@
 <template>
-  <Formaffaire @lessonaffaire="affaireToList" />
+  <div class="content-liste" v-if="!flightcase">
+    <h1>CableTech management</h1>
 
-  <div class="content-liste">
-    <h1>CableTech page</h1>
-
-    <button class="button2" @click.prevent="resume = !true" v-if="resume">
+    <button class="button2" @click="orga = !true" v-if="orga" type="button">
       fermer la liste
     </button>
-
-    <div v-if="!resume">
+    <div v-if="!orga">
       <div>
         <div class="post">
           <button @click="selectype('speaker')">HP</button>
-
           <button @click="selectype('electrical')">Elec</button>
-
           <button @click="selectype('module')">Modules</button>
-
           <button @click="selectype('special')">Special</button>
-
           <button @click="selectype('multi')">multis</button>
-
           <button @click="selectype('microphone')">Micros</button>
-
           <button @click="selectype('c_type')">caisses-type</button>
         </div>
       </div>
 
       <form @subbmit.prevent="update_order()">
         <button @click="submit" class="button2" type="submit">Save</button>
+        <button class="button2" @click="orga = true" type="button">
+          {{ resume ? "cacher" : "organisation" }}
+        </button>
 
-        <button class="button2" @click.prevent="resume = true">liste</button>
+        <button class="button2" @click="flightcase = true" type="button">
+          {{ resume ? "cacher" : "flight cases" }}
+        </button>
 
         <div class="head">
           <div>count</div>
-
-          <div style="padding-left:10px">spare</div>
-
-          <div style="padding-left:13px">total</div>
+          <div style="padding-left:20px">FC1</div>
+          <div style="padding-left:25px">FC2</div>
+          <div style="padding-left:25px">FC3</div>
+          <div style="padding-left:25px">FC4</div>
+          <div style="padding-left:25px">FC5</div>
         </div>
-
         <div class="content-all">
           <div
             class="content-number"
-            v-for="cable in cableTechJoinedData"
+            v-for="cable in cables"
             :key="cable.cableid"
           >
             <div class="number" v-if="cable.type == typechoose">
-              <input type="checkbox" :checked="cable.isChecked" />
-
               <div class="name">
                 <h3>{{ cable.name }}</h3>
               </div>
 
               <div>
-                <input name="count" v-model="cable.count" />
+                <input name="count" v-model="count" />
               </div>
-
               <div>
-                <input name="spare_count" v-model="cable.spare_count" />
+                <input name="" />
               </div>
-
               <div>
-                <input name="total" v-model="cable.total" />
+                <input name="" />
               </div>
-
-              <div><button :href="cable.link">link</button></div>
-
-              <div><button :href="cable.info">info</button></div>
-
               <div>
-                <p>{{ cable.spare_count }}</p>
+                <input name="" />
+              </div>
+              <div>
+                <input name="" />
+              </div>
+              <div>
+                <input name="" />
               </div>
             </div>
           </div>
@@ -78,48 +71,21 @@
       </form>
     </div>
   </div>
-
-  <div v-if="resume">
-    <div class="content-resume" v-for="cable in cables" :key="cable.cableid">
-      <table>
-        <tr>
-          <th>
-            {{ cable.name }}
-          </th>
-
-          <th>
-            {{ cable.total }}
-          </th>
-        </tr>
-      </table>
-    </div>
-  </div>
-
-  <div><button>getorder</button></div>
-
-  <div v-for="order in orders" :key="order.orderid">
-    cableid: {{ order.cableid }} count: {{ order.spare_count }}
-  </div>
 </template>
-
 <script>
 import { Api } from "../js/api.js";
 var url = "https://cinod.fr/cables/api.php";
 var api = new Api(url);
-
 import cablageServices from "@/services/cablage.js";
-import Formaffaire from "@/components/Formaffaire.vue";
-import { ref, computed } from "vue";
+
+import { ref } from "vue";
 
 export default {
   name: "Cabletech",
 
-  components: { Formaffaire },
-
   setup() {
     // cable list name total link info
     let cables = ref([]);
-
     api
       .call("cable_get")
       .then(response => {
@@ -131,19 +97,19 @@ export default {
       });
 
     // affairid from component Formaffaire
+
     let affairid = ref("");
     let orders = ref([]);
     let reserved = ref("");
     let typechoose = ref("microphone");
     let resume = ref(false);
-    let cable = ref("");
-    let cableIdsInOrders = ref([]);
-    let cableTechJoinedData = ref([]);
-
+    // let cable = ref("");
+    let count = ref("");
+    let cableid = ref("");
     // let order = ref([]);
     // let search = ref("");
-    // function affaireToList(data) {
-    //   dataAffaire.value = data;
+    let cableIdsInOrders = ref([]);
+
     // order get with affairid
     function affaireToList(data) {
       let searchbyaff = { affairid: data };
@@ -153,9 +119,9 @@ export default {
         .then(response => {
           console.log("order_get:", response);
           orders.value = response;
-
-          // create a view-model joining order items and cables
-          aggregateData(response, cables.value);
+          orders.value.forEach(o => {
+            cableIdsInOrders.value.push(o.cableid);
+          });
         })
 
         .catch(function(response) {
@@ -163,44 +129,6 @@ export default {
         });
 
       console.log("affairid | Cabletech", data);
-    }
-
-    function aggregateData(orders, cables) {
-      orders.forEach(o => {
-        cableIdsInOrders.value.push(o.cableid);
-      });
-
-      cables.forEach(cable => {
-        let line = {
-          isChecked: false,
-          name: cable.name,
-          count: 0,
-          spare: 0,
-          total: cable.total,
-          link: cable.link,
-          info: cable.info,
-          type: cable.type
-        };
-
-        if (cableIdsInOrders.value.includes(cable.cableid)) {
-          const orderItem = orders.find(o => o.cableid === cable.cableid);
-
-          line = {
-            isChecked: true,
-            name: cable.name,
-            count: orderItem.count,
-            spare: orderItem.spare_count,
-            total: cable.total,
-            link: cable.link,
-            info: cable.info,
-            type: cable.type
-          };
-        }
-
-        cableTechJoinedData.value = [...cableTechJoinedData.value, line];
-      });
-
-      console.log("cableTechJoinedData.value", cableTechJoinedData.value);
     }
 
     // choose display cable_type (buttons)
@@ -215,11 +143,11 @@ export default {
       cablageServices.orderupdate([param]);
     }
 
-    // soustraction total et reserved
-    const cableTotalTech = computed(() => {
-      console.log("cableTotalTech", cable.value.total);
-      return cable.value.total + cable.value.reserved;
-    });
+    // addition total et reserved
+    // const cableTotalTech = computed(() => {
+    //   console.log("cableTotalTech", cable.value.total);
+    //   return cable.value.total + cable.value.reserved;
+    // });
 
     return {
       cables,
@@ -231,8 +159,11 @@ export default {
       selectype,
       typechoose,
       resume,
-      cableTotalTech,
-      cableTechJoinedData
+      // cableTotalTech,
+      count,
+      // ordercableaff,
+      cableid,
+      cableIdsInOrders
     };
   }
 };
@@ -340,10 +271,10 @@ th {
 }
 .head {
   display: flex;
-  /* margin: auto; */
+  font-size: 12px;
   width: 400px;
   text-align: left;
-  padding-left: 155px;
+  padding-left: 130px;
 }
 .number {
   display: flex;

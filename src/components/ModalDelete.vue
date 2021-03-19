@@ -37,6 +37,7 @@ export default {
   props: {
     cableToDelete: Object
   },
+  emits: ["supp", "close"],
   setup(_, { emit }) {
     const validDelete = function() {
       console.log("validDelete", validDelete);

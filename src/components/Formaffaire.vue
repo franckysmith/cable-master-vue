@@ -9,7 +9,7 @@
           <button @click="techSelected()">All</button>
         </li>
         <li>
-          <option value="" selected disabled>Sélectionner :</option>
+          <!-- <option selected disabled>Sélectionner :</option> -->
           <select
             v-model="affaireSelectedId"
             @change="selectedaff(affaireSelectedId)"
@@ -40,7 +40,7 @@
           placeholder="Référence"
         />
 
-        <button class="button" @clic="add_affair()" value="New">
+        <button class="button" @clic="add_affair" value="New" type="button">
           New
         </button>
       </div>
@@ -63,9 +63,14 @@
             v-model="affaire.prep_time"
             value="morning"
             type="checkbox"
-            name="s_matin"
+            name="prep"
           />
-          <input type="checkbox" name="r_pm" value="afternoon" />
+          <input
+            v-model="affaire.prep_time"
+            value="afternoon"
+            type="checkbox"
+            name="prep"
+          />
         </div>
         <div class="dates">
           <h4>Sortie</h4>
@@ -78,17 +83,16 @@
           />
           <input
             v-model="affaire.receipt_time"
-            value="morning"
+            :value="morning"
             type="checkbox"
-            name="s_matin"
+            name="s_am"
           />
 
           <input
             v-model="affaire.receipt_time"
-            :true-value="0"
-            :false-value="1"
+            :value="afternoon"
             type="checkbox"
-            name="s_apm"
+            name="s_pm"
           />
         </div>
         <div class="dates">
@@ -101,8 +105,18 @@
             name="retour"
           />
 
-          <input v-model="affaire.return_time" type="checkbox" name="r_am" />
-          <input type="checkbox" name="r_pm" />
+          <input
+            v-model="affaire.return_time"
+            value="morning"
+            type="checkbox"
+            name="r-am"
+          />
+          <input
+            v-model="affaire.return_time"
+            value="afternoon"
+            type="checkbox"
+            name="r-pm"
+          />
         </div>
       </div>
 
@@ -192,6 +206,7 @@ import cablageServices from "@/services/cablage.js";
 
 export default {
   name: "Formaffaire",
+  props: ["cables"],
 
   setup(props, context) {
     let affaire = ref([]);
@@ -209,6 +224,7 @@ export default {
     let tech_id = ref("");
     let tech_name = ref("");
     let name = ref("");
+
     // let firstadd = ref("");
 
     // get affair by techid
@@ -237,6 +253,7 @@ export default {
 
     // add affair
     function add_affair() {
+      affaire.value = [""];
       let firstadd = {
         tech_id: tech_id.value,
         tech_name: tech_name.value,
@@ -368,5 +385,8 @@ li {
 }
 ul {
   padding-inline-start: 0px;
+}
+#selectaff {
+  width: 130px;
 }
 </style>

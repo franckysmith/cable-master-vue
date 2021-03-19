@@ -153,7 +153,7 @@ export default {
       console.log("typechoose", data);
       typechoose.value = data;
     }
-
+    // get cable
     let cable_get = onMounted(() => {
       api
         .call("cable_get")
