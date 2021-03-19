@@ -1,7 +1,5 @@
 <template>
   <div class="content-liste">
-    <h1>CableTech organisation</h1>
-
     <div v-if="!orga">
       <form @subbmit.prevent="update_order()">
         <div class="head">
@@ -57,11 +55,13 @@ import cablageServices from "@/services/cablage.js";
 import { ref } from "vue";
 
 export default {
-  name: "Cabletech",
+  name: "CabletechOrg",
+  props: ["typechoose"],
 
   setup() {
     // cable list name total link info
     let cables = ref([]);
+    let orga = ref("");
     api
       .call("cable_get")
       .then(response => {
@@ -72,18 +72,13 @@ export default {
         console.log("err_cable_get:", response);
       });
 
-    // affairid from component Formaffaire
-
     let affairid = ref("");
     let orders = ref([]);
     let reserved = ref("");
     let typechoose = ref("microphone");
     let resume = ref(false);
-    // let cable = ref("");
     let count = ref("");
     let cableid = ref("");
-    // let order = ref([]);
-    // let search = ref("");
     let cableIdsInOrders = ref([]);
 
     // order get with affairid
@@ -133,13 +128,11 @@ export default {
       update_order,
       reserved,
       selectype,
-      typechoose,
       resume,
-      // cableTotalTech,
       count,
-      // ordercableaff,
       cableid,
-      cableIdsInOrders
+      cableIdsInOrders,
+      orga
     };
   }
 };

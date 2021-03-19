@@ -4,61 +4,43 @@
   <div class="content-liste">
     <h1>CableTech page</h1>
 
-    <div>
+    <button class="button2" @click.prevent="resume = !true" v-if="resume">
+      fermer la liste
+    </button>
+
+    <div v-if="!resume">
       <div>
         <div class="post">
           <button @click="selectype('speaker')">HP</button>
+
           <button @click="selectype('electrical')">Elec</button>
+
           <button @click="selectype('module')">Modules</button>
+
           <button @click="selectype('special')">Special</button>
+
           <button @click="selectype('multi')">multis</button>
+
           <button @click="selectype('microphone')">Micros</button>
+
           <button @click="selectype('c_type')">caisses-type</button>
         </div>
       </div>
 
-      <form @subbmit.prevent="update_order()">
+      <form @submit.prevent="update_order()">
         <button @click="submit" class="button2" type="submit">Save</button>
-        <button
-          class="button2"
-          @click="orga = true"
-          v-show="!orga"
-          type="button"
-        >
-          organisation
-        </button>
-        <button
-          class="button2"
-          @click="orga = false"
-          v-show="orga"
-          type="button"
-        >
-          fermer org
-        </button>
 
-        <button
-          class="button2"
-          @click="flightcase = true"
-          v-show="!flightcase"
-          type="button"
-        >
-          flightcase
-        </button>
-        <button
-          class="button2"
-          @click="flightcase = false"
-          v-show="flightcase"
-          type="button"
-        >
-          fermer flightcase
-        </button>
+        <button class="button2" @click.prevent="resume = true">liste</button>
 
-        <div class="head" v-if="!orga">
+        <div class="head">
           <div>count</div>
+
           <div style="padding-left:10px">spare</div>
+
           <div style="padding-left:13px">total</div>
         </div>
-        <div class="content-all" v-if="!orga">
+
+        <div class="content-all">
           <div
             class="content-number"
             v-for="cable in cableTechJoinedData"
@@ -66,60 +48,77 @@
           >
             <div class="number" v-if="cable.type == typechoose">
               <input type="checkbox" :checked="cable.isChecked" />
+
               <div class="name">
                 <h3>{{ cable.name }}</h3>
               </div>
 
               <div>
-                <input name="count" v-model="count" />
+                <input name="count" v-model="cable.count" />
               </div>
+
               <div>
                 <input name="spare_count" v-model="cable.spare_count" />
               </div>
+
               <div>
                 <input name="total" v-model="cable.total" />
               </div>
 
-              <div>
-                <button><a :href="cable.link">link</a></button>
-              </div>
+              <div><button :href="cable.link">link</button></div>
+
               <div><button :href="cable.info">info</button></div>
 
-              <div>
-                <p>{{ cable.info }}</p>
-              </div>
+              <div></div>
             </div>
           </div>
         </div>
       </form>
     </div>
   </div>
-  <CableTechorg v-if="orga" :cables="cables" />
-  <FlyCaseManagment v-if="flightcase" :cables="cables" />
-  <!-- <div><button>getorder</button></div>
+
+  <div>
+    <div class="content-resume" v-for="cable in cables" :key="cable.cableid">
+      <table>
+        <tr>
+          <th>
+            {{ cable.name }}
+          </th>
+
+          <th>
+            {{ cable.total - cable.reserved }}
+            {{ cable.reserved }}
+          </th>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <div><button>getorder</button></div>
+
   <div v-for="order in orders" :key="order.orderid">
-    {{ order.count }} {{ order.cableid }}
-  </div> -->
+    cableid: {{ order.cableid }} count: {{ order.spare_count }}
+  </div>
 </template>
+
 <script>
 import { Api } from "../js/api.js";
 var url = "https://cinod.fr/cables/api.php";
 var api = new Api(url);
+
 import cablageServices from "@/services/cablage.js";
-
 import Formaffaire from "@/components/Formaffaire.vue";
-import FlyCaseManagment from "@/components/FlyCaseManagment.vue";
-import CableTechorg from "@/components/CableTechorg.vue";
-
-import { ref } from "vue";
+import { ref, computed } from "vue";
 
 export default {
   name: "Cabletech",
-  components: { Formaffaire, FlyCaseManagment, CableTechorg },
+
+  components: { Formaffaire },
 
   setup() {
     // cable list name total link info
     let cables = ref([]);
+
     api
       .call("cable_get")
       .then(response => {
@@ -131,44 +130,42 @@ export default {
       });
 
     // affairid from component Formaffaire
-
     let affairid = ref("");
     let orders = ref([]);
     let reserved = ref("");
     let typechoose = ref("microphone");
-    // let resume = ref(false);
-    let flightcase = ref(false);
-    let orga = ref(false);
-    // let cable = ref("");
-    let count = ref("");
-    let cableid = ref("");
-    // let order = ref([]);
-    // let search = ref("");
+    let resume = ref(false);
+    let cable = ref("");
     let cableIdsInOrders = ref([]);
     let cableTechJoinedData = ref([]);
+
+    // let order = ref([]);
+    // let search = ref("");
+    // function affaireToList(data) {
+    //   dataAffaire.value = data;
     // order get with affairid
     function affaireToList(data) {
+      cableIdsInOrders.value = [];
+      cableTechJoinedData.value = [];
       let searchbyaff = { affairid: data };
 
       api
-
         .call("order_get", searchbyaff)
-
         .then(response => {
           console.log("order_get:", response);
-
           orders.value = response;
 
           // create a view-model joining order items and cables
-
           aggregateData(response, cables.value);
         })
+
         .catch(function(response) {
           console.log("order_get:", response);
         });
 
       console.log("affairid | Cabletech", data);
     }
+
     function aggregateData(orders, cables) {
       orders.forEach(o => {
         cableIdsInOrders.value.push(o.cableid);
@@ -177,19 +174,12 @@ export default {
       cables.forEach(cable => {
         let line = {
           isChecked: false,
-
           name: cable.name,
-
           count: 0,
-
-          spare: 0,
-
+          spare_count: 0,
           total: cable.total,
-
           link: cable.link,
-
           info: cable.info,
-
           type: cable.type
         };
 
@@ -198,19 +188,12 @@ export default {
 
           line = {
             isChecked: true,
-
             name: cable.name,
-
             count: orderItem.count,
-
-            spare: orderItem.spare_count,
-
+            spare_count: orderItem.spare_count,
             total: cable.total,
-
             link: cable.link,
-
             info: cable.info,
-
             type: cable.type
           };
         }
@@ -233,11 +216,11 @@ export default {
       cablageServices.orderupdate([param]);
     }
 
-    // addition total et reserved
-    // const cableTotalTech = computed(() => {
-    //   console.log("cableTotalTech", cable.value.total);
-    //   return cable.value.total + cable.value.reserved;
-    // });
+    // soustraction total et reserved
+    const cableTotalTech = computed(() => {
+      console.log("cableTotalTech", cable.value.total);
+      return cable.value.total + cable.value.reserved;
+    });
 
     return {
       cables,
@@ -248,13 +231,8 @@ export default {
       reserved,
       selectype,
       typechoose,
-      // resume,
-      flightcase,
-      orga,
-      count,
-      // ordercableaff,
-      cableid,
-      cableIdsInOrders,
+      resume,
+      cableTotalTech,
       cableTechJoinedData
     };
   }

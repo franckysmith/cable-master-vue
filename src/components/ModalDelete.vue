@@ -17,10 +17,10 @@
           <div class="modal-footer">
             <slot name="footer">
               <button class="modal-default-button" @click="validDelete">
-                oui
+                supprimer
               </button>
               <button class="modal-default-button" @click="isOpenClose">
-                non
+                X
               </button>
             </slot>
           </div>

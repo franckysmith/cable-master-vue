@@ -27,7 +27,11 @@
       </ul>
     </div>
 
-    <form v-for="affaire in search" :key="affaire.affairid">
+    <form
+      @submit="update_affair(affaire.affairid)"
+      v-for="affaire in search"
+      :key="affaire.affairid"
+    >
       <div class="entete">
         <input
           class="entete-name-aff"
@@ -44,6 +48,7 @@
           New
         </button>
       </div>
+
       <div class="label">
         <div>matin</div>
         <div style="margin-left:20px">ap-midi</div>
@@ -62,14 +67,14 @@
           <input
             v-model="affaire.prep_time"
             value="morning"
-            type="checkbox"
-            name="prep"
+            type="radio"
+            name="prepmoment"
           />
           <input
             v-model="affaire.prep_time"
             value="afternoon"
-            type="checkbox"
-            name="prep"
+            type="radio"
+            name="prepmoment"
           />
         </div>
         <div class="dates">
@@ -83,16 +88,16 @@
           />
           <input
             v-model="affaire.receipt_time"
-            :value="morning"
-            type="checkbox"
-            name="s_am"
+            value="morning"
+            type="radio"
+            name="smoment"
           />
 
           <input
             v-model="affaire.receipt_time"
-            :value="afternoon"
-            type="checkbox"
-            name="s_pm"
+            value="afternoon"
+            type="radio"
+            name="smoment"
           />
         </div>
         <div class="dates">
@@ -108,14 +113,14 @@
           <input
             v-model="affaire.return_time"
             value="morning"
-            type="checkbox"
-            name="r-am"
+            type="radio"
+            name="rmoment"
           />
           <input
             v-model="affaire.return_time"
             value="afternoon"
-            type="checkbox"
-            name="r-pm"
+            type="radio"
+            name="rmoment"
           />
         </div>
       </div>
@@ -154,7 +159,6 @@
             name="scene"
           />
         </div>
-
         <div class="contentUpdate">
           <div class="content-update1">
             <button
@@ -166,7 +170,13 @@
             </button>
 
             <label for="end"
-              >en ligne <input type="checkbox" name="end"
+              >en ligne
+              <input
+                v-model="affaire.done"
+                type="checkbox"
+                :true-value="1"
+                :false-value="0"
+                name="end"
             /></label>
             <button @click="note = true" v-if="!note">note</button>
             <button @click="note = false" v-if="note">
@@ -224,8 +234,6 @@ export default {
     let tech_id = ref("");
     let tech_name = ref("");
     let name = ref("");
-
-    // let firstadd = ref("");
 
     // get affair by techid
     function techSelected(param) {

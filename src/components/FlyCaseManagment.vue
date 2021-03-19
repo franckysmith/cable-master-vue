@@ -1,33 +1,7 @@
 <template>
-  <div class="content-liste" v-if="!flightcase">
-    <h1>CableTech management</h1>
-
-    <button class="button2" @click="orga = !true" v-if="orga" type="button">
-      fermer la liste
-    </button>
-    <div v-if="!orga">
-      <div>
-        <div class="post">
-          <button @click="selectype('speaker')">HP</button>
-          <button @click="selectype('electrical')">Elec</button>
-          <button @click="selectype('module')">Modules</button>
-          <button @click="selectype('special')">Special</button>
-          <button @click="selectype('multi')">multis</button>
-          <button @click="selectype('microphone')">Micros</button>
-          <button @click="selectype('c_type')">caisses-type</button>
-        </div>
-      </div>
-
+  <div class="content-liste">
+    <div v-if="!flightcase">
       <form @subbmit.prevent="update_order()">
-        <button @click="submit" class="button2" type="submit">Save</button>
-        <button class="button2" @click="orga = true" type="button">
-          {{ resume ? "cacher" : "organisation" }}
-        </button>
-
-        <button class="button2" @click="flightcase = true" type="button">
-          {{ resume ? "cacher" : "flight cases" }}
-        </button>
-
         <div class="head">
           <div>count</div>
           <div style="padding-left:20px">FC1</div>
@@ -81,7 +55,8 @@ import cablageServices from "@/services/cablage.js";
 import { ref } from "vue";
 
 export default {
-  name: "Cabletech",
+  name: "FlyCaseManagment",
+  props: ["typechoose"],
 
   setup() {
     // cable list name total link info
@@ -96,19 +71,15 @@ export default {
         console.log("err_cable_get:", response);
       });
 
-    // affairid from component Formaffaire
-
     let affairid = ref("");
     let orders = ref([]);
     let reserved = ref("");
     let typechoose = ref("microphone");
     let resume = ref(false);
-    // let cable = ref("");
     let count = ref("");
     let cableid = ref("");
-    // let order = ref([]);
-    // let search = ref("");
     let cableIdsInOrders = ref([]);
+    let flightcase = ref("");
 
     // order get with affairid
     function affaireToList(data) {
@@ -157,13 +128,11 @@ export default {
       update_order,
       reserved,
       selectype,
-      typechoose,
       resume,
-      // cableTotalTech,
       count,
-      // ordercableaff,
       cableid,
-      cableIdsInOrders
+      cableIdsInOrders,
+      flightcase
     };
   }
 };
