@@ -73,9 +73,9 @@
                     </button>
                   </div>
                 </div>
-                <div class="number2">
+                <div>
                   <div class="info">
-                    <p>{{ cable.info }}</p>
+                    {{ cable.info }}
                   </div>
                 </div>
               </div>
@@ -87,12 +87,12 @@
   </div>
   <CableTechOrg
     v-if="cableLayoutData == 'orga'"
-    :cables="cables"
+    :cableTechJoinedData="cables"
     :typechoose="typechoose"
   />
   <FlyCaseManagment
     v-if="cableLayoutData == 'flightcase'"
-    :cables="cables"
+    :cables="cableTechJoinedData"
     :typechoose="typechoose"
   />
   <!-- <div><button>getorder</button></div>
@@ -181,7 +181,8 @@ export default {
           total: cable.total,
           link: cable.link,
           info: cable.info,
-          type: cable.type
+          type: cable.type,
+          tfc1: cable.tfc1
         };
 
         if (cableIdsInOrders.value.includes(cable.cableid)) {
@@ -195,7 +196,8 @@ export default {
             total: cable.total,
             link: cable.link,
             info: cable.info,
-            type: cable.type
+            type: cable.type,
+            tfc1: cable.tfc1
           };
         }
 
@@ -311,10 +313,10 @@ input {
 .info {
   font-size: 12px;
   width: 400px;
-  height: 10px;
+
   text-align: left;
   /* padding: 0px; */
-  margin: 0px;
+  margin: 0px 0px 5px 30px;
 }
 .head {
   display: flex;

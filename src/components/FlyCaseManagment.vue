@@ -5,10 +5,10 @@
         <div class="head">
           <div>count</div>
           <div style="padding-left:20px">FC1</div>
-          <div style="padding-left:25px">FC2</div>
-          <div style="padding-left:25px">FC3</div>
-          <div style="padding-left:25px">FC4</div>
-          <div style="padding-left:25px">FC5</div>
+          <div style="padding-left:15px">FC2</div>
+          <div style="padding-left:20px">FC3</div>
+          <div style="padding-left:22px">FC4</div>
+          <div style="padding-left:23px">FC5</div>
         </div>
         <div class="content-all">
           <div
@@ -17,13 +17,14 @@
             :key="cable.cableid"
           >
             <div class="number" v-if="cable.type == typechoose">
+              <div>
+                <input type="checkbox" :checked="cable.tfc_done" />
+              </div>
               <div class="name">
                 <h3>{{ cable.name }}</h3>
               </div>
 
-              <div>
-                <input name="count" v-model="count" />
-              </div>
+              <div>{{ fcCount }} {{ cable.tfc1 }}</div>
               <div>
                 <input name="tfc1" v-model="cable.tfc1" />
               </div>
@@ -37,7 +38,7 @@
                 <input name="tfc4" v-model="cable.tfc4" />
               </div>
               <div>
-                <input name="tfc5" v-model="cable.tfc5" />
+                <input name="tfc5" v-model="cable.count" />
               </div>
             </div>
           </div>
@@ -52,24 +53,24 @@ var url = "https://cinod.fr/cables/api.php";
 var api = new Api(url);
 import cablageServices from "@/services/cablage.js";
 
-import { ref } from "vue";
+import { ref, computed } from "vue";
 
 export default {
   name: "FlyCaseManagment",
-  props: ["typechoose", "cable"],
+  props: {
+    typechoose: {
+      type: String
+    },
+    cables: {
+      type: Array
+    }
+  },
 
   setup() {
-    // cable list name total link info
-    let cables = ref([]);
-    api
-      .call("cable_get")
-      .then(response => {
-        console.log("cable_get:", response);
-        cables.value = response;
-      })
-      .catch(response => {
-        console.log("err_cable_get:", response);
-      });
+    let fcCount = computed(() => {
+      console.log("cable.value.count", cable.value.count);
+      return cable.value.count - cable.value.tfc1;
+    });
 
     let affairid = ref("");
     let orders = ref([]);
@@ -80,6 +81,7 @@ export default {
     let cableid = ref("");
     let cableIdsInOrders = ref([]);
     let flightcase = ref("");
+    let cable = ref([]);
 
     // order get with affairid
     function affaireToList(data) {
@@ -121,7 +123,6 @@ export default {
     // });
 
     return {
-      cables,
       affaireToList,
       affairid,
       orders,
@@ -132,7 +133,9 @@ export default {
       count,
       cableid,
       cableIdsInOrders,
-      flightcase
+      flightcase,
+      fcCount,
+      cable
     };
   }
 };
@@ -243,7 +246,7 @@ th {
   font-size: 12px;
   width: 400px;
   text-align: left;
-  padding-left: 130px;
+  padding-left: 150px;
 }
 .number {
   display: flex;
@@ -272,7 +275,7 @@ button {
   font-size: 15px;
   font-weight: 500;
   text-align: left;
-  width: 130px;
+  width: 110px;
   /* margin-left: 5px; */
   background-color: #c1c7c33a;
 }
