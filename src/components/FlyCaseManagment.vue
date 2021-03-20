@@ -25,19 +25,19 @@
                 <input name="count" v-model="count" />
               </div>
               <div>
-                <input name="" />
+                <input name="tfc1" v-model="cable.tfc1" />
               </div>
               <div>
-                <input name="" />
+                <input name="tfc2" v-model="cable.tfc2" />
               </div>
               <div>
-                <input name="" />
+                <input name="tfc3" v-model="cable.tfc3" />
               </div>
               <div>
-                <input name="" />
+                <input name="tfc4" v-model="cable.tfc4" />
               </div>
               <div>
-                <input name="" />
+                <input name="tfc5" v-model="cable.tfc5" />
               </div>
             </div>
           </div>
@@ -56,7 +56,7 @@ import { ref } from "vue";
 
 export default {
   name: "FlyCaseManagment",
-  props: ["typechoose"],
+  props: ["typechoose", "cable"],
 
   setup() {
     // cable list name total link info

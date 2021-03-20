@@ -41,35 +41,42 @@
             <div style="padding-left:10px">spare</div>
             <div style="padding-left:13px">total</div>
           </div>
-          <div class="content-all" v-if="!cableTechBase">
-            <div
-              class="content-number"
-              v-for="cable in cableTechJoinedData"
-              :key="cable.cableid"
-            >
-              <div class="number" v-if="cable.type == typechoose">
-                <input type="checkbox" :checked="cable.isChecked" />
-                <div class="name">
-                  <h3>{{ cable.name }}</h3>
-                </div>
+          <div class="content-number">
+            <div v-for="cable in cableTechJoinedData" :key="cable.cableid">
+              <div v-if="cable.type == typechoose">
+                <div class="number">
+                  <div>
+                    <input type="checkbox" :checked="cable.isChecked" />
+                  </div>
+                  <div class="name">
+                    <h3>{{ cable.name }}</h3>
+                  </div>
 
-                <div>
-                  <input name="count" v-model="count" />
-                </div>
-                <div>
-                  <input name="spare_count" v-model="cable.spare_count" />
-                </div>
-                <div>
-                  <input name="total" v-model="cable.total" />
-                </div>
+                  <div>
+                    <input name="count" v-model="cable.count" />
+                  </div>
+                  <div>
+                    <input name="spare_count" v-model="cable.spare_count" />
+                  </div>
+                  <div>
+                    <input name="total" v-model="cable.total" />
+                  </div>
 
-                <div>
-                  <button><a :href="cable.link">link</a></button>
+                  <div>
+                    <button type="button">
+                      <a :href="cable.link">link</a>
+                    </button>
+                  </div>
+                  <div>
+                    <button type="button">
+                      info
+                    </button>
+                  </div>
                 </div>
-                <div><button :href="cable.info">info</button></div>
-
-                <div>
-                  <p>{{ cable.info }}</p>
+                <div class="number2">
+                  <div class="info">
+                    <p>{{ cable.info }}</p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -133,6 +140,8 @@ export default {
     let cableIdsInOrders = ref([]);
     let cableTechJoinedData = ref([]);
     let cableTechBase = ref("");
+    // let toggleInfo = ref("");
+    // let infoToggle = ref("");
 
     // order get with affairid
     function affaireToList(data) {
@@ -168,7 +177,7 @@ export default {
           isChecked: false,
           name: cable.name,
           count: 0,
-          spare: 0,
+          spare_count: 0,
           total: cable.total,
           link: cable.link,
           info: cable.info,
@@ -182,7 +191,7 @@ export default {
             isChecked: true,
             name: cable.name,
             count: orderItem.count,
-            spare: orderItem.spare_count,
+            spare_count: orderItem.spare_count,
             total: cable.total,
             link: cable.link,
             info: cable.info,
@@ -214,11 +223,17 @@ export default {
       return cable.value.total + cable.value.reserved;
     });
 
-    //cableTechLayout acccès different
+    //cableTechLayout button organisation fightcase et
     function cableTechLayout(data) {
       console.log("data cableTechLayout", data);
       cableLayoutData.value = data;
     }
+
+    // open info
+    // function toggleInfo() {
+    //   let infoToggle = infoToggle;
+    //   console.log("toggleInfo", toggleInfo);
+    // }
 
     return {
       cables,
@@ -237,38 +252,15 @@ export default {
       cableTechLayout,
       cableLayoutData,
       cableTechBase
+      // toggleInfo,
+      // infoToggle
     };
   }
 };
 </script>
 <style scoped>
-input {
-  padding: 5px;
-}
-.entete {
-  display: flex;
-  justify-content: space-around;
-}
-.titre_affaire {
-  width: 200px;
-  height: 32px;
-  left: 34px;
-  top: 63px;
-
-  background: linear-gradient(180deg, #ffffff 0%, rgba(255, 255, 255, 0) 100%);
-  border: 1px solid #000000;
-  box-sizing: border-box;
-  box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
-}
-.post button {
-  margin: 10px;
-  padding: 5px;
-  min-width: 50px;
-  background: #4dcc59;
-  border: 1px solid #000000;
-  box-sizing: border-box;
-  box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
-  border-radius: 4px;
+button {
+  margin: 3px;
 }
 .button2 {
   margin: 10px;
@@ -290,14 +282,11 @@ input {
   width: 400px;
   justify-content: space-between;
 }
-.dates {
-  margin: 10px;
-  display: flex;
-  justify-content: space-around;
-}
+
 .content-number {
   width: 400px;
-  display: flex;
+  height: 45px;
+  /* display: flex; */
   /* flex-wrap: wrap; */
   /* margin: auto; */
 }
@@ -306,6 +295,97 @@ input {
 }
 .cont_2 input {
   margin: 5px;
+}
+.dates {
+  margin: 10px;
+  display: flex;
+  justify-content: space-around;
+}
+.entete {
+  display: flex;
+  justify-content: space-around;
+}
+input {
+  padding: 5px;
+}
+.info {
+  font-size: 12px;
+  width: 400px;
+  height: 10px;
+  text-align: left;
+  /* padding: 0px; */
+  margin: 0px;
+}
+.head {
+  display: flex;
+  /* margin: auto; */
+  width: 400px;
+
+  text-align: left;
+  padding-left: 155px;
+}
+.list {
+  margin: 5px 25px;
+  display: flex;
+  text-align: left;
+}
+
+.list input {
+  margin: 0px 10px;
+  width: 30px;
+}
+.list_name {
+  width: 220px;
+}
+.list_container {
+  width: 400px;
+}
+.name {
+  height: 10px;
+}
+.name h3 {
+  font-size: 15px;
+  font-weight: 500;
+  text-align: left;
+  width: 130px;
+  /* margin-left: 5px; */
+  background-color: #c1c7c33a;
+}
+.number {
+  display: flex;
+  border-width: 0px 0px 1px 0px;
+  /* border-style: solid; */
+}
+
+.number input {
+  width: 18px;
+  margin: 6px;
+}
+.number button {
+  line-height: 10px;
+  padding: 4px;
+  margin-top: 10px;
+  margin-right: 4px;
+}
+.number2 {
+  display: flex;
+  /* flex: auto 2; */
+  margin: 0px 15px 20px;
+}
+.post {
+  margin: 10px 0px 20px 0px;
+  width: 400px;
+}
+
+.post button {
+  margin: 10px;
+  padding: 5px;
+  min-width: 50px;
+  background: #4dcc59;
+  border: 1px solid #000000;
+  box-sizing: border-box;
+  box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+  border-radius: 4px;
 }
 .tech {
   width: 200px;
@@ -324,60 +404,15 @@ th {
   width: 250px;
   padding-left: 5px;
 }
+.titre_affaire {
+  width: 200px;
+  height: 32px;
+  left: 34px;
+  top: 63px;
 
-.post {
-  margin: 10px 0px 20px 0px;
-  width: 400px;
-}
-.list {
-  margin: 5px 25px;
-  display: flex;
-  text-align: left;
-}
-
-.list input {
-  margin: 0px 10px;
-  width: 30px;
-}
-.list_name {
-  width: 220px;
-}
-.head {
-  display: flex;
-  /* margin: auto; */
-  width: 400px;
-  text-align: left;
-  padding-left: 155px;
-}
-.number {
-  display: flex;
-  border-width: 0px 0px 1px 0px;
-  border-style: solid;
-}
-
-.number input {
-  width: 18px;
-  margin: 6px;
-}
-.number button {
-  line-height: 10px;
-  padding: 4px;
-  margin-top: 10px;
-  margin-right: 4px;
-}
-.list_container {
-  width: 400px;
-}
-button {
-  margin: 3px;
-}
-
-.name h3 {
-  font-size: 15px;
-  font-weight: 500;
-  text-align: left;
-  width: 130px;
-  /* margin-left: 5px; */
-  background-color: #c1c7c33a;
+  background: linear-gradient(180deg, #ffffff 0%, rgba(255, 255, 255, 0) 100%);
+  border: 1px solid #000000;
+  box-sizing: border-box;
+  box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
 }
 </style>

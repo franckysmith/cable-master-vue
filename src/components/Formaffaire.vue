@@ -234,6 +234,7 @@ export default {
     let tech_id = ref("");
     let tech_name = ref("");
     let name = ref("");
+    // searchby = { tech_id: "" };
 
     // get affair by techid
     function techSelected(param) {
