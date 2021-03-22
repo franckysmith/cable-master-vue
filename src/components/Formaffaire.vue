@@ -43,8 +43,13 @@
           class="entete-ref_aff"
           placeholder="Référence"
         />
-
-        <button class="button" @clic="add_affair" value="New" type="button">
+        <!-- /* ouverture component AddAffair*/ -->
+        <button
+          class="button"
+          @clic="newAffairOpen = true"
+          value="New"
+          type="button"
+        >
           New
         </button>
       </div>
@@ -232,9 +237,10 @@ export default {
   setup(props, context) {
     let affaire = ref([]);
     let affaires = ref([]);
-
+    context.emits("lessonOpenAffaire", newAffairOpen);
     // function affair techSelected button to change technician => liste d'affaires
 
+    let newAffairOpen = ref("false");
     let searchby = ref([]);
     let affaireSelect = ref([]);
     let affaireSelectedId = ref([]);
@@ -304,6 +310,7 @@ export default {
       search,
       affaireSelect,
       selectedaff,
+      newAffairOpen,
 
       note
     };
@@ -407,7 +414,6 @@ li {
   list-style: none;
 }
 .radio {
-  background: #ffc107;
 }
 ul {
   padding-inline-start: 0px;

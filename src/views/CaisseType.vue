@@ -1,19 +1,35 @@
 <template>
-  <div><button>New</button></div>
+  <div class="addflfightcase"><AddFlightCase /></div>
   <div v-for="caissetype in mfc" :key="caissetype.mfcid">
-    <div>
-      <form>
+    <div class="ct-content">
+      <div class="ctct-content">
         <div>
-          <input type="text" v-model="caissetype.name" />
-        </div>
-        <div>
-          <input type="textarea" v-model="caissetype.info" col="10" row="10" />
+          <input class="ct-name" type="text" v-model="caissetype.name" />
         </div>
 
-        <button>Delete</button>
-
-        <button>Update</button>
-      </form>
+        <div>
+          <button class="button" @click="deletemfc(caissetype)">delete</button>
+        </div>
+        <div>
+          <button
+            class="button3"
+            type="submit"
+            @click="mfcupdate(caissetype)"
+            name="save"
+          >
+            update / save
+          </button>
+        </div>
+      </div>
+      <div>
+        <input
+          class="ct-info"
+          type="textarea"
+          v-model="caissetype.info"
+          cols="2"
+          rows="3"
+        />
+      </div>
     </div>
   </div>
 
@@ -33,7 +49,7 @@
         <button @click="selectype('c_type')">numériques</button>
       </div>
 
-      <form @subbmit.prevent="update_order(cable)">
+      <form @subbmit.prevent="update_cablemfc(cable)">
         <button class="button2" id="save-liste" type="submit">
           Enregistrer
         </button>
@@ -45,7 +61,7 @@
             <div style="padding-left:13px">total</div>
           </div>
           <div class="content-number">
-            <div v-for="cable in cableMfcTechJoinedData" :key="cable.cableid">
+            <div v-for="cable in cables" :key="cable.cableid">
               <div v-if="cable.type == typechoose">
                 <div class="number">
                   <div class="name">
@@ -94,24 +110,26 @@ import { Api } from "../js/api.js";
 var url = "https://cinod.fr/cables/api.php";
 var api = new Api(url);
 import cablageServices from "@/services/cablage.js";
+import AddFlightCase from "@/components/AddFlightCase.vue";
 
-import { ref } from "vue";
+import { ref, onMounted } from "vue";
 
 export default {
   name: "CaisseType",
+  components: { AddFlightCase },
 
   setup() {
     // ----------- get caisses -------//
-
-    api
-      .call("mfc_get")
-      .then(response => {
-        mfc.value = response;
-      })
-      .catch(response => {
-        console.log("mfc_get:", response);
-      });
-
+    let mfc_get = onMounted(() => {
+      api
+        .call("mfc_get")
+        .then(response => {
+          mfc.value = response;
+        })
+        .catch(response => {
+          console.log("mfc_get:", response);
+        });
+    });
     // cable list name total link info etc ...
     let cables = ref([]);
     let caisses = ref([]);
@@ -119,6 +137,7 @@ export default {
     //   console.log("caissetype | cable_get");
     //   cablageServices.cableread();
     // }
+
     api
       .call("cable_get")
       .then(response => {
@@ -206,17 +225,38 @@ export default {
       typechoose.value = data;
     }
 
-    // save/update order
-    function cablemfc_order(param) {
-      console.log("cabletech | orderupdate", param);
-      cablageServices.cablemfcupdate([param]);
+    // --------- mfc --------//
+    // save/update updatemfc
+    function mfcupdate(data) {
+      api
+        .call("mfc_update", data)
+        .then(function(response) {
+          console.log("mfc_update:");
+          console.log(response);
+        })
+        .catch(function(response) {
+          console.log("mfc_update:");
+          console.log(response);
+        });
+    }
+    // function updatemfc(param) {
+    //   console.log("caisse | updatemfc:", param);
+    //   cablageServices.mfcupdate([param]);
+    // }
+    // delete mfc
+    function deletemfc(param) {
+      console.log("caisse | deletemfc", param);
+      cablageServices.mfcdelete(param);
+      mfc_get();
     }
 
     return {
       cables,
       caisseToList,
+      mfcupdate,
+      deletemfc,
 
-      cablemfc_order,
+      //   cablemfc_order,
       caisses,
       selectype,
       typechoose,
@@ -235,6 +275,9 @@ export default {
 };
 </script>
 <style scoped>
+.addflfightcase {
+  margin: 10px;
+}
 button {
   margin: 3px;
 }
@@ -252,12 +295,6 @@ button {
   margin: auto;
   text-align: center;
 }
-.content-resume {
-  display: flex;
-  text-align: left;
-  width: 400px;
-  justify-content: space-between;
-}
 
 .content-number {
   width: 400px;
@@ -266,20 +303,24 @@ button {
   /* flex-wrap: wrap; */
   /* margin: auto; */
 }
-.cont_2 {
+.ct-content {
   display: flex;
+  width: 400px;
+  flex-wrap: wrap;
+  /* margin: auto; */
 }
-.cont_2 input {
-  margin: 5px;
-}
-.dates {
-  margin: 10px;
+.ctct-content {
   display: flex;
-  justify-content: space-around;
+  justify-content: space-between;
+  width: 400px;
 }
-.entete {
-  display: flex;
-  justify-content: space-around;
+.ct-name {
+  width: 120px;
+  padding-right: 10px;
+  flex-wrap: wrap;
+}
+.ct-info {
+  width: 400px;
 }
 input {
   padding: 5px;
@@ -343,11 +384,7 @@ input {
   margin-top: 10px;
   margin-right: 4px;
 }
-.number2 {
-  display: flex;
-  /* flex: auto 2; */
-  margin: 0px 15px 20px;
-}
+
 .post {
   margin: 10px 0px 20px 0px;
   width: 400px;
@@ -371,33 +408,12 @@ input {
   -webkit-box-shadow: 5px 7px 5px 0px rgba(143, 141, 141, 0.75);
   -moz-box-shadow: 5px 7px 5px 0px rgba(143, 141, 141, 0.75);
 }
-
-.tech {
-  width: 200px;
-}
-table {
-  margin: 10px 0px 10px 0px;
-  border: solid 1px;
-  border-collapse: separate;
-  border-spacing: 0px;
-  text-align: left;
-  -webkit-box-shadow: 0px 0px 30px -2px rgba(0, 0, 0, 0.75);
-  -moz-box-shadow: 0px 0px 30px -2px rgba(0, 0, 0, 0.75);
-  box-shadow: 0px 0px 30px -2px rgba(0, 0, 0, 0.75);
-}
-th {
-  width: 250px;
-  padding-left: 5px;
-}
-.titre_affaire {
-  width: 200px;
-  height: 32px;
-  left: 34px;
-  top: 63px;
-
-  background: linear-gradient(180deg, #ffffff 0%, rgba(255, 255, 255, 0) 100%);
-  border: 1px solid #000000;
-  box-sizing: border-box;
-  box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+.button3 {
+  background-color: rgb(240, 216, 2);
+  color: #0c0b0b;
+  font-weight: 600;
+  box-shadow: 5px 7px 5px 0px rgba(143, 141, 141, 0.75);
+  -webkit-box-shadow: 5px 7px 5px 0px rgba(143, 141, 141, 0.75);
+  -moz-box-shadow: 5px 7px 5px 0px rgba(143, 141, 141, 0.75);
 }
 </style>

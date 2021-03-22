@@ -1,6 +1,6 @@
 <template>
   <Formaffaire @lessonaffaire="affaireToList" />
-
+  <AddAffair />
   <div class="content-liste">
     ----------------------
     <h3>Listes cables etc ...</h3>
@@ -115,12 +115,13 @@ import cablageServices from "@/services/cablage.js";
 import Formaffaire from "@/components/Formaffaire.vue";
 import FlyCaseManagment from "@/components/FlyCaseManagment.vue";
 import CableTechOrg from "@/components/CableTechOrg.vue";
+import AddAffair from "@/components/AddAffair.vue";
 
 import { ref, computed } from "vue";
 
 export default {
   name: "Cabletech",
-  components: { Formaffaire, FlyCaseManagment, CableTechOrg },
+  components: { Formaffaire, FlyCaseManagment, CableTechOrg, AddAffair },
 
   setup() {
     // cable list name total link info

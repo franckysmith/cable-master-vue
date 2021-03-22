@@ -16,7 +16,7 @@ export default {
   cabledelete,
   affairereadtech,
   affairereadname,
-  affaireadd,
+  affairadd,
   affaireupdate,
   affairedelete,
   orderread,
@@ -149,7 +149,7 @@ function affairereadname(searchby) {
 }
 
 /*//---- 'affair_add' ----*/
-function affaireadd(data) {
+function affairadd(data) {
   //   var data = {
   //     tech_id: 32,
   //     tech_name: "John Smith",
@@ -326,12 +326,12 @@ function mfcupdate(data) {
 
   api
     .call("mfc_update", data)
-    .then(function(response) {
+    .then(response => {
       console.log("mfc_update:");
       console.log(response);
     })
     .catch(function(response) {
-      console.log("mc_update:");
+      console.log("mfc_update:");
       console.log(response);
     });
 }
