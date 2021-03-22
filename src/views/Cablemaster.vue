@@ -177,8 +177,9 @@ export default {
     function add_cable(data) {
       console.log("cablemaster | cableadd()", data);
       cablageServices.cableadd(data);
+      cable_get();
     }
-    // effacer un cabl
+    // effacer un cable
     function delete_cable(data) {
       console.log("cablemaster | cabledelete()", data);
       cablageServices.cabledelete([data]);
@@ -188,6 +189,7 @@ export default {
     function update_cable(param) {
       console.log("cablemaster | cableupdate", param);
       cablageServices.cableupdate([param]);
+      cable_get();
     }
     return {
       add_cable,

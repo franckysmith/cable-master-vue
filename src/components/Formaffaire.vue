@@ -65,12 +65,14 @@
           />
 
           <input
+            class="radio"
             v-model="affaire.prep_time"
             value="morning"
             type="radio"
             name="prepmoment"
           />
           <input
+            class="radio"
             v-model="affaire.prep_time"
             value="afternoon"
             type="radio"
@@ -87,6 +89,7 @@
             name="sortie"
           />
           <input
+            class="radio"
             v-model="affaire.receipt_time"
             value="morning"
             type="radio"
@@ -94,6 +97,7 @@
           />
 
           <input
+            class="radio"
             v-model="affaire.receipt_time"
             value="afternoon"
             type="radio"
@@ -111,12 +115,14 @@
           />
 
           <input
+            class="radio"
             v-model="affaire.return_time"
             value="morning"
             type="radio"
             name="rmoment"
           />
           <input
+            class="radio"
             v-model="affaire.return_time"
             value="afternoon"
             type="radio"
@@ -136,6 +142,7 @@
 
           <label for="face">face</label>
           <input
+            class="radio"
             v-model="affaire.front"
             :true-value="1"
             :false-value="0"
@@ -144,6 +151,7 @@
           />
           <label for="mon"> mon</label>
           <input
+            class="radio"
             v-model="affaire.monitor"
             :true-value="1"
             :false-value="0"
@@ -152,6 +160,7 @@
           />
           <label for="scene"> scène</label>
           <input
+            class="radio"
             v-model="affaire.stage"
             :true-value="1"
             :false-value="0"
@@ -162,6 +171,7 @@
         <div class="contentUpdate">
           <div class="content-update1">
             <button
+              id="save-affair"
               @click="update_affair(affaire)"
               class="button"
               type="submit"
@@ -172,6 +182,7 @@
             <label for="end"
               >en ligne
               <input
+                class="radio"
                 v-model="affaire.done"
                 type="checkbox"
                 :true-value="1"
@@ -327,6 +338,9 @@ input {
 .content-dates {
   line-height: 0px;
 }
+/* .content-dates input[type="radio"]:checked {
+  background: #135806;
+} */
 .dates {
   padding: 0px;
   align-items: baseline;
@@ -392,10 +406,21 @@ form {
 li {
   list-style: none;
 }
+.radio {
+  background: #ffc107;
+}
 ul {
   padding-inline-start: 0px;
 }
 #selectaff {
   width: 130px;
+}
+#save-affair {
+  background-color: rgb(240, 216, 2);
+  color: #0c0b0b;
+  font-weight: 600;
+  box-shadow: 5px 7px 5px 0px rgba(143, 141, 141, 0.75);
+  -webkit-box-shadow: 5px 7px 5px 0px rgba(143, 141, 141, 0.75);
+  -moz-box-shadow: 5px 7px 5px 0px rgba(143, 141, 141, 0.75);
 }
 </style>

@@ -2,6 +2,7 @@
   <div id="nav">
     <router-link to="/">Cablemaster</router-link> |
     <!-- <router-link to="/affairmaster">Affairmaster</router-link> | -->
+    <router-link to="/CaisseType">CaisseType</router-link> |
     <router-link to="/about">About</router-link> |
     <router-link to="/Cabletech">Cabletech</router-link>
   </div>

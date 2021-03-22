@@ -1,5 +1,21 @@
 <template>
-  <Formaffaire @lessonaffaire="affaireToList" />
+  <div><button>New</button></div>
+  <div v-for="caissetype in mfc" :key="caissetype.mfcid">
+    <div>
+      <form>
+        <div>
+          <input type="text" v-model="caissetype.name" />
+        </div>
+        <div>
+          <input type="textarea" v-model="caissetype.info" col="10" row="10" />
+        </div>
+
+        <button>Delete</button>
+
+        <button>Update</button>
+      </form>
+    </div>
+  </div>
 
   <div class="content-liste">
     ----------------------
@@ -22,48 +38,24 @@
           Enregistrer
         </button>
 
-        <button class="button2" @click="cableTechLayout('orga')" type="button">
-          organisation
-        </button>
-        <button
-          class="button2"
-          @click="cableTechLayout('cableTechBase')"
-          type="button"
-        >
-          total/spare
-        </button>
-
-        <button
-          class="button2"
-          @click="cableTechLayout('flightcase')"
-          type="button"
-        >
-          flightcase
-        </button>
-
-        <div v-if="cableLayoutData == 'cableTechBase'">
+        <div>
           <div class="head">
             <div>count</div>
-            <div style="padding-left:10px">spare</div>
+
             <div style="padding-left:13px">total</div>
           </div>
           <div class="content-number">
-            <div v-for="cable in cableTechJoinedData" :key="cable.cableid">
+            <div v-for="cable in cableMfcTechJoinedData" :key="cable.cableid">
               <div v-if="cable.type == typechoose">
                 <div class="number">
-                  <div>
-                    <input type="checkbox" :checked="cable.isChecked" />
-                  </div>
                   <div class="name">
                     <h3>{{ cable.name }}</h3>
                   </div>
 
                   <div>
-                    <input name="count" v-model="cable.count" />
+                    <input name="count" v-model="cable.total" />
                   </div>
-                  <div>
-                    <input name="spare_count" v-model="cable.spare_count" />
-                  </div>
+
                   <div>
                     <input name="total" v-model="cable.total" />
                   </div>
@@ -91,16 +83,7 @@
       </form>
     </div>
   </div>
-  <CableTechOrg
-    v-if="cableLayoutData == 'orga'"
-    :cableTechJoinedData="cables"
-    :typechoose="typechoose"
-  />
-  <FlyCaseManagment
-    v-if="cableLayoutData == 'flightcase'"
-    :cables="cableTechJoinedData"
-    :typechoose="typechoose"
-  />
+
   <!-- <div><button>getorder</button></div>
   <div v-for="order in orders" :key="order.orderid">
     {{ order.count }} {{ order.cableid }}
@@ -112,19 +95,30 @@ var url = "https://cinod.fr/cables/api.php";
 var api = new Api(url);
 import cablageServices from "@/services/cablage.js";
 
-import Formaffaire from "@/components/Formaffaire.vue";
-import FlyCaseManagment from "@/components/FlyCaseManagment.vue";
-import CableTechOrg from "@/components/CableTechOrg.vue";
-
-import { ref, computed } from "vue";
+import { ref } from "vue";
 
 export default {
-  name: "Cabletech",
-  components: { Formaffaire, FlyCaseManagment, CableTechOrg },
+  name: "CaisseType",
 
   setup() {
-    // cable list name total link info
+    // ----------- get caisses -------//
+
+    api
+      .call("mfc_get")
+      .then(response => {
+        mfc.value = response;
+      })
+      .catch(response => {
+        console.log("mfc_get:", response);
+      });
+
+    // cable list name total link info etc ...
     let cables = ref([]);
+    let caisses = ref([]);
+    // function cable_get() {
+    //   console.log("caissetype | cable_get");
+    //   cablageServices.cableread();
+    // }
     api
       .call("cable_get")
       .then(response => {
@@ -135,90 +129,75 @@ export default {
         console.log("err_cable_get:", response);
       });
 
-    let affairid = ref("");
-    let orders = ref([]);
-    let reserved = ref("");
     let typechoose = ref("speaker");
-    let cable = ref("");
+    // let cable = ref("");
     let count = ref("");
     let cableid = ref("");
     let cableLayoutData = ref("cableTechBase");
-    let cableIdsInOrders = ref([]);
-    let cableTechJoinedData = ref([]);
+    let cableIdsInMfc = ref([]);
+    let cableMfcTechJoinedData = ref([]);
     let cableTechBase = ref("");
-    // let toggleInfo = ref("");
-    // let infoToggle = ref("");
+    let mfc = ref([]);
+    let cablemfc = ref([]);
 
     // order get with affairid
-    function affaireToList(data) {
-      cableIdsInOrders.value = [];
-      cableTechJoinedData.value = [];
-      let searchbyaff = { affairid: data };
+    function caisseToList(data) {
+      //   cableIdsInOrders.value = [];
+      //   cableTechJoinedData.value = [];
 
+      let searchbycaisse = { mfcid: 3 };
       api
-        .call("order_get", searchbyaff)
+        .call("cablemfc_get", searchbycaisse)
         .then(response => {
-          console.log("order_get:", response);
-          orders.value = response;
+          console.log("cablemfc_get:", response);
+          cablemfc.value = response;
 
           // create a view-model joining order items and cables
 
           aggregateData(response, cables.value);
         })
         .catch(function(response) {
-          console.log("order_get:", response);
+          console.log("cablemfc_get:", response);
         });
 
-      console.log("affairid | Cabletech", data);
+      console.log("cablemfcid | CaisseType", data);
     }
 
-    // aggregateData table 'cables' et 'orders'
-    function aggregateData(orders, cables) {
-      orders.forEach(o => {
-        cableIdsInOrders.value.push(o.cableid);
+    // aggregateData table 'cables' et 'cablemfc'
+    function aggregateData(cablemfc, cables) {
+      cablemfc.forEach(o => {
+        cableIdsInMfc.value.push(o.cableid);
       });
 
       cables.forEach(cable => {
         let line = {
-          isChecked: false,
           name: cable.name,
-          count: "",
-          spare_count: 0,
+          count: 0,
           total: cable.total,
           link: cable.link,
           info: cable.info,
-          type: cable.type,
-          tfc1: "",
-          tfc2: "",
-          tfc3: "",
-          tfc4: "",
-          tfc5: ""
+          type: cable.type
         };
 
-        if (cableIdsInOrders.value.includes(cable.cableid)) {
-          const orderItem = orders.find(o => o.cableid === cable.cableid);
+        if (cableIdsInMfc.value.includes(cable.cableid)) {
+          const cablemfcItem = cablemfc.value.find(
+            o => o.cableid === cable.cableid
+          );
 
           line = {
-            isChecked: true,
             name: cable.name,
-            count: orderItem.count,
-            spare_count: orderItem.spare_count,
+            count: cablemfcItem.count,
             total: cable.total,
             link: cable.link,
             info: cable.info,
-            type: cable.type,
-            tfc1: orderItem.tfc1,
-            tfc2: orderItem.tfc2,
-            tfc3: orderItem.tfc3,
-            tfc4: orderItem.tfc4,
-            tfc5: orderItem.tfc5
+            type: cable.type
           };
         }
 
-        cableTechJoinedData.value = [...cableTechJoinedData.value, line];
+        cableMfcTechJoinedData.value = [...cableMfcTechJoinedData.value, line];
       });
 
-      console.log("cableTechJoinedData.value", cableTechJoinedData.value);
+      console.log("cableMfcTechJoinedData.value", cableMfcTechJoinedData.value);
     }
 
     // choose display cable_type (buttons)
@@ -228,48 +207,29 @@ export default {
     }
 
     // save/update order
-    function update_order(param) {
+    function cablemfc_order(param) {
       console.log("cabletech | orderupdate", param);
-      cablageServices.orderupdate([param]);
+      cablageServices.cablemfcupdate([param]);
     }
-
-    // soustraction total et reserved
-    const cableTotalTech = computed(() => {
-      console.log("cableTotalTech", cable.value.total);
-      return cable.value.total + cable.value.reserved;
-    });
-
-    //cableTechLayout button organisation fightcase et
-    function cableTechLayout(data) {
-      console.log("data cableTechLayout", data);
-      cableLayoutData.value = data;
-    }
-
-    // open info
-    // function toggleInfo() {
-    //   let infoToggle = infoToggle;
-    //   console.log("toggleInfo", toggleInfo);
-    // }
 
     return {
       cables,
-      affaireToList,
-      affairid,
-      orders,
-      update_order,
-      reserved,
+      caisseToList,
+
+      cablemfc_order,
+      caisses,
       selectype,
       typechoose,
       count,
       cableid,
-      cableIdsInOrders,
-      cableTechJoinedData,
-      cableTotalTech,
-      cableTechLayout,
+      cableIdsInMfc,
+      cableMfcTechJoinedData,
+
       cableLayoutData,
-      cableTechBase
-      // toggleInfo,
-      // infoToggle
+      cableTechBase,
+      //   mfcget,
+      //   cable_get,
+      mfc
     };
   }
 };
@@ -282,7 +242,7 @@ button {
   margin: 10px;
   padding: 5px;
   min-width: 50px;
-  background: #c9c6bf;
+  background: #eca809;
   border: 1px solid #000000;
   box-sizing: border-box;
   box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
@@ -406,7 +366,7 @@ input {
 #save-liste {
   background-color: rgb(240, 216, 2);
   color: #0c0b0b;
-  font-weight: 00;
+  font-weight: 600;
   box-shadow: 5px 7px 5px 0px rgba(143, 141, 141, 0.75);
   -webkit-box-shadow: 5px 7px 5px 0px rgba(143, 141, 141, 0.75);
   -moz-box-shadow: 5px 7px 5px 0px rgba(143, 141, 141, 0.75);

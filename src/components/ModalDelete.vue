@@ -20,7 +20,7 @@
                 supprimer
               </button>
               <button class="modal-default-button" @click="isOpenClose">
-                X
+                non
               </button>
             </slot>
           </div>

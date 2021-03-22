@@ -1,22 +1,13 @@
+let cables = [];
 let affaires = [];
 let orders = [];
+let mfc = [];
+let cablemfc = [];
+
 import { Api } from "../js/api.js";
 
 const url = "https://cinod.fr/cables/api.php";
 const api = new Api(url);
-
-//---- 'cable_get' ----
-function cableread() {
-  api
-    .call("cable_get")
-    .then(response => {
-      console.log("cablage |cable_get :response:", response);
-      return response;
-    })
-    .catch(response => {
-      console.log("cable_get:", response);
-    });
-}
 
 export default {
   cableread,
@@ -31,8 +22,26 @@ export default {
   orderread,
   orderupdate,
   orderadd,
-  orderdelete
+  orderdelete,
+  mfcadd,
+  mfcread,
+  mfcupdate,
+  mfcdelete,
+  cablemfcread
 };
+
+//---- 'cable_get' ----
+function cableread() {
+  api
+    .call("cable_get")
+    .then(function(response) {
+      console.log("cablage |cable_get :response:", response);
+      return cables;
+    })
+    .catch(response => {
+      console.log("cable_get:", response);
+    });
+}
 
 /*//---- 'cable_add' ----*/
 function cableadd(data) {
@@ -265,5 +274,87 @@ function orderdelete(data) {
     })
     .catch(function(response) {
       console.log("order_delete:", response);
+    });
+}
+//---- 'mfc_get' ----
+function mfcread() {
+  api
+    .call("mfc_get")
+    .then(function(response) {
+      console.log("caisse |mfc_get :response:", response);
+      return mfc;
+    })
+    .catch(response => {
+      console.log("cable_get:", response);
+    });
+}
+// --------'mfcadd-New-------*/
+function mfcadd(data) {
+  // Adds a new MFC to 'mfc' table.
+  // Input:
+  //    {
+  //      name,
+  //      [info],
+  //      [tech_id],
+  //      [affairid]
+  //    }
+  // Output:
+  //    {
+  //      mfcid: <id of just added MFC>
+  //    }, or
+  //    {
+  //      error:  <error message if any field violates self::$FIELDS['mfc_add'] constraints or an MFC with same
+  //              'name' already exists>
+  //    }
+
+  api
+    .call("mfc_add", data)
+    .then(function(response) {
+      console.log("mfc_add:", response);
+    })
+    .catch(response => {
+      console.log("mfc_add:", response);
+    });
+}
+// -----------mfc_update ----------*/
+function mfcupdate(data) {
+  //   var data = {
+  //     affairid: 5, // put here actual affairid you want to update
+  //     name: "Crocus Hall",
+  //     prep_time: "morning"
+  //   };
+
+  api
+    .call("mfc_update", data)
+    .then(function(response) {
+      console.log("mfc_update:");
+      console.log(response);
+    })
+    .catch(function(response) {
+      console.log("mc_update:");
+      console.log(response);
+    });
+}
+/*//---- mfc_delete' ----*/
+function mfcdelete(data) {
+  api
+    .call("mfc_delete", data)
+    .then(function(response) {
+      console.log("mfc_delete:", response);
+    })
+    .catch(function(response) {
+      console.log("mfc_delete:", response);
+    });
+}
+//---- 'cablemfc_get' ----
+function cablemfcread() {
+  api
+    .call("cablemfc_get")
+    .then(function(response) {
+      console.log("cablage |cablemfc_get :response:", response);
+      return cablemfc;
+    })
+    .catch(response => {
+      console.log("cablemfc_get:", response);
     });
 }

@@ -24,7 +24,18 @@
                 <h3>{{ cable.name }}</h3>
               </div>
 
-              <div>{{ fcCount }} {{ cable.tfc1 }}</div>
+              <div class="countfc">
+                <p>
+                  {{
+                    cable.count -
+                      cable.tfc1 -
+                      cable.tfc2 -
+                      cable.tfc3 -
+                      cable.tfc4 -
+                      cable.tfc5
+                  }}
+                </p>
+              </div>
               <div>
                 <input name="tfc1" v-model="cable.tfc1" />
               </div>
@@ -38,7 +49,7 @@
                 <input name="tfc4" v-model="cable.tfc4" />
               </div>
               <div>
-                <input name="tfc5" v-model="cable.count" />
+                <input name="tfc5" v-model="cable.tfc5" />
               </div>
             </div>
           </div>
@@ -53,7 +64,7 @@ var url = "https://cinod.fr/cables/api.php";
 var api = new Api(url);
 import cablageServices from "@/services/cablage.js";
 
-import { ref, computed } from "vue";
+import { ref } from "vue";
 
 export default {
   name: "FlyCaseManagment",
@@ -67,10 +78,10 @@ export default {
   },
 
   setup() {
-    let fcCount = computed(() => {
-      console.log("cable.value.count", cable.value.count);
-      return cable.value.count - cable.value.tfc1;
-    });
+    // let fcCount = computed(() => {
+    //   console.log("cable.value.count", cable.value.count);
+    //   return cable.value.count - cable.value.tfc1;
+    // });
 
     let affairid = ref("");
     let orders = ref([]);
@@ -134,7 +145,7 @@ export default {
       cableid,
       cableIdsInOrders,
       flightcase,
-      fcCount,
+
       cable
     };
   }
@@ -179,6 +190,15 @@ input {
   box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
   border-radius: 4px;
 }
+.countfc p {
+  /* text-align: center; */
+  /* padding: 0px 0px 0px 0px; */
+  /* line-height: 10px; */
+
+  border: 2px solid;
+  width: 20px;
+  height: 20px;
+}
 .content-liste {
   margin: auto;
   text-align: center;
@@ -208,20 +228,6 @@ input {
 }
 .tech {
   width: 200px;
-}
-table {
-  margin: 10px 0px 10px 0px;
-  border: solid 1px;
-  border-collapse: separate;
-  border-spacing: 0px;
-  text-align: left;
-  -webkit-box-shadow: 0px 0px 30px -2px rgba(0, 0, 0, 0.75);
-  -moz-box-shadow: 0px 0px 30px -2px rgba(0, 0, 0, 0.75);
-  box-shadow: 0px 0px 30px -2px rgba(0, 0, 0, 0.75);
-}
-th {
-  width: 250px;
-  padding-left: 5px;
 }
 
 .post {
