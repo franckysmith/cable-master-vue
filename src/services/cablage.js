@@ -35,7 +35,7 @@ export default {
 };
 
 /*//---- 'cable_add' ----*/
-function cableadd(data) {
+async function cableadd(data) {
   //   let data = [
   //     {
   //       name: "do48",
@@ -49,14 +49,13 @@ function cableadd(data) {
   //     }
   //   ];
 
-  api
-    .call('cable_add', data)
-    .then(function(response) {
-      console.log('cable_add:', response);
-    })
-    .catch((response) => {
-      console.log('cable_add:', response);
-    });
+  try {
+    const response = await api.call('cable_add', data);
+    return { status: 201, msg: `Cable créé avec l'id ${response}` };
+  } catch (err) {
+    console.log('CATCH cable_add:', err);
+    return { status: 500, msg: `Echec de création du cable` };
+  }
 }
 
 /*//---- 'cable_update' ----*/

@@ -1,6 +1,7 @@
 <template>
-  <div classe="contener">
-    <form @submit.prevent="add_cable(cable)">
+  <div class="contener">
+    {{cable}}
+    <form @submit.prevent="add_cable()">
       <div class="form">
         <div class="form1">
           <div class="number">
@@ -50,49 +51,52 @@ export default {
 
   setup() {
     let cables = ref([]);
-    let cable = ref([]);
+    // cable needs to be an empty object NOT an empty array
+    let cable = ref({}); 
     let typechoose = ref("");
     const listeType = ref([
       {
         id: 1,
         name: "électricité",
-        value: "electrical"
+        value: "electrical",
       },
       {
         id: 2,
         name: "hp",
-        value: "speaker"
+        value: "speaker",
       },
       {
         id: 3,
         name: "microphone",
-        value: "microphone"
+        value: "microphone",
       },
       {
         id: 4,
         name: "module",
-        value: "module"
+        value: "module",
       },
       {
         id: 5,
         name: "special",
-        value: "special"
+        value: "special",
       },
       {
         id: 6,
         name: "multi",
-        value: "multi"
+        value: "multi",
       },
       {
         id: 7,
         name: "c_type",
-        value: "c_type"
-      }
+        value: "c_type",
+      },
     ]);
 
-    function add_cable(data) {
-      console.log("cableadd | ", data);
-      cablageServices.cableadd([data]);
+    async function add_cable() {
+      debugger;
+      console.log("cableadd | ", cable.value);
+      const res = await cablageServices.cableadd([cable.value]);
+      console.log('res', res);
     }
 
     return {
@@ -101,14 +105,17 @@ export default {
       listeType,
       typechoose,
 
-      cable
+      cable,
     };
-  }
+  },
 };
 </script>
 <style scoped>
 .contener {
   padding: 100px 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 .head {
   display: flex;
