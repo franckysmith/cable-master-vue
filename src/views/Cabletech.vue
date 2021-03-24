@@ -6,7 +6,7 @@
     <button class="button2" @click.prevent="resume = !true" v-if="resume">
       fermer la liste
     </button>
-    <div v-if="!resume">
+    <div v-if="!resume" class="main">
       <div>
         <div class="post">
           <button @click="selectype('speaker')">HP</button>
@@ -19,7 +19,7 @@
         </div>
       </div>
 
-      <form @subbmit.prevent="update_order()">
+      <form @submit.prevent="update_order()">
         <button @click="submit" class="button2" type="submit">Save</button>
         <button class="button2" @click.prevent="resume = true">liste</button>
         <div class="head">
@@ -99,11 +99,11 @@ export default {
     let cables = ref([]);
     api
       .call("cable_get")
-      .then(response => {
+      .then((response) => {
         console.log("cable_get:", response);
         cables.value = response;
       })
-      .catch(response => {
+      .catch((response) => {
         console.log("err_cable_get:", response);
       });
 
@@ -127,12 +127,12 @@ export default {
 
       api
         .call("order_get", searchbyaff)
-        .then(response => {
+        .then((response) => {
           console.log("order_get:", response);
           orders.value = response;
         })
 
-        .catch(function(response) {
+        .catch(function (response) {
           console.log("order_get:", response);
         });
 
@@ -166,9 +166,9 @@ export default {
       selectype,
       typechoose,
       resume,
-      cableTotalTech
+      cableTotalTech,
     };
-  }
+  },
 };
 </script>
 <style scoped>
@@ -309,5 +309,11 @@ button {
   width: 130px;
   /* margin-left: 5px; */
   background-color: #c1c7c33a;
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 </style>

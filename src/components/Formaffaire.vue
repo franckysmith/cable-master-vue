@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="main">
     <div class="search-tech-aff">
       <ul>
         <li style="display flex,padding:10px">
@@ -25,9 +25,10 @@
           </select>
         </li>
       </ul>
+      <span class="message">{{affaireSelectedTech.length}} affaire{{affaireSelectedTech.length > 1 ? 's' : ''}}</span>
     </div>
-
-    <form v-for="affaire in search" :key="affaire.affairid">
+    <form v-for="affaire in search" :key="affaire.affairid" @submit.prevent="update_affair(affaire)">
+      {{affaire}}
       <div class="entete">
         <input
           class="entete-name-aff"
@@ -62,10 +63,10 @@
           <input
             v-model="affaire.prep_time"
             value="morning"
-            type="checkbox"
-            name="s_matin"
+            type="radio"
+            name="prep_time"
           />
-          <input type="checkbox" name="r_pm" value="afternoon" />
+          <input v-model="affaire.prep_time" type="radio" name="prep_time" value="afternoon" /> {{affaire.prep_time}}
         </div>
         <div class="dates">
           <h4>Sortie</h4>
@@ -79,17 +80,16 @@
           <input
             v-model="affaire.receipt_time"
             value="morning"
-            type="checkbox"
-            name="s_matin"
+            type="radio"
+            name="receipt_time"
           />
 
           <input
             v-model="affaire.receipt_time"
-            :true-value="0"
-            :false-value="1"
-            type="checkbox"
-            name="s_apm"
-          />
+            value="afternoon"
+            type="radio"
+            name="receipt_time"
+          /> {{affaire.receipt_time}}
         </div>
         <div class="dates">
           <h4>Retour</h4>
@@ -101,8 +101,8 @@
             name="retour"
           />
 
-          <input v-model="affaire.return_time" type="checkbox" name="r_am" />
-          <input type="checkbox" name="r_pm" />
+          <input v-model="affaire.return_time" type="radio" name="r_am" value="morning" />
+          <input v-model="affaire.return_time" type="radio" name="r_pm" value="afternoon" /> {{affaire.return_time}}
         </div>
       </div>
 
@@ -144,12 +144,12 @@
         <div class="contentUpdate">
           <div class="content-update1">
             <button
-              @click="update_affair(affaire)"
               class="button"
               type="submit"
             >
               Enregistrer
             </button>
+            <span class="message">{{message}}</span>
 
             <label for="end"
               >en ligne <input type="checkbox" name="end"
@@ -183,7 +183,7 @@
 </template>
 
 <script>
-import { ref, computed } from "vue";
+import { ref, computed, onBeforeMount } from "vue";
 import { Api } from "../js/api.js";
 const url = "https://cinod.fr/cables/api.php";
 const api = new Api(url);
@@ -210,6 +210,11 @@ export default {
     let tech_name = ref("");
     let name = ref("");
     // let firstadd = ref("");
+    let message = ref("");
+
+    onBeforeMount(() => {
+      techSelected();
+    });
 
     // get affair by techid
     function techSelected(param) {
@@ -217,10 +222,10 @@ export default {
 
       api
         .call("affair_get", searchby)
-        .then(response => {
+        .then((response) => {
           affaireSelectedTech.value = response;
         })
-        .catch(response => {
+        .catch((response) => {
           console.log("affair_get:", response);
         });
     }
@@ -230,25 +235,40 @@ export default {
       console.log("selectedaff", data.affairid);
     }
     // update affair
-    function update_affair(param) {
+    async function update_affair(param) {
       console.log("formaffair | affairupdate", param);
-      cablageServices.affaireupdate(param);
+      const res = await cablageServices.affaireupdate(param);
+      console.log("res", res);
+      showMessage(res.msg);
+    }
+
+    function showMessage(text) {
+      message.value = text;
+
+      setTimeout(() => {
+        message.value = "";
+      }, 3000);
     }
 
     // add affair
     function add_affair() {
+      resetForm();
       let firstadd = {
         tech_id: tech_id.value,
         tech_name: tech_name.value,
-        name: name.value
+        name: name.value,
       };
       console.log("Formaffaire |add_affair", firstadd);
       cablageServices.affaireadd(firstadd);
     }
 
+    function resetForm() {
+      // todo - Quels champs à remettre zéro ?
+    }
+
     // select affairid par technicien v-for in search
     let search = computed(() => {
-      return affaireSelectedTech.value.filter(t => {
+      return affaireSelectedTech.value.filter((t) => {
         return t.affairid.includes(affaireSelectedId.value.affairid);
       });
     });
@@ -267,10 +287,10 @@ export default {
       search,
       affaireSelect,
       selectedaff,
-
-      note
+      note,
+      message,
     };
-  }
+  },
 };
 </script>
 
@@ -368,5 +388,15 @@ li {
 }
 ul {
   padding-inline-start: 0px;
+}
+
+.message {
+  font-size: 10px;
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 </style>

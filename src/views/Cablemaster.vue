@@ -114,38 +114,38 @@ export default {
       {
         id: 1,
         name: "électricité",
-        value: "electrical"
+        value: "electrical",
       },
       {
         id: 2,
         name: "hp",
-        value: "speaker"
+        value: "speaker",
       },
       {
         id: 3,
         name: "microphone",
-        value: "microphone"
+        value: "microphone",
       },
       {
         id: 4,
         name: "module",
-        value: "module"
+        value: "module",
       },
       {
         id: 5,
         name: "special",
-        value: "special"
+        value: "special",
       },
       {
         id: 6,
         name: "multi",
-        value: "multi"
+        value: "multi",
       },
       {
         id: 7,
         name: "c_type",
-        value: "c_type"
-      }
+        value: "c_type",
+      },
     ]);
 
     // choose display type (buttons)
@@ -157,17 +157,17 @@ export default {
     let cable_get = onMounted(() => {
       api
         .call("cable_get")
-        .then(response => {
+        .then((response) => {
           cables.value = response;
           console.log("cable_get:", response);
         })
-        .catch(response => {
+        .catch((response) => {
           console.log("err_cable_get:", response);
         });
     });
 
     // suppresion cable => modalDelete
-    const suppCable = function(data) {
+    const suppCable = function (data) {
       isOpen.value = true;
       cableToDelete.value = data;
       console.log("suppCable", data);
@@ -204,9 +204,9 @@ export default {
       suppCable,
       isOpen,
       isModalDelete,
-      cable
+      cable,
     };
-  }
+  },
 };
 </script>
 <style scoped>
@@ -282,5 +282,11 @@ export default {
   line-height: 30px;
 
   margin: 5px;
+}
+
+.home {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 </style>

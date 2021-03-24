@@ -1,20 +1,20 @@
 let affaires = [];
 let orders = [];
-import { Api } from "../js/api.js";
+import { Api } from '../js/api.js';
 
-const url = "https://cinod.fr/cables/api.php";
+const url = 'https://cinod.fr/cables/api.php';
 const api = new Api(url);
 
 //---- 'cable_get' ----
 function cableread() {
   api
-    .call("cable_get")
-    .then(response => {
-      console.log("cablage |cable_get :response:", response);
+    .call('cable_get')
+    .then((response) => {
+      console.log('cablage |cable_get :response:', response);
       return response;
     })
-    .catch(response => {
-      console.log("cable_get:", response);
+    .catch((response) => {
+      console.log('cable_get:', response);
     });
 }
 
@@ -31,7 +31,7 @@ export default {
   orderread,
   orderupdate,
   orderadd,
-  orderdelete
+  orderdelete,
 };
 
 /*//---- 'cable_add' ----*/
@@ -50,12 +50,12 @@ function cableadd(data) {
   //   ];
 
   api
-    .call("cable_add", data)
+    .call('cable_add', data)
     .then(function(response) {
-      console.log("cable_add:", response);
+      console.log('cable_add:', response);
     })
-    .catch(response => {
-      console.log("cable_add:", response);
+    .catch((response) => {
+      console.log('cable_add:', response);
     });
 }
 
@@ -77,12 +77,12 @@ function cableupdate(data) {
   //   ];
 
   api
-    .call("cable_update", data)
-    .then(response => {
-      console.log("cable_update:", response);
+    .call('cable_update', data)
+    .then((response) => {
+      console.log('cable_update:', response);
     })
-    .catch(response => {
-      console.log("cable_update:", response);
+    .catch((response) => {
+      console.log('cable_update:', response);
     });
 }
 
@@ -91,12 +91,12 @@ function cabledelete(data) {
   /*// [ 13, 14 ] put here actual cable ids, see them in 'cable' table in phpmyadmin*/
 
   api
-    .call("cable_delete", data)
-    .then(response => {
-      console.log("cable_delete:", response);
+    .call('cable_delete', data)
+    .then((response) => {
+      console.log('cable_delete:', response);
     })
     .catch(function(response) {
-      console.log("cable_delete:");
+      console.log('cable_delete:');
       console.log(response);
     });
 }
@@ -109,13 +109,13 @@ function affairereadtech(searchby) {
   // };
 
   api
-    .call("affair_get", searchby)
+    .call('affair_get', searchby)
     .then(function(response) {
-      console.log("affair_get:");
+      console.log('affair_get:');
       console.log(response);
     })
     .catch(function(response) {
-      console.log("affair_get:");
+      console.log('affair_get:');
       console.log(response);
     });
 }
@@ -128,13 +128,13 @@ function affairereadname(searchby) {
   // };
 
   api
-    .call("affair_get", searchby)
+    .call('affair_get', searchby)
     .then(function(response) {
-      console.log("affair_get:");
+      console.log('affair_get:');
       console.log(response);
     })
     .catch(function(response) {
-      console.log("affair_get:");
+      console.log('affair_get:');
       console.log(response);
     });
 }
@@ -154,34 +154,30 @@ function affaireadd(data) {
   //   };
 
   api
-    .call("affair_add", data)
+    .call('affair_add', data)
     .then(function(response) {
-      console.log("affair_add:", response);
+      console.log('affair_add:', response);
       return affaires;
     })
     .catch(function(response) {
-      console.log("affair_add:", response);
+      console.log('affair_add:', response);
     });
 }
 
 /*//---- 'affair_update' ----*/
-function affaireupdate(data) {
+async function affaireupdate(data) {
   //   var data = {
   //     affairid: 5, // put here actual affairid you want to update
   //     name: "Crocus Hall",
   //     prep_time: "morning"
   //   };
-
-  api
-    .call("affair_update", data)
-    .then(function(response) {
-      console.log("affair_update:");
-      console.log(response);
-    })
-    .catch(function(response) {
-      console.log("affair_update:");
-      console.log(response);
-    });
+  try {
+    await api.call('affair_update', data);
+    return { status: 200, msg: 'Affaire mise à jour' };
+  } catch (error) {
+    console.log('affair_update error', error);
+    return { status: 500, msg: `La mise à jour de l'affaire a échoué` };
+  }
 }
 
 /*//---- 'affair_delete' ----*/
@@ -191,12 +187,12 @@ function affairedelete(data) {
   //   };
 
   api
-    .call("affair_delete", data)
+    .call('affair_delete', data)
     .then(function(response) {
-      console.log("affair_delete:", response);
+      console.log('affair_delete:', response);
     })
     .catch(function(response) {
-      console.log("affair_delete:", response);
+      console.log('affair_delete:', response);
     });
 }
 
@@ -211,13 +207,13 @@ function orderread() {
   //      },
 
   api
-    .call("order_get")
+    .call('order_get')
     .then(function(response) {
-      console.log("order_get:");
+      console.log('order_get:');
       console.log(response);
     })
     .catch(function(response) {
-      console.log("order_get:");
+      console.log('order_get:');
       console.log(response);
     });
 }
@@ -232,26 +228,26 @@ function orderadd(data) {
   //      },
 
   api
-    .call("order_add", data)
+    .call('order_add', data)
     .then(function(response) {
-      console.log("order_add:", response);
+      console.log('order_add:', response);
       return orders;
     })
     .catch(function(response) {
-      console.log("order_add:", response);
+      console.log('order_add:', response);
     });
 }
 
 /*//---- 'order_update' ----*/
 function orderupdate(data) {
   api
-    .call("order_update", data)
+    .call('order_update', data)
     .then(function(response) {
-      console.log("order_update:");
+      console.log('order_update:');
       console.log(response);
     })
     .catch(function(response) {
-      console.log("order_update:");
+      console.log('order_update:');
       console.log(response);
     });
 }
@@ -259,11 +255,11 @@ function orderupdate(data) {
 /*//---- 'order_delete' ----*/
 function orderdelete(data) {
   api
-    .call("order_delete", data)
+    .call('order_delete', data)
     .then(function(response) {
-      console.log("order_delete:", response);
+      console.log('order_delete:', response);
     })
     .catch(function(response) {
-      console.log("order_delete:", response);
+      console.log('order_delete:', response);
     });
 }
