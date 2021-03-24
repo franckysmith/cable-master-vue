@@ -36,21 +36,16 @@
                   }}
                 </p>
               </div>
-              <div>
-                <input name="tfc1" v-model="cable.tfc1" />
-              </div>
-              <div>
-                <input name="tfc2" v-model="cable.tfc2" />
-              </div>
-              <div>
-                <input name="tfc3" v-model="cable.tfc3" />
-              </div>
-              <div>
-                <input name="tfc4" v-model="cable.tfc4" />
-              </div>
-              <div>
-                <input name="tfc5" v-model="cable.tfc5" />
-              </div>
+
+              <input name="tfc1" v-model="cable.tfc1" />
+
+              <input name="tfc2" v-model="cable.tfc2" />
+
+              <input name="tfc3" v-model="cable.tfc3" />
+
+              <input name="tfc4" v-model="cable.tfc4" />
+
+              <input name="tfc5" v-model="cable.tfc5" />
             </div>
           </div>
         </div>
@@ -190,13 +185,15 @@ input {
   box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
   border-radius: 4px;
 }
+.countfc {
+  margin-right: 10px;
+}
 .countfc p {
-  /* text-align: center; */
-  /* padding: 0px 0px 0px 0px; */
   /* line-height: 10px; */
-
-  border: 2px solid;
-  width: 20px;
+  padding-top: 5px;
+  border: 1px solid;
+  background: rgb(231, 225, 225);
+  width: 23px;
   height: 20px;
 }
 .content-liste {
@@ -217,6 +214,7 @@ input {
 .content-number {
   width: 400px;
   display: flex;
+
   /* flex-wrap: wrap; */
   /* margin: auto; */
 }
@@ -252,12 +250,13 @@ input {
   font-size: 12px;
   width: 400px;
   text-align: left;
-  padding-left: 150px;
+  padding-left: 135px;
 }
 .number {
   display: flex;
   border-width: 0px 0px 1px 0px;
   border-style: solid;
+  height: 40px;
 }
 
 .number input {
@@ -282,6 +281,7 @@ button {
   font-weight: 500;
   text-align: left;
   width: 110px;
+
   /* margin-left: 5px; */
   background-color: #c1c7c33a;
 }

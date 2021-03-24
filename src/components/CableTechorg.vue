@@ -3,7 +3,7 @@
     <div v-if="!orga">
       <form @subbmit.prevent="update_order()">
         <div class="head">
-          <div>count</div>
+          <div>Sécu</div>
           <div style="padding-left:20px">z1</div>
           <div style="padding-left:25px">z2</div>
           <div style="padding-left:25px">z3</div>
@@ -22,7 +22,7 @@
               </div>
 
               <div>
-                <input name="count" v-model="count" />
+                <input name="spare_count" v-model="count" />
               </div>
               <div>
                 <input name="" />
@@ -38,6 +38,11 @@
               </div>
               <div>
                 <input name="" />
+              </div>
+              <div>
+                <div class="info">
+                  {{ cable.info }}
+                </div>
               </div>
             </div>
           </div>

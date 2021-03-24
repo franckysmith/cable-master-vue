@@ -221,6 +221,15 @@ export default {
 .ajouter {
   margin: 10px;
 }
+button {
+  cursor: pointer;
+}
+.home {
+  /* display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 90vh; */
+}
 .info input {
   width: 400px;
 }

@@ -9,6 +9,15 @@
           <button @click="techSelected()">All</button>
         </li>
         <li>
+          <!-- /* ouverture component AddAffair*/ -->
+          <button
+            class="button"
+            @click="newAffairOpen"
+            value="New"
+            type="button"
+          >
+            New
+          </button>
           <!-- <option selected disabled>Sélectionner :</option> -->
           <select
             v-model="affaireSelectedId"
@@ -43,21 +52,23 @@
           class="entete-ref_aff"
           placeholder="Référence"
         />
-        <!-- /* ouverture component AddAffair*/ -->
-        <button
-          class="button"
-          @clic="newAffairOpen = true"
-          value="New"
-          type="button"
-        >
-          New
-        </button>
       </div>
 
-      <div class="label">
-        <div>matin</div>
-        <div style="margin-left:20px">ap-midi</div>
+      <div class="note-description">
+        <div>
+          <button @click="note = true" v-if="!note">
+            description
+          </button>
+          <button @click="note = false" v-if="note">
+            fermer description
+          </button>
+        </div>
+        <div class="label">
+          <div><p>matin</p></div>
+          <div style="margin-left:20px"><p>ap-midi</p></div>
+        </div>
       </div>
+
       <div class="content-dates">
         <div class="dates">
           <h4>Prépa</h4>
@@ -154,7 +165,7 @@
             type="checkbox"
             name="face"
           />
-          <label for="mon"> mon</label>
+          <label for="mon"> monitor</label>
           <input
             class="radio"
             v-model="affaire.monitor"
@@ -175,6 +186,16 @@
         </div>
         <div class="contentUpdate">
           <div class="content-update1">
+            <button @click="note = true" v-if="!note">note =></button>
+            <button @click="note = false" v-if="note" :style="closebutton">
+              note
+            </button>
+            <button @click="notemaster = true" v-if="!notemaster">
+              rep Atelier
+            </button>
+            <button @click="notemaster = false" v-if="notemaster">
+              rep Atelier
+            </button>
             <button
               id="save-affair"
               @click="update_affair(affaire)"
@@ -194,10 +215,6 @@
                 :false-value="0"
                 name="end"
             /></label>
-            <button @click="note = true" v-if="!note">note</button>
-            <button @click="note = false" v-if="note">
-              fermer note
-            </button>
           </div>
           <div>
             <label for="update"
@@ -211,6 +228,21 @@
           </div>
         </div>
       </div>
+      <textarea
+        cols="50"
+        rows="10"
+        v-if="description"
+        v-model.lazy="affaire.tech_note"
+        placeholder="Noter ici une liste ds amplis et enceintes ...."
+      ></textarea>
+      <textarea
+        cols="50"
+        rows="10"
+        v-if="notemaster"
+        v-model.lazy="affaire.master_note"
+        placeholder="Noter ici une liste ds amplis et enceintes ...."
+      ></textarea>
+
       <textarea
         cols="50"
         rows="10"
@@ -233,14 +265,14 @@ import cablageServices from "@/services/cablage.js";
 export default {
   name: "Formaffaire",
   props: ["cables"],
-
+  emit: ["lesson-open-newaff"],
   setup(props, context) {
     let affaire = ref([]);
     let affaires = ref([]);
-    context.emits("lessonOpenAffaire", newAffairOpen);
+
     // function affair techSelected button to change technician => liste d'affaires
 
-    let newAffairOpen = ref("false");
+    // let newAffairOpen = ref(false);
     let searchby = ref([]);
     let affaireSelect = ref([]);
     let affaireSelectedId = ref([]);
@@ -248,11 +280,20 @@ export default {
     let affaireSelected = ref([]);
     let selectAffaire = ref([]);
     let note = ref(false);
+    let description = ref(false);
+    let notemaster = ref("");
+    let newAffairIsOpen = ref(false);
     let tech_id = ref("");
     let tech_name = ref("");
     let name = ref("");
-    // searchby = { tech_id: "" };
 
+    function newAffairOpen() {
+      newAffairIsOpen.value = true;
+      console.log("newAffairIsOpen", newAffairIsOpen.value);
+      context.emit("lesson-open-newaff", newAffairIsOpen.value);
+    }
+
+    console.log("emit | newAffairopen ", newAffairIsOpen.value);
     // get affair by techid
     function techSelected(param) {
       let searchby = { tech_id: param };
@@ -307,11 +348,12 @@ export default {
       affaireSelectedTech,
       affaires,
       affaire,
+      description,
       search,
       affaireSelect,
       selectedaff,
       newAffairOpen,
-
+      notemaster,
       note
     };
   }
@@ -319,16 +361,36 @@ export default {
 </script>
 
 <style>
-.search-tech-aff li {
-  margin-bottom: 15px;
-}
-.search-tech-aff select {
-  margin-bottom: 15px;
-}
-input {
+.button {
+  margin: 10px;
   padding: 5px;
+  min-width: 50px;
+  background: #4dcc59;
+  border: 1px solid #000000;
+  box-sizing: border-box;
+  box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+  border-radius: 4px;
 }
-
+.button2 {
+  margin: 10px;
+  padding: 5px;
+  min-width: 50px;
+  background: #dde0de;
+  border: 1px solid #000000;
+  box-sizing: border-box;
+  box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+  border-radius: 4px;
+}
+.button2.activ {
+  margin: 10px;
+  padding: 5px;
+  min-width: 50px;
+  background: #eb910a;
+  border: 1px solid #000000;
+  box-sizing: border-box;
+  box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+  border-radius: 4px;
+}
 .cont_2 {
   display: flex;
   flex-direction: column;
@@ -389,32 +451,31 @@ input {
 form {
   width: 400px;
 }
-
-.tech-name {
-  width: 120px;
-}
-
-.button {
-  margin: 10px;
+input {
   padding: 5px;
-  min-width: 50px;
-  background: #4dcc59;
-  border: 1px solid #000000;
-  box-sizing: border-box;
-  box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
-  border-radius: 4px;
 }
-
 .label {
   display: flex;
-  margin-left: 260px;
+  margin-left: 155px;
   padding: 10px;
 }
 li {
   list-style: none;
 }
-.radio {
+.note-description {
+  display: inline-flex;
+  height: 40px;
 }
+.search-tech-aff li {
+  margin-bottom: 15px;
+}
+.search-tech-aff select {
+  margin-bottom: 15px;
+}
+.tech-name {
+  width: 120px;
+}
+
 ul {
   padding-inline-start: 0px;
 }
