@@ -21,9 +21,12 @@ require_once APP_DIR.'/lib/assert.php'; // are handled properly
 
 define('TIMEZONE', 'Europe/Paris');
 
-        // Introduced to be able to run server's api.php locally.
-
-define('API_CORS_DEBUG_ORIGIN', 'http://localhost');
+define('API_CORS_ALLOWED_ORIGINS', [
+  'http://localhost',
+  'http://localhost:8080',
+  'https://mobileapp.cinod.fr',
+  'http://mobileapp.cinod.fr'
+]);
 
 class config {
   

@@ -296,6 +296,10 @@ class dbbase {
         // Deleting/updating a parent row violates a foreign key constraint in a child row.
   
   const ER_ROW_IS_REFERENCED = 1451;
+  
+        // Adding/updating a child row violates a foreign key constraint in a parent row.
+  
+  const ER_NO_REFERENCED_ROW = 1452;
 	
 	//---- database specific information ---------------------------------------------------------------------------------
   

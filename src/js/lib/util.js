@@ -405,7 +405,7 @@ export function popupWindow(url, name, options) {
   for (var prop in options) features += prop + "=" + options[prop] + ",";
   features = features.substr(0, features.length - 1);
 
-  var win = open(url, name, features);
+  var win = window.open(url, name, features);
   win.focus();
 
   return win;

@@ -54,13 +54,17 @@
         />
       </div>
 
-      <div class="note-description">
+      <div class="description">
         <div>
-          <button @click="note = true" v-if="!note">
+          <button @click="description = true" v-if="!description">
             description
           </button>
-          <button @click="note = false" v-if="note">
-            fermer description
+          <button
+            @click="description = false"
+            v-if="description"
+            style="background:#e08d8d"
+          >
+            description
           </button>
         </div>
         <div class="label">
@@ -187,14 +191,23 @@
         <div class="contentUpdate">
           <div class="content-update1">
             <button @click="note = true" v-if="!note">note =></button>
-            <button @click="note = false" v-if="note" :style="closebutton">
-              note
+            <button
+              @click="note = false"
+              v-if="note"
+              :style="closebutton"
+              style="background:#e08d8d"
+            >
+              note =>
             </button>
             <button @click="notemaster = true" v-if="!notemaster">
-              rep Atelier
+              Atelier
             </button>
-            <button @click="notemaster = false" v-if="notemaster">
-              rep Atelier
+            <button
+              @click="notemaster = false"
+              v-if="notemaster"
+              style="background:#e08d8d"
+            >
+              Atelier
             </button>
             <button
               id="save-affair"
@@ -228,28 +241,51 @@
           </div>
         </div>
       </div>
-      <textarea
-        cols="50"
-        rows="10"
-        v-if="description"
-        v-model.lazy="affaire.tech_note"
-        placeholder="Noter ici une liste ds amplis et enceintes ...."
-      ></textarea>
-      <textarea
-        cols="50"
-        rows="10"
-        v-if="notemaster"
-        v-model.lazy="affaire.master_note"
-        placeholder="Noter ici une liste ds amplis et enceintes ...."
-      ></textarea>
+      <div v-if="description">
+        <h4>Description</h4>
+        <button
+          @click="description = false"
+          v-if="description"
+          style="background:#e08d8d"
+        >
+          fermer
+        </button>
+        <textarea
+          cols="50"
+          rows="10"
+          v-model.lazy="affaire.description"
+          placeholder="Noter ici une liste ds amplis et enceintes ...."
+        ></textarea>
+      </div>
+      <div v-if="notemaster">
+        <h4>Atelier => Technicien</h4>
+        <button
+          @click="notemaster = false"
+          v-if="notemaster"
+          style="background:#e08d8d"
+        >
+          Fermer
+        </button>
+        <textarea
+          cols="50"
+          rows="10"
+          v-model.lazy="affaire.master_note"
+          placeholder="Noter ici une liste des amplis et enceintes optionel biensur mais cela peut être un aide mémoire...."
+        ></textarea>
+      </div>
 
-      <textarea
-        cols="50"
-        rows="10"
-        v-if="note"
-        v-model.lazy="affaire.tech_note"
-        placeholder="Laisser ici un message pour l'atelier piles etc ...."
-      ></textarea>
+      <div v-if="note">
+        <h4>Technicien => Atelier</h4>
+        <button @click="note = false" v-if="note" :style="closebutton">
+          fermer
+        </button>
+        <textarea
+          cols="50"
+          rows="10"
+          v-model.lazy="affaire.tech_note"
+          placeholder="Laisser ici un message pour l'atelier piles etc ...."
+        ></textarea>
+      </div>
     </form>
   </div>
 </template>
@@ -265,7 +301,7 @@ import cablageServices from "@/services/cablage.js";
 export default {
   name: "Formaffaire",
   props: ["cables"],
-  emit: ["lesson-open-newaff"],
+  emit: ["lesson-open-newaff", "lesson-affaire"],
   setup(props, context) {
     let affaire = ref([]);
     let affaires = ref([]);
@@ -307,6 +343,9 @@ export default {
           console.log("affair_get:", response);
         });
     }
+    //lz1 ...lz2 lfc1 ...lfc2 Label zone et flightcase
+    context.emit("lesson-affaire", affaire);
+
     // emit vers views/Cabletech
     function selectedaff(data) {
       context.emit("lessonaffaire", data.affairid);
@@ -381,16 +420,10 @@ export default {
   box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
   border-radius: 4px;
 }
-.button2.activ {
-  margin: 10px;
-  padding: 5px;
-  min-width: 50px;
-  background: #eb910a;
-  border: 1px solid #000000;
-  box-sizing: border-box;
-  box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
-  border-radius: 4px;
+.closebutton {
+  background: chocolate;
 }
+
 .cont_2 {
   display: flex;
   flex-direction: column;
@@ -419,6 +452,10 @@ export default {
 }
 .date-size {
   width: 120px;
+}
+.description {
+  margin: 3px 0px 0px 32px;
+  display: flex;
 }
 .entete {
   display: flex;

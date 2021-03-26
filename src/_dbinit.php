@@ -21,7 +21,9 @@ $SCHEMA_SCRIPT =
   (
     cableid       INT UNSIGNED NOT NULL AUTO_INCREMENT,
     name          VARCHAR(25) NOT NULL,
-    type          ENUM("electrical", "speaker", "microphone"),
+    type          ENUM("electrical", "speaker", "microphone", "module", "special", "multi", "c_type"),
+    sortno        SMALLINT UNSIGNED NOT NULL DEFAULT 65535,
+    weight        INT UNSIGNED,
     
     total         INT UNSIGNED NOT NULL DEFAULT 0,
     reserved      INT UNSIGNED NOT NULL DEFAULT 0,
@@ -34,6 +36,27 @@ $SCHEMA_SCRIPT =
     PRIMARY KEY   (cableid),
     UNIQUE KEY    (name)
   ) engine=innoDB collate utf8_general_ci',
+  
+  
+  'CREATE TRIGGER cable_insert BEFORE INSERT ON cable FOR EACH ROW
+  BEGIN
+    IF NEW.type IS NOT NULL THEN
+      SET NEW.sortno = NEW.type * 100;
+    END IF;  
+  END;',
+  
+  
+  // 'sortno' is auto-calculated by 'type' if new 'type' if specified and not equal to old one; auto-calculated value
+  // overrides an explicitly specified 'sortno' value, if any; so fune-tuning 'sortno' is only possible if 'type' is not
+  // changing when updating
+  'CREATE TRIGGER cable_update BEFORE UPDATE ON cable FOR EACH ROW
+  BEGIN
+    IF NEW.type IS NOT NULL AND (NEW.type != OLD.type OR OLD.type IS NULL) THEN
+      SET NEW.sortno = NEW.type * 100;
+    ELSEIF NEW.type IS NULL AND OLD.type IS NOT NULL THEN
+      SET NEW.sortno = 65535;
+    END IF;
+  END;',
   
   
   'CREATE TABLE affair
@@ -60,11 +83,13 @@ $SCHEMA_SCRIPT =
     master_note   TEXT,
     tech_note     TEXT,
     
+    done          BOOLEAN NOT NULL DEFAULT 0,
+    
     timestamp     TIMESTAMP NOT NULL DEFAULT NOW() ON UPDATE NOW(),
     
     PRIMARY KEY   (affairid),
-    UNIQUE KEY    (name, receipt_date),
-    UNIQUE KEY    (ref)
+    UNIQUE KEY    (tech_id, name, receipt_date),
+    UNIQUE KEY    (tech_id, ref, receipt_date)
   ) engine=innoDB collate utf8_general_ci',
   
   
@@ -78,15 +103,51 @@ $SCHEMA_SCRIPT =
     tech_id       INT UNSIGNED NOT NULL,
 
     count         INT UNSIGNED NOT NULL DEFAULT 0,
+    spare_count   INT UNSIGNED NOT NULL DEFAULT 0,
     done          BOOLEAN NOT NULL DEFAULT 0,
+    
+    tfc1          INT UNSIGNED NOT NULL DEFAULT 0,
+    tfc2          INT UNSIGNED NOT NULL DEFAULT 0,
+    tfc3          INT UNSIGNED NOT NULL DEFAULT 0,
+    tfc4          INT UNSIGNED NOT NULL DEFAULT 0,
+    tfc5          INT UNSIGNED NOT NULL DEFAULT 0,
+    tfc_done      BOOLEAN NOT NULL DEFAULT 0, 
     
     timestamp     TIMESTAMP NOT NULL DEFAULT NOW() ON UPDATE NOW(),
   
     PRIMARY KEY   (orderid),
     UNIQUE KEY    (cableid, affairid, tech_id),
     FOREIGN KEY   (cableid) REFERENCES cable (cableid) ON UPDATE CASCADE ON DELETE RESTRICT,
-    FOREIGN KEY   (affairid) REFERENCES affair(affairid) ON UPDATE CASCADE ON DELETE CASCADE
-  ) engine=innoDB collate utf8_general_ci'    
+    FOREIGN KEY   (affairid) REFERENCES affair(affairid) ON UPDATE CASCADE ON DELETE RESTRICT
+  ) engine=innoDB collate utf8_general_ci',
+  
+  
+  // tech_id - who currently uses an MFC, if any
+  // affairid - on which affair an MFC is used, if any
+  'CREATE TABLE mfc
+  (
+    mfcid         INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    name          VARCHAR(50) NOT NULL,
+    info          VARCHAR(255),
+    tech_id       INT UNSIGNED,
+    affairid      INT UNSIGNED,
+    
+    PRIMARY KEY   (mfcid),
+    UNIQUE KEY    (name),
+    FOREIGN KEY   (affairid) REFERENCES affair(affairid) ON UPDATE CASCADE ON DELETE RESTRICT
+  ) engine=innoDB collate utf8_general_ci',
+  
+  
+  'CREATE TABLE cablemfc
+  (
+    mfcid         INT UNSIGNED NOT NULL,
+    cableid       INT UNSIGNED NOT NULL,
+    count         INT UNSIGNED NOT NULL,
+    
+    PRIMARY KEY   (mfcid, cableid),
+    FOREIGN KEY   (mfcid) REFERENCES mfc(mfcid) ON UPDATE CASCADE ON DELETE RESTRICT,
+    FOREIGN KEY   (cableid) REFERENCES cable(cableid) ON UPDATE CASCADE ON DELETE RESTRICT
+  ) engine=innoDB collate utf8_general_ci',
 ];
 
 foreach($SCHEMA_SCRIPT as $query) {

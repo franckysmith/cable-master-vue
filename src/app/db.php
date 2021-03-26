@@ -56,12 +56,12 @@ class db extends dbbase {
     $cableids = implode(',', $cableids);
     
     // if CURDATE() == return_date, we do not include an order to the result set (consider it past order) only if
-    // return_time == 'morning' and current time is afternoon, i.e. HOUR(NOw()) > 12 
+    // return_time == 'morning' and current time is afternoon, i.e. HOUR(NOW()) > 12 
       
-    $query =  "SELECT cableid,receipt_date,receipt_time,return_date,return_time,count ".
+    $query =  "SELECT cableid,receipt_date,receipt_time,return_date,return_time,count+spare_count as count ".
               "FROM `order` o ".
               "INNER JOIN affair a ".
-              "ON o.cableid IN ($cableids) AND done AND a.affairid=o.affairid AND ".
+              "ON o.cableid IN ($cableids) AND o.done AND a.done AND a.affairid=o.affairid AND ".
               "(return_date > CURDATE() OR return_date = CURDATE() AND ".
               "(IFNULL(return_time, '') != 'morning' OR HOUR(NOW()) <= 12)) ".
               "ORDER BY cableid";

@@ -8,6 +8,7 @@
           type="text"
           v-model="name"
           placeholder=" nom de l'affaire "
+          autocomplete="off"
       /></label>
       <label for=""
         >Nom : francky ou Edward ou john

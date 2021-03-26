@@ -4,11 +4,21 @@
       <form @subbmit.prevent="update_order()">
         <div class="head">
           <div>count</div>
-          <div style="padding-left:20px">FC1</div>
-          <div style="padding-left:15px">FC2</div>
-          <div style="padding-left:20px">FC3</div>
-          <div style="padding-left:22px">FC4</div>
-          <div style="padding-left:23px">FC5</div>
+          <div style="padding-left:3px" placeholder="z1">
+            <input type="text" />
+          </div>
+          <div style="padding-left:1px">
+            <input type="text" />
+          </div>
+          <div style="padding-left:1px">
+            <input type="text" />
+          </div>
+          <div style="padding-left:1px">
+            <input type="text" />
+          </div>
+          <div style="padding-left:1px">
+            <input type="text" />
+          </div>
         </div>
         <div class="content-all">
           <div
@@ -154,6 +164,7 @@ input {
   display: flex;
   justify-content: space-around;
 }
+
 .titre_affaire {
   width: 200px;
   height: 32px;
@@ -224,10 +235,16 @@ input {
 .cont_2 input {
   margin: 5px;
 }
+div.countfc {
+  /* margin: 0px; */
+}
 .tech {
   width: 200px;
 }
-
+p {
+  margin: 6px 0px 0px 2px;
+  padding-right: 2px;
+}
 .post {
   margin: 10px 0px 20px 0px;
   width: 400px;
@@ -239,7 +256,7 @@ input {
 }
 
 .list input {
-  margin: 0px 10px;
+  /* margin: 0px 10px; */
   width: 30px;
 }
 .list_name {
@@ -252,8 +269,22 @@ input {
   text-align: left;
   padding-left: 135px;
 }
+.head input {
+  width: 30px;
+  border: 1px solid rgb(211, 210, 210);
+}
+.name h3 {
+  font-size: 15px;
+  font-weight: 500;
+  text-align: left;
+  width: 100px;
+
+  /* margin-left: 5px; */
+  background-color: #c1c7c33a;
+}
 .number {
   display: flex;
+  /* align-items: center; */
   border-width: 0px 0px 1px 0px;
   border-style: solid;
   height: 40px;
@@ -274,15 +305,5 @@ input {
 }
 button {
   margin: 3px;
-}
-
-.name h3 {
-  font-size: 15px;
-  font-weight: 500;
-  text-align: left;
-  width: 110px;
-
-  /* margin-left: 5px; */
-  background-color: #c1c7c33a;
 }
 </style>

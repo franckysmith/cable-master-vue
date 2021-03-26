@@ -39,8 +39,8 @@
               <div>
                 <input name="" />
               </div>
-              <div>
-                <div class="info">
+              <div class="info">
+                <div>
                   {{ cable.info }}
                 </div>
               </div>
@@ -143,34 +143,11 @@ export default {
 };
 </script>
 <style scoped>
-input {
-  padding: 5px;
-}
 .entete {
   display: flex;
   justify-content: space-around;
 }
-.titre_affaire {
-  width: 200px;
-  height: 32px;
-  left: 34px;
-  top: 63px;
 
-  background: linear-gradient(180deg, #ffffff 0%, rgba(255, 255, 255, 0) 100%);
-  border: 1px solid #000000;
-  box-sizing: border-box;
-  box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
-}
-.post button {
-  margin: 10px;
-  padding: 5px;
-  min-width: 50px;
-  background: #4dcc59;
-  border: 1px solid #000000;
-  box-sizing: border-box;
-  box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
-  border-radius: 4px;
-}
 .button2 {
   margin: 10px;
   padding: 5px;
@@ -180,6 +157,9 @@ input {
   box-sizing: border-box;
   box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
   border-radius: 4px;
+}
+button {
+  margin: 3px;
 }
 .content-liste {
   margin: auto;
@@ -191,11 +171,7 @@ input {
   width: 400px;
   justify-content: space-between;
 }
-.dates {
-  margin: 10px;
-  display: flex;
-  justify-content: space-around;
-}
+
 .content-number {
   width: 400px;
   display: flex;
@@ -207,6 +183,79 @@ input {
 }
 .cont_2 input {
   margin: 5px;
+}
+.dates {
+  margin: 10px;
+  display: flex;
+  justify-content: space-around;
+}
+.head {
+  display: flex;
+  /* margin: auto; */
+  width: 400px;
+  text-align: left;
+  padding-left: 130px;
+}
+.info {
+  /* margin: 0px; */
+}
+input {
+  padding: 5px;
+}
+.list {
+  margin: 5px 25px;
+  display: flex;
+  text-align: left;
+}
+
+.list input {
+  margin: 0px 10px;
+  width: 30px;
+}
+.list_name {
+  width: 220px;
+}
+.list_container {
+  width: 400px;
+}
+.number {
+  display: flex;
+  border-width: 0px 0px 1px 0px;
+  border-style: solid;
+}
+
+.number input {
+  width: 18px;
+  margin: 6px;
+}
+.number button {
+  /* line-height: 10px; */
+  padding: 4px;
+  margin-top: 10px;
+  margin-right: 4px;
+}
+
+.name h3 {
+  font-size: 15px;
+  font-weight: 500;
+  text-align: left;
+  width: 130px;
+  /* margin-left: 5px; */
+  background-color: #c1c7c33a;
+}
+.post {
+  margin: 10px 0px 20px 0px;
+  width: 400px;
+}
+.post button {
+  margin: 10px;
+  padding: 5px;
+  min-width: 50px;
+  background: #4dcc59;
+  border: 1px solid #000000;
+  box-sizing: border-box;
+  box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+  border-radius: 4px;
 }
 .tech {
   width: 200px;
@@ -225,60 +274,15 @@ th {
   width: 250px;
   padding-left: 5px;
 }
+.titre_affaire {
+  width: 200px;
+  height: 32px;
+  left: 34px;
+  top: 63px;
 
-.post {
-  margin: 10px 0px 20px 0px;
-  width: 400px;
-}
-.list {
-  margin: 5px 25px;
-  display: flex;
-  text-align: left;
-}
-
-.list input {
-  margin: 0px 10px;
-  width: 30px;
-}
-.list_name {
-  width: 220px;
-}
-.head {
-  display: flex;
-  /* margin: auto; */
-  width: 400px;
-  text-align: left;
-  padding-left: 130px;
-}
-.number {
-  display: flex;
-  border-width: 0px 0px 1px 0px;
-  border-style: solid;
-}
-
-.number input {
-  width: 18px;
-  margin: 6px;
-}
-.number button {
-  line-height: 10px;
-  padding: 4px;
-  margin-top: 10px;
-  margin-right: 4px;
-}
-.list_container {
-  width: 400px;
-}
-button {
-  margin: 3px;
-}
-
-.name h3 {
-  font-size: 15px;
-  font-weight: 500;
-  text-align: left;
-  width: 130px;
-  /* margin-left: 5px; */
-  background-color: #c1c7c33a;
+  background: linear-gradient(180deg, #ffffff 0%, rgba(255, 255, 255, 0) 100%);
+  border: 1px solid #000000;
+  box-sizing: border-box;
+  box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
 }
 </style>

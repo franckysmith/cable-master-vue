@@ -1,0 +1,184 @@
+[22-Feb-2021 18:46:25 Europe/Paris] PHP Warning:  trim() expects parameter 1 to be string, array given in /var/www/vhosts/cinod.fr/httpdocs/cables/lib/form.php on line 247
+[23-Feb-2021 00:42:58 Europe/Paris] PHP Warning:  trim() expects parameter 1 to be string, array given in /var/www/vhosts/cinod.fr/httpdocs/cables/lib/form.php on line 247
+[24-Feb-2021 16:35:54 Europe/Paris] PHP Warning:  Invalid argument supplied for foreach() in /var/www/vhosts/cinod.fr/httpdocs/cables/api.php on line 164
+[24-Feb-2021 16:37:44 Europe/Paris] PHP Warning:  Invalid argument supplied for foreach() in /var/www/vhosts/cinod.fr/httpdocs/cables/api.php on line 164
+[24-Feb-2021 16:40:33 Europe/Paris] PHP Warning:  Invalid argument supplied for foreach() in /var/www/vhosts/cinod.fr/httpdocs/cables/api.php on line 164
+[24-Feb-2021 16:46:30 Europe/Paris] PHP Warning:  Invalid argument supplied for foreach() in /var/www/vhosts/cinod.fr/httpdocs/cables/api.php on line 164
+[24-Feb-2021 16:50:24 Europe/Paris] PHP Warning:  Invalid argument supplied for foreach() in /var/www/vhosts/cinod.fr/httpdocs/cables/api.php on line 164
+[24-Feb-2021 16:51:34 Europe/Paris] PHP Warning:  Invalid argument supplied for foreach() in /var/www/vhosts/cinod.fr/httpdocs/cables/api.php on line 164
+[24-Feb-2021 16:53:04 Europe/Paris] Error: Column 'total' cannot be null in /var/www/vhosts/cinod.fr/httpdocs/cables/api.php on line 36
+[28-Feb-2021 16:07:55 Europe/Paris] PHP Warning:  trim() expects parameter 1 to be string, array given in /var/www/vhosts/cinod.fr/httpdocs/cables/lib/form.php on line 176
+[28-Feb-2021 16:09:40 Europe/Paris] PHP Warning:  trim() expects parameter 1 to be string, array given in /var/www/vhosts/cinod.fr/httpdocs/cables/lib/form.php on line 176
+[28-Feb-2021 16:10:45 Europe/Paris] PHP Warning:  trim() expects parameter 1 to be string, array given in /var/www/vhosts/cinod.fr/httpdocs/cables/lib/form.php on line 176
+[28-Feb-2021 16:11:23 Europe/Paris] PHP Warning:  trim() expects parameter 1 to be string, array given in /var/www/vhosts/cinod.fr/httpdocs/cables/lib/form.php on line 176
+[28-Feb-2021 16:11:54 Europe/Paris] PHP Warning:  trim() expects parameter 1 to be string, array given in /var/www/vhosts/cinod.fr/httpdocs/cables/lib/form.php on line 176
+[28-Feb-2021 16:12:19 Europe/Paris] PHP Warning:  trim() expects parameter 1 to be string, array given in /var/www/vhosts/cinod.fr/httpdocs/cables/lib/form.php on line 176
+[28-Feb-2021 16:12:22 Europe/Paris] PHP Warning:  trim() expects parameter 1 to be string, array given in /var/www/vhosts/cinod.fr/httpdocs/cables/lib/form.php on line 176
+[02-Mar-2021 13:04:10 Europe/Paris] PHP Warning:  trim() expects parameter 1 to be string, array given in /var/www/vhosts/cinod.fr/httpdocs/cables/lib/form.php on line 176
+[02-Mar-2021 13:04:45 Europe/Paris] PHP Warning:  trim() expects parameter 1 to be string, array given in /var/www/vhosts/cinod.fr/httpdocs/cables/lib/form.php on line 176
+[02-Mar-2021 13:05:24 Europe/Paris] PHP Warning:  trim() expects parameter 1 to be string, array given in /var/www/vhosts/cinod.fr/httpdocs/cables/lib/form.php on line 176
+[02-Mar-2021 13:28:19 Europe/Paris] PHP Warning:  trim() expects parameter 1 to be string, array given in /var/www/vhosts/cinod.fr/httpdocs/cables/lib/form.php on line 176
+[02-Mar-2021 13:34:28 Europe/Paris] PHP Warning:  trim() expects parameter 1 to be string, array given in /var/www/vhosts/cinod.fr/httpdocs/cables/lib/form.php on line 176
+[02-Mar-2021 14:20:41 Europe/Paris] PHP Warning:  trim() expects parameter 1 to be string, array given in /var/www/vhosts/cinod.fr/httpdocs/cables/lib/form.php on line 176
+[02-Mar-2021 14:21:02 Europe/Paris] PHP Warning:  trim() expects parameter 1 to be string, array given in /var/www/vhosts/cinod.fr/httpdocs/cables/lib/form.php on line 176
+[02-Mar-2021 14:21:24 Europe/Paris] PHP Warning:  trim() expects parameter 1 to be string, array given in /var/www/vhosts/cinod.fr/httpdocs/cables/lib/form.php on line 176
+[02-Mar-2021 14:23:25 Europe/Paris] PHP Warning:  trim() expects parameter 1 to be string, array given in /var/www/vhosts/cinod.fr/httpdocs/cables/lib/form.php on line 176
+[02-Mar-2021 14:23:48 Europe/Paris] PHP Warning:  trim() expects parameter 1 to be string, array given in /var/www/vhosts/cinod.fr/httpdocs/cables/lib/form.php on line 176
+[02-Mar-2021 14:26:13 Europe/Paris] PHP Warning:  trim() expects parameter 1 to be string, array given in /var/www/vhosts/cinod.fr/httpdocs/cables/lib/form.php on line 176
+[02-Mar-2021 14:27:04 Europe/Paris] PHP Warning:  trim() expects parameter 1 to be string, array given in /var/www/vhosts/cinod.fr/httpdocs/cables/lib/form.php on line 176
+[02-Mar-2021 14:27:07 Europe/Paris] PHP Warning:  trim() expects parameter 1 to be string, array given in /var/www/vhosts/cinod.fr/httpdocs/cables/lib/form.php on line 176
+[02-Mar-2021 14:27:22 Europe/Paris] PHP Warning:  trim() expects parameter 1 to be string, array given in /var/www/vhosts/cinod.fr/httpdocs/cables/lib/form.php on line 176
+[02-Mar-2021 14:27:35 Europe/Paris] PHP Warning:  trim() expects parameter 1 to be string, array given in /var/www/vhosts/cinod.fr/httpdocs/cables/lib/form.php on line 176
+[04-Mar-2021 09:31:53 Europe/Paris] PHP Warning:  trim() expects parameter 1 to be string, array given in /var/www/vhosts/cinod.fr/httpdocs/cables/lib/form.php on line 176
+[04-Mar-2021 09:31:56 Europe/Paris] PHP Warning:  trim() expects parameter 1 to be string, array given in /var/www/vhosts/cinod.fr/httpdocs/cables/lib/form.php on line 176
+[04-Mar-2021 09:34:16 Europe/Paris] PHP Warning:  trim() expects parameter 1 to be string, array given in /var/www/vhosts/cinod.fr/httpdocs/cables/lib/form.php on line 176
+[04-Mar-2021 09:34:17 Europe/Paris] PHP Warning:  trim() expects parameter 1 to be string, array given in /var/www/vhosts/cinod.fr/httpdocs/cables/lib/form.php on line 176
+[04-Mar-2021 10:08:14 Europe/Paris] PHP Warning:  trim() expects parameter 1 to be string, array given in /var/www/vhosts/cinod.fr/httpdocs/cables/lib/form.php on line 176
+[04-Mar-2021 10:08:29 Europe/Paris] PHP Warning:  trim() expects parameter 1 to be string, array given in /var/www/vhosts/cinod.fr/httpdocs/cables/lib/form.php on line 176
+[04-Mar-2021 10:08:29 Europe/Paris] PHP Warning:  trim() expects parameter 1 to be string, array given in /var/www/vhosts/cinod.fr/httpdocs/cables/lib/form.php on line 176
+[04-Mar-2021 10:08:29 Europe/Paris] PHP Warning:  trim() expects parameter 1 to be string, array given in /var/www/vhosts/cinod.fr/httpdocs/cables/lib/form.php on line 176
+[08-Mar-2021 13:55:34 Europe/Paris] PHP Warning:  Invalid argument supplied for foreach() in /var/www/vhosts/cinod.fr/httpdocs/cables/api.php on line 164
+[10-Mar-2021 17:26:35 Europe/Paris] Error: Column 'reserved' cannot be null in /var/www/vhosts/cinod.fr/httpdocs/cables/api.php on line 36
+[11-Mar-2021 17:49:06 Europe/Paris] Error: Column 'reserved' cannot be null in /var/www/vhosts/cinod.fr/httpdocs/cables/api.php on line 36
+[13-Mar-2021 11:11:16 Europe/Paris] Error: Column 'reserved' cannot be null in /var/www/vhosts/cinod.fr/httpdocs/cables/api.php on line 36
+[13-Mar-2021 15:13:11 Europe/Paris] PHP Notice:  Undefined index: HTTP_ORIGIN in /var/www/vhosts/cinod.fr/httpdocs/cables/test.php on line 135
+[13-Mar-2021 15:34:12 Europe/Paris] Array
+(
+    [PATH] => /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
+    [PP_CUSTOM_PHP_INI] => /var/www/vhosts/system/cinod.fr/etc/php.ini
+    [PP_CUSTOM_PHP_CGI_INDEX] => plesk-php72-fastcgi
+    [SCRIPT_NAME] => /cables/api.php
+    [REQUEST_URI] => /cables/api.php
+    [QUERY_STRING] => 
+    [REQUEST_METHOD] => GET
+    [SERVER_PROTOCOL] => HTTP/1.0
+    [GATEWAY_INTERFACE] => CGI/1.1
+    [REMOTE_PORT] => 55528
+    [SCRIPT_FILENAME] => /var/www/vhosts/cinod.fr/httpdocs/cables/api.php
+    [SERVER_ADMIN] => root@localhost
+    [CONTEXT_DOCUMENT_ROOT] => /var/www/vhosts/cinod.fr/httpdocs
+    [CONTEXT_PREFIX] => 
+    [REQUEST_SCHEME] => https
+    [DOCUMENT_ROOT] => /var/www/vhosts/cinod.fr/httpdocs
+    [REMOTE_ADDR] => 91.188.184.202
+    [SERVER_PORT] => 443
+    [SERVER_ADDR] => 188.130.7.185
+    [SERVER_NAME] => cinod.fr
+    [SERVER_SOFTWARE] => Apache
+    [SERVER_SIGNATURE] => 
+    [HTTP_COOKIE] => PHPSESSID=64r9q4o8pk8olg1cf4asir0rq6; ssupp.banner=false; ssupp.barclicked=true; ssupp.opened=false; ssupp.autoopen=false; _ga=GA1.2.2033806963.1494844427; ssupp.chatid=null; wordpress_test_cookie=WP+Cookie+check; ssupp.vid=vi3pkmdYEficf; ssupp.visits=267; token=a7debdc98985fd0552613a1a092f1b16; lang=en; G_ENABLED_IDPS=google; BOOKINGTECH=kqtjaf37f1cb89ccrv0js4dq9k; SL_C_23361dd035530_KEY=6ecfeb290f64cd8175445e6891b5f09d92296e3a; SL_C_23361dd035530_SID=aBstO6lovn; SL_C_23361dd035530_VID=D-UJOaopAQ
+    [HTTP_ACCEPT_LANGUAGE] => en-US,en;q=0.8
+    [HTTP_ACCEPT_ENCODING] => gzip, deflate, sdch, br
+    [HTTP_ACCEPT] => text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8
+    [HTTP_USER_AGENT] => Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.133 Safari/537.36
+    [HTTP_UPGRADE_INSECURE_REQUESTS] => 1
+    [HTTP_CONNECTION] => close
+    [HTTP_X_REAL_IP] => 91.188.184.202
+    [HTTP_HOST] => cinod.fr
+    [HTTPS] => on
+    [PERL5LIB] => /usr/share/awstats/lib:/usr/share/awstats/plugins
+    [HTTP_AUTHORIZATION] => 
+    [UNIQUE_ID] => YEzNZPXC-ruBZ0ceFtOvYAAAAFE
+    [FCGI_ROLE] => RESPONDER
+    [PHP_SELF] => /cables/api.php
+    [REQUEST_TIME_FLOAT] => 1615646052.0734
+    [REQUEST_TIME] => 1615646052
+)
+
+[13-Mar-2021 15:36:36 Europe/Paris] Array
+(
+    [PATH] => /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
+    [PP_CUSTOM_PHP_INI] => /var/www/vhosts/system/cinod.fr/etc/php.ini
+    [PP_CUSTOM_PHP_CGI_INDEX] => plesk-php72-fastcgi
+    [SCRIPT_NAME] => /cables/api.php
+    [REQUEST_URI] => /cables/api.php?method=cable_update
+    [QUERY_STRING] => method=cable_update
+    [REQUEST_METHOD] => POST
+    [SERVER_PROTOCOL] => HTTP/1.0
+    [GATEWAY_INTERFACE] => CGI/1.1
+    [REMOTE_PORT] => 56172
+    [SCRIPT_FILENAME] => /var/www/vhosts/cinod.fr/httpdocs/cables/api.php
+    [SERVER_ADMIN] => root@localhost
+    [CONTEXT_DOCUMENT_ROOT] => /var/www/vhosts/cinod.fr/httpdocs
+    [CONTEXT_PREFIX] => 
+    [REQUEST_SCHEME] => https
+    [DOCUMENT_ROOT] => /var/www/vhosts/cinod.fr/httpdocs
+    [REMOTE_ADDR] => 91.169.1.91
+    [SERVER_PORT] => 443
+    [SERVER_ADDR] => 188.130.7.185
+    [SERVER_NAME] => cinod.fr
+    [SERVER_SOFTWARE] => Apache
+    [SERVER_SIGNATURE] => 
+    [HTTP_ACCEPT_LANGUAGE] => en-US,en;q=0.9,fr;q=0.8
+    [HTTP_ACCEPT_ENCODING] => gzip, deflate, br
+    [HTTP_REFERER] => http://localhost:8080/
+    [HTTP_SEC_FETCH_DEST] => empty
+    [HTTP_SEC_FETCH_MODE] => cors
+    [HTTP_SEC_FETCH_SITE] => cross-site
+    [HTTP_ORIGIN] => http://localhost:8080
+    [HTTP_ACCEPT] => */*
+    [CONTENT_TYPE] => text/plain;charset=UTF-8
+    [HTTP_USER_AGENT] => Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.190 Safari/537.36
+    [HTTP_SEC_CH_UA_MOBILE] => ?0
+    [HTTP_SEC_CH_UA] => "Chromium";v="88", "Google Chrome";v="88", ";Not A Brand";v="99"
+    [CONTENT_LENGTH] => 163
+    [HTTP_CONNECTION] => close
+    [HTTP_X_REAL_IP] => 91.169.1.91
+    [HTTP_HOST] => cinod.fr
+    [HTTPS] => on
+    [PERL5LIB] => /usr/share/awstats/lib:/usr/share/awstats/plugins
+    [HTTP_AUTHORIZATION] => 
+    [UNIQUE_ID] => YEzN9CacGSZGCjBzkXsBBQAAAQw
+    [FCGI_ROLE] => RESPONDER
+    [PHP_SELF] => /cables/api.php
+    [REQUEST_TIME_FLOAT] => 1615646196.7353
+    [REQUEST_TIME] => 1615646196
+)
+
+[15-Mar-2021 17:53:54 Europe/Paris] Error: Column 'done' in on clause is ambiguous in /var/www/vhosts/cinod.fr/httpdocs/cables/lib/dbbase.php on line 547
+[15-Mar-2021 17:54:33 Europe/Paris] Error: Column 'done' in on clause is ambiguous in /var/www/vhosts/cinod.fr/httpdocs/cables/lib/dbbase.php on line 547
+[15-Mar-2021 17:54:35 Europe/Paris] Error: Column 'done' in on clause is ambiguous in /var/www/vhosts/cinod.fr/httpdocs/cables/lib/dbbase.php on line 547
+[15-Mar-2021 17:56:21 Europe/Paris] Error: Column 'done' in on clause is ambiguous in /var/www/vhosts/cinod.fr/httpdocs/cables/lib/dbbase.php on line 547
+[15-Mar-2021 17:59:36 Europe/Paris] Error: Column 'done' in on clause is ambiguous in /var/www/vhosts/cinod.fr/httpdocs/cables/lib/dbbase.php on line 547
+[15-Mar-2021 18:01:29 Europe/Paris] Error: Column 'done' in on clause is ambiguous in /var/www/vhosts/cinod.fr/httpdocs/cables/lib/dbbase.php on line 547
+[15-Mar-2021 18:01:33 Europe/Paris] Error: Column 'done' in on clause is ambiguous in /var/www/vhosts/cinod.fr/httpdocs/cables/lib/dbbase.php on line 547
+[15-Mar-2021 18:05:53 Europe/Paris] Error: Column 'done' in on clause is ambiguous in /var/www/vhosts/cinod.fr/httpdocs/cables/lib/dbbase.php on line 547
+[15-Mar-2021 18:06:15 Europe/Paris] Error: Column 'done' in on clause is ambiguous in /var/www/vhosts/cinod.fr/httpdocs/cables/lib/dbbase.php on line 547
+[15-Mar-2021 18:08:27 Europe/Paris] Error: Column 'done' in on clause is ambiguous in /var/www/vhosts/cinod.fr/httpdocs/cables/lib/dbbase.php on line 547
+[15-Mar-2021 18:11:11 Europe/Paris] Error: Column 'done' in on clause is ambiguous in /var/www/vhosts/cinod.fr/httpdocs/cables/lib/dbbase.php on line 547
+[15-Mar-2021 18:13:04 Europe/Paris] Error: Column 'done' in on clause is ambiguous in /var/www/vhosts/cinod.fr/httpdocs/cables/lib/dbbase.php on line 547
+[15-Mar-2021 18:14:20 Europe/Paris] Error: Column 'done' in on clause is ambiguous in /var/www/vhosts/cinod.fr/httpdocs/cables/lib/dbbase.php on line 547
+[15-Mar-2021 18:14:50 Europe/Paris] Error: Column 'done' in on clause is ambiguous in /var/www/vhosts/cinod.fr/httpdocs/cables/lib/dbbase.php on line 547
+[15-Mar-2021 18:14:51 Europe/Paris] Error: Column 'done' in on clause is ambiguous in /var/www/vhosts/cinod.fr/httpdocs/cables/lib/dbbase.php on line 547
+[15-Mar-2021 18:16:28 Europe/Paris] Error: Column 'done' in on clause is ambiguous in /var/www/vhosts/cinod.fr/httpdocs/cables/lib/dbbase.php on line 547
+[15-Mar-2021 19:03:08 Europe/Paris] Error: Column 'done' in on clause is ambiguous in /var/www/vhosts/cinod.fr/httpdocs/cables/lib/dbbase.php on line 547
+[15-Mar-2021 19:03:52 Europe/Paris] Error: Column 'done' in on clause is ambiguous in /var/www/vhosts/cinod.fr/httpdocs/cables/lib/dbbase.php on line 547
+[15-Mar-2021 19:03:54 Europe/Paris] Error: Column 'done' in on clause is ambiguous in /var/www/vhosts/cinod.fr/httpdocs/cables/lib/dbbase.php on line 547
+[15-Mar-2021 19:04:47 Europe/Paris] Error: Column 'done' in on clause is ambiguous in /var/www/vhosts/cinod.fr/httpdocs/cables/lib/dbbase.php on line 547
+[15-Mar-2021 19:10:34 Europe/Paris] Error: Column 'done' in on clause is ambiguous in /var/www/vhosts/cinod.fr/httpdocs/cables/lib/dbbase.php on line 547
+[15-Mar-2021 19:10:35 Europe/Paris] Error: Column 'done' in on clause is ambiguous in /var/www/vhosts/cinod.fr/httpdocs/cables/lib/dbbase.php on line 547
+[15-Mar-2021 19:11:04 Europe/Paris] Error: Column 'done' in on clause is ambiguous in /var/www/vhosts/cinod.fr/httpdocs/cables/lib/dbbase.php on line 547
+[15-Mar-2021 19:11:33 Europe/Paris] Error: Column 'done' in on clause is ambiguous in /var/www/vhosts/cinod.fr/httpdocs/cables/lib/dbbase.php on line 547
+[15-Mar-2021 19:15:18 Europe/Paris] Error: Column 'done' in on clause is ambiguous in /var/www/vhosts/cinod.fr/httpdocs/cables/lib/dbbase.php on line 547
+[15-Mar-2021 19:15:52 Europe/Paris] Error: Column 'done' in on clause is ambiguous in /var/www/vhosts/cinod.fr/httpdocs/cables/lib/dbbase.php on line 547
+[15-Mar-2021 19:16:47 Europe/Paris] Error: Column 'done' in on clause is ambiguous in /var/www/vhosts/cinod.fr/httpdocs/cables/lib/dbbase.php on line 547
+[15-Mar-2021 19:16:49 Europe/Paris] Error: Column 'done' in on clause is ambiguous in /var/www/vhosts/cinod.fr/httpdocs/cables/lib/dbbase.php on line 547
+[15-Mar-2021 19:16:50 Europe/Paris] Error: Column 'done' in on clause is ambiguous in /var/www/vhosts/cinod.fr/httpdocs/cables/lib/dbbase.php on line 547
+[15-Mar-2021 19:16:51 Europe/Paris] Error: Column 'done' in on clause is ambiguous in /var/www/vhosts/cinod.fr/httpdocs/cables/lib/dbbase.php on line 547
+[15-Mar-2021 19:16:55 Europe/Paris] Error: Column 'done' in on clause is ambiguous in /var/www/vhosts/cinod.fr/httpdocs/cables/lib/dbbase.php on line 547
+[15-Mar-2021 19:16:56 Europe/Paris] Error: Column 'done' in on clause is ambiguous in /var/www/vhosts/cinod.fr/httpdocs/cables/lib/dbbase.php on line 547
+[15-Mar-2021 19:16:57 Europe/Paris] Error: Column 'done' in on clause is ambiguous in /var/www/vhosts/cinod.fr/httpdocs/cables/lib/dbbase.php on line 547
+[15-Mar-2021 19:16:59 Europe/Paris] Error: Column 'done' in on clause is ambiguous in /var/www/vhosts/cinod.fr/httpdocs/cables/lib/dbbase.php on line 547
+[15-Mar-2021 19:28:48 Europe/Paris] Error: Column 'done' in on clause is ambiguous in /var/www/vhosts/cinod.fr/httpdocs/cables/lib/dbbase.php on line 547
+[16-Mar-2021 21:51:53 Europe/Paris] Error: Column 'reserved' cannot be null in /var/www/vhosts/cinod.fr/httpdocs/cables/api.php on line 36
+[16-Mar-2021 21:52:17 Europe/Paris] Error: Column 'reserved' cannot be null in /var/www/vhosts/cinod.fr/httpdocs/cables/api.php on line 36
+[16-Mar-2021 23:03:49 Europe/Paris] Error: Column 'reserved' cannot be null in /var/www/vhosts/cinod.fr/httpdocs/cables/api.php on line 36
+[16-Mar-2021 23:04:28 Europe/Paris] Error: Column 'reserved' cannot be null in /var/www/vhosts/cinod.fr/httpdocs/cables/api.php on line 36
+[19-Mar-2021 17:40:43 Europe/Paris] Error: Column 'reserved' cannot be null in /var/www/vhosts/cinod.fr/httpdocs/cables/api.php on line 36
+[19-Mar-2021 17:41:38 Europe/Paris] Error: Column 'reserved' cannot be null in /var/www/vhosts/cinod.fr/httpdocs/cables/api.php on line 36
+[20-Mar-2021 08:04:25 Europe/Paris] Error: Column 'reserved' cannot be null in /var/www/vhosts/cinod.fr/httpdocs/cables/api.php on line 36
+[20-Mar-2021 11:02:49 Europe/Paris] Error: Column 'reserved' cannot be null in /var/www/vhosts/cinod.fr/httpdocs/cables/api.php on line 36
+[24-Mar-2021 19:40:35 Europe/Paris] PHP Warning:  Invalid argument supplied for foreach() in /var/www/vhosts/cinod.fr/httpdocs/cables/api.php on line 167
+[24-Mar-2021 22:06:34 Europe/Paris] Error: Column 'reserved' cannot be null in /var/www/vhosts/cinod.fr/httpdocs/cables/api.php on line 36
+[24-Mar-2021 22:07:05 Europe/Paris] Error: Column 'reserved' cannot be null in /var/www/vhosts/cinod.fr/httpdocs/cables/api.php on line 36
+[24-Mar-2021 22:07:40 Europe/Paris] Error: Column 'reserved' cannot be null in /var/www/vhosts/cinod.fr/httpdocs/cables/api.php on line 36
