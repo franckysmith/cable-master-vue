@@ -32,13 +32,28 @@
         </div>
       </div>
       <form @submit.prevent="update_order(orders)">
-        <button class="button2" type="submit">
+        <button class="button1" type="submit">
           Update
         </button>
 
-        <button class="button2" @click="filtreMaliste">ma liste</button>
         <button
           class="button2"
+          @click="filtreMaliste"
+          type="button"
+          v-if="malist == 1"
+        >
+          ma liste
+        </button>
+        <button
+          class="button"
+          @click="filtreMaliste"
+          type="button"
+          v-if="malist == -1"
+        >
+          voir ma liste
+        </button>
+        <button
+          class="button"
           @click="cableTechLayout('cableTechBase')"
           type="button"
         >
@@ -46,7 +61,7 @@
         </button>
 
         <button
-          class="button2"
+          class="button"
           @click="cableTechLayout('flightcase')"
           type="button"
         >
@@ -54,14 +69,10 @@
         </button>
 
         <div v-if="cableLayoutData == 'cableTechBase'">
-          <div
-            class="head"
-            v-for="affairo in affaireSelected"
-            :key="affairo.affairid"
-          >
+          <div class="head">
             <div><p>Sécu</p></div>
             <div style="padding-left:12px">
-              <input type="text" v-model="affairo.lz1" placeholder="Zone1" />
+              <input type="text" v-model="affaire.lz1" placeholder="Zone1" />
             </div>
             <div style="padding-left:5px">
               <input type="text" placeholder="Zone2" />
@@ -75,7 +86,6 @@
             <div style="padding-left:4px">
               <input type="text" placeholder="Zone5" />
             </div>
-            {{ affairo }}
           </div>
           <div class="content-number">
             <div
@@ -85,7 +95,7 @@
               <!-- ------------ v-if="cable.count > 0" -->
               <!----------- v-if="filterCable" ------->
               <div v-if="cable.type == typechoose">
-                <div>
+                <div v-if="cable.count >= malist">
                   <div class="number">
                     <div>
                       <input type="checkbox" :checked="cable.isChecked" />
@@ -205,6 +215,8 @@ export default {
     let z1 = ref("");
     let z2 = ref("");
     let z3 = ref("");
+    let malist = ref(-1);
+    // let listKey = ref("0");
     // let totalCount = ref("");
 
     //from emit to v-if
@@ -323,7 +335,8 @@ export default {
 
     // --- filtrer liste
     function filtreMaliste() {
-      console.log("cables", cables.value);
+      console.log("malist.value", malist.value);
+      malist.value = -malist.value;
     }
 
     // choose display cable_type (buttons)
@@ -376,6 +389,7 @@ export default {
       cableTechBase,
       calculCount,
       filtreMaliste,
+      malist,
       newAffairOpen,
       order,
       searchInCableTechJoinData,
@@ -396,7 +410,7 @@ button {
 button.link {
   margin: 0px 0px 3px 0px;
 }
-.button2 {
+.button {
   margin: 10px;
   padding: 5px;
   min-width: 50px;
@@ -406,7 +420,17 @@ button.link {
   box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
   border-radius: 4px;
 }
-.button2.active {
+.button1 {
+  margin: 10px;
+  padding: 5px;
+  min-width: 50px;
+  background: #ddcf10;
+  border: 1px solid #000000;
+  box-sizing: border-box;
+  box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+  border-radius: 4px;
+}
+.button2 {
   margin: 10px;
   padding: 5px;
   min-width: 50px;

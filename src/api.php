@@ -526,7 +526,7 @@ class api extends errorhandled {
         break;
       
       
-        // Adds new orders to 'order' table.
+        /*// Adds new orders to 'order' table.
         // Input:
         //    [
         //      {
@@ -562,7 +562,7 @@ class api extends errorhandled {
           
           $values = form::prepareValues(self::$FIELDS[$method], $order);
           
-          if(!($orderid = db::insert('`order`', $values, false /* insert */, '', false /* silent */))) {
+          if(!($orderid = db::insert('`order`', $values, false, '', false))) {
             if(db::errNo() != db::ER_DUP_ENTRY)
               self::trigger(db::error());   // we don't handle such an error
               
@@ -622,7 +622,7 @@ class api extends errorhandled {
           
           $values = form::prepareValues(self::$FIELDS[$method], $order);
           
-          if(!db::update('`order`', $values, $values['orderid'], false /* silent */)) {
+          if(!db::update('`order`', $values, $values['orderid'], false)) {
             if(db::errNo() != db::ER_DUP_ENTRY)
               self::trigger(db::error());   // we don't handle such an error
               
@@ -638,10 +638,72 @@ class api extends errorhandled {
         
         db::query('COMMIT');
         
+        break;*/
+
+
+        // Sets orders in 'order' table for a given affair by given T as follows:
+        //    * if new count > 0:
+        //      * if no order exists with given (cableid, affairid, tech_id), it is created, otherwise
+        //      * the existing order with given (cableid, affairid, tech_id) is updated
+        //    * else if new count == 0:
+        //      * the existing order with given (cableid, affairid, tech_id), if found, is deleted
+        // Input:
+        //    [
+        //      {
+        //        cableid,
+        //        affairid,
+        //        tech_id,
+        //        count:          <new count to set, zero means to delete the order>,
+        //        [spare_count]:  <is inited to 0 if not specified>,
+        //        [done],
+        //        [tfc1],
+        //        [tfc2],
+        //        [tfc3],
+        //        [tfc4],
+        //        [tfc5],
+        //        [tfc_done]
+        //      },
+        //      ...
+        //    ]
+        // Output:
+        //    nothing
+      
+      case 'order_set':
+        
+        db::query('BEGIN');
+        
+        foreach(self::$data as &$order) {
+          if($error = form::checkErrors(self::$FIELDS[$method], $order)) {
+            $result['error'] = current($error);
+            $result['field'] = current(array_keys($error));
+            break;
+          }
+          
+          $values = form::prepareValues(self::$FIELDS[$method], $order);
+          
+          extract($values);
+          
+          if($count == 0) {
+            db::delete('`order`', compact('cableid', 'affairid', 'tech_id'));
+            continue;
+          }
+          
+          if(db::insert('`order`', $values, true, '', false) === false) {
+            if(db::errNo() != db::ER_NO_REFERENCED_ROW)
+              self::trigger(db::error());   // we don't handle such an error
+            $result['error'] =  "One of cableid=$cableid or affairid=$affairid or tech_id=$tech_id ".
+                                "is referencing non-existing entity";
+            break;
+          }
+        }
+        
+        if(!isset($result['error']))
+          db::query('COMMIT');
+        
         break;
       
       
-        // Deletes orders from 'order' table.
+        /*// Deletes orders from 'order' table.
         // Input:
         //    [
         //      <orderid1>: <id of the first order to delete>,
@@ -678,7 +740,7 @@ class api extends errorhandled {
         
         db::query('COMMIT');
             
-        break;
+        break;*/
       
       
         // Gets all MFCs from 'mfc' table sorted by 'name'
@@ -931,7 +993,7 @@ api::$FIELDS = [
   'cable_add' =>
   [
     'name'      =>  RSTR(25),
-    'type'      =>  ENUM('electrical', 'speaker', 'microphone', 'module', 'special', 'other', 'c_type','accessory','digital'),
+    'type'      =>  ENUM('electrical', 'speaker', 'microphone', 'module', 'special', 'other', 'c_type', 'accessory', 'digital'),
     //'sortno'    =>  UINT, auto-assigned so omitted
     'weight'    =>  UINT,
     'total'     =>  UINT,
@@ -944,7 +1006,7 @@ api::$FIELDS = [
   [
     'cableid'   =>  RID,
     'name'      =>  STR(25),
-    'type'      =>  ENUM('electrical', 'speaker', 'microphone', 'module', 'special', 'other', 'c_type','accessory','digital'),
+    'type'      =>  ENUM('electrical', 'speaker', 'microphone', 'module', 'special', 'other', 'c_type', 'accessory', 'digital'),
     'sortno'    =>  UINT,
     'weight'    =>  UINT,
     'total'     =>  UINT,
@@ -1041,7 +1103,7 @@ api::$FIELDS = [
     'done'          =>  ANY
   ],
   
-  'order_add' =>
+  /*'order_add' =>
   [
     'cableid'       =>  RID,
     'affairid'      =>  RID,
@@ -1066,12 +1128,28 @@ api::$FIELDS = [
     'tfc4'          =>  UINT,
     'tfc5'          =>  UINT,
     'tfc_done'      =>  BOOL
+  ],*/
+  
+  'order_set' =>
+  [
+    'cableid'       =>  RID,
+    'affairid'      =>  RID,
+    'tech_id'       =>  RID,
+    'count'         =>  RUINT,  // 0 is allowed
+    'spare_count'   =>  UINT,   // 0 is allowed
+    'done'          =>  BOOL,
+    'tfc1'          =>  UINT,
+    'tfc2'          =>  UINT,
+    'tfc3'          =>  UINT,
+    'tfc4'          =>  UINT,
+    'tfc5'          =>  UINT,
+    'tfc_done'      =>  BOOL
   ],
   
-  'order_delete' =>
+  /*'order_delete' =>
   [
     'orderid'       =>  RID
-  ],
+  ],*/
   
   'mfc_add' =>
   [
