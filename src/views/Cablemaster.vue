@@ -34,7 +34,7 @@
   </div>
   <div class="home">
     <div class="head">
-      <div style="padding-left:8px">seuil</div>
+      <div style="padding-left:0px">seuil</div>
       <div style="padding-left:26px">total</div>
       <div style="padding-left:32px">poids</div>
       <div style="padding-left:22px">ordre</div>
@@ -215,17 +215,17 @@ export default {
 };
 </script>
 <style scoped>
-.head {
-  display: flex;
-  margin-left: 220px;
-  text-align: left;
-  font-size: 12px;
-}
 .ajouter {
   margin: 10px;
 }
 button {
   cursor: pointer;
+}
+.head {
+  display: flex;
+  margin-left: 15px;
+  text-align: left;
+  font-size: 12px;
 }
 .home {
   /* margin: auto; */
@@ -236,6 +236,9 @@ button {
   height: 90vh;
 }
 .info input {
+  width: 400px;
+}
+.list_container {
   width: 400px;
 }
 .modaldelete {
@@ -272,9 +275,7 @@ button {
   margin-top: 10px;
   margin-right: 4px;
 }
-.list_container {
-  width: 400px;
-}
+
 .post button {
   margin: 3px;
   padding: 5px;
@@ -290,7 +291,7 @@ button {
   font-size: 15px;
   font-weight: 600;
   text-align: left;
-  width: 180px;
+  width: 110px;
   margin-left: 15px;
   background-color: #c1c7c33a;
 }

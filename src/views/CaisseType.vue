@@ -6,6 +6,7 @@
         <input class="ct-name" type="text" v-model="caissetype.name" />
         <button class="button" @click="deletemfc(caissetype)">delete</button>
         <button class="button" @click="caisseToList(caissetype)">select</button>
+        <button class="button3" @click="mfcupdate(caissetype)">update</button>
       </div>
       <div>
         <input

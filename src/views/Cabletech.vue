@@ -4,7 +4,6 @@
     @lessonaffaire="affaireIdToList"
     @lesson-open-newaff="toAffairOpen"
     v-if="!affairIsOpen"
-    @lesson-affaire="affairfromformaffair"
   />
 
   <div class="content-liste">
@@ -55,10 +54,14 @@
         </button>
 
         <div v-if="cableLayoutData == 'cableTechBase'">
-          <div class="head">
+          <div
+            class="head"
+            v-for="affairo in affaireSelected"
+            :key="affairo.affairid"
+          >
             <div><p>Sécu</p></div>
             <div style="padding-left:12px">
-              <input type="text" v-model="affaire.lz1" placeholder="Zone1" />
+              <input type="text" v-model="affairo.lz1" placeholder="Zone1" />
             </div>
             <div style="padding-left:5px">
               <input type="text" placeholder="Zone2" />
@@ -72,6 +75,7 @@
             <div style="padding-left:4px">
               <input type="text" placeholder="Zone5" />
             </div>
+            {{ affairo }}
           </div>
           <div class="content-number">
             <div
@@ -181,6 +185,7 @@ export default {
     let affaire = ref([]);
     let affairid = ref("");
     let affairIsOpen = ref("");
+    let affaireSelected = ref([]);
     let orders = ref([]);
     let order = ref({});
     let reserved = ref("");
@@ -207,11 +212,19 @@ export default {
       affairIsOpen.value = data;
     }
 
+    // function faffaireSelected(data) {
+    //   affaireSelected.value = data;
+    //   console.log("affaireSelected", affaireSelected);
+    // }
+
     // order get with affairid
     function affaireIdToList(data) {
       cableIdsInOrders.value = [];
       cableTechJoinedData.value = [];
-      let searchbyaff = { affairid: data };
+      let searchbyaff = { affairid: data.affairid };
+      let affaireSelected = data;
+      console.log("affaireSelected", affaireSelected);
+      console.log("affairToList data", data);
 
       api
         .call("order_get", searchbyaff)
@@ -226,8 +239,6 @@ export default {
         .catch(function(response) {
           console.log("order_get:", response);
         });
-
-      console.log("affairid | Cabletech", data);
     }
 
     // aggregateData table 'cables' et 'orders'
@@ -348,6 +359,8 @@ export default {
       affairid,
       affairefrom,
       affairfromformaffair,
+      affaireSelected,
+
       orders,
       update_order,
       reserved,

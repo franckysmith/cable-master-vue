@@ -47,11 +47,13 @@
           v-model="affaire.name"
           placeholder="Nom de l'affaire"
         />
-        <input
-          v-model="affaire.ref"
-          class="entete-ref_aff"
-          placeholder="Référence"
-        />
+        <label for=""
+          >Ref:
+          <input
+            v-model="affaire.ref"
+            class="entete-ref_aff"
+            placeholder="Référence"
+        /></label>
       </div>
 
       <div class="description">
@@ -340,13 +342,12 @@ export default {
         });
     }
     //lz1 ...lz2 lfc1 ...lfc2 Label zone et flightcase
-    context.emit("lesson-affaire", affaire);
-    console.log("affaire?", affaire);
+    // context.emit("lesson-affaire", affaire);
 
     // emit vers views/Cabletech
     function selectedaff(data) {
-      context.emit("lessonaffaire", data.affairid);
-      console.log("selectedaff", data.affairid);
+      context.emit("lessonaffaire", data);
+      // console.log("selectedaff", data);
     }
     // update affair
     async function update_affair(param) {
@@ -483,7 +484,7 @@ export default {
   box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
 }
 .entete-ref_aff {
-  width: 60px;
+  width: 80px;
   margin: 6px;
 
   background: linear-gradient(180deg, #ffffff 0%, rgba(255, 255, 255, 0) 100%);
@@ -500,7 +501,7 @@ input {
 .label {
   display: flex;
   margin-left: 155px;
-  padding: 10px;
+  /* padding: 10px; */
 }
 li {
   list-style: none;
