@@ -11,19 +11,19 @@
     <h3>Listes cables etc ...</h3>
     <div>
       <div class="post">
-        <button @click="selectype('speaker')">HP</button>
-        <button @click="selectype('electrical')">Elec</button>
-        <button @click="selectype('module')">Modules</button>
-        <button @click="selectype('special')">Spéciaux</button>
-        <button @click="selectype('other')">autres</button>
-        <button @click="selectype('microphone')">Micros</button>
-        <button @click="selectype('c_type')">caisses-type</button>
-        <button @click="selectype('accessory')">accessoires</button>
-        <button @click="selectype('digital')">numériques</button>
+        <button @click="selectype('speaker')" :class="typechoose === 'speaker' ? 'selectedtype' : ''">HP</button>
+        <button @click="selectype('electrical')" :class="typechoose === 'electrical' ? 'selectedtype' : ''">Elec</button>
+        <button @click="selectype('module')" :class="typechoose === 'module' ? 'selectedtype' : ''">Modules</button>
+        <button @click="selectype('special')" :class="typechoose === 'special' ? 'selectedtype' : ''">Spéciaux</button>
+        <button @click="selectype('other')" :class="typechoose === 'other' ? 'selectedtype' : ''">autres</button>
+        <button @click="selectype('microphone')" :class="typechoose === 'microphone' ? 'selectedtype' : ''">Micros</button>
+        <button @click="selectype('c_type')" :class="typechoose === 'c_type' ? 'selectedtype' : ''">caisses-type</button>
+        <button @click="selectype('accessory')" :class="typechoose === 'accessory' ? 'selectedtype' : ''">accessoires</button>
+        <button @click="selectype('digital')" :class="typechoose === 'digital' ? 'selectedtype' : ''">numériques</button>
 
         <div>
           <!-- celectype('microphone'+'digital'+'other' ..... ) -->
-          <button @click="selectype('electrical')">All</button>
+          <button @click="selectype('')" :class="typechoose === '' ? 'selectedtype' : ''">All</button>
           <input
             type="text"
             v-model="searchKey"
@@ -78,64 +78,11 @@
             {{ affairo }}
           </div>
           <div class="content-number">
-            <div
-              v-for="cable in searchInCableTechJoinData"
-              :key="cable.cableid"
-            >
-              <!-- ------------ v-if="cable.count > 0" -->
-              <!----------- v-if="filterCable" ------->
-              <div v-if="cable.type == typechoose">
-                <div>
-                  <div class="number">
-                    <div>
-                      <input type="checkbox" :checked="cable.isChecked" />
-                    </div>
-                    <div class="name">
-                      <h4>{{ cable.name }}</h4>
-                    </div>
-
-                    <div>
-                      <input name="spare_count" v-model="cable.spare_count" />
-                    </div>
-
-                    <div>
-                      <input name="" v-model="cable.z1" />
-                    </div>
-                    <div>
-                      <input name="" v-model="cable.z2" />
-                    </div>
-                    <div>
-                      <input name="" v-model="cable.z3" />
-                    </div>
-                    <div>
-                      <input name="" v-model="cable.z4" />
-                    </div>
-                    <div>
-                      <input name="" v-model="cable.z5" />
-                    </div>
-                    <div>
-                      <input name="" v-model="cable.count" />
-                    </div>
-                    <div>
-                      {{
-                        parseInt(cable.z1) +
-                          parseInt(cable.z2) +
-                          parseInt(cable.z3) +
-                          parseInt(cable.z4) +
-                          parseInt(cable.z5)
-                      }}
-                    </div>
-                  </div>
-                  <div class="info-content">
-                    <div class="info">
-                      <p>{{ cable.info }}</p>
-                      <button type="button" class="link">
-                        <a href="cable.link">link</a>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
+            <div v-if="typechoose !== ''">
+              <CableList :cables="filteredCableByType" :cable-type="typechoose" :show-my-list="showMyList" />
+            </div>
+            <div v-else>
+              <CableList :cables="searchInCableTechJoinData" cable-type="" :show-my-list="showMyList" />
             </div>
           </div>
         </div>
@@ -145,7 +92,7 @@
 
   <FlyCaseManagment
     v-if="cableLayoutData == 'flightcase'"
-    :cables="searchInCableTechJoinData"
+    :cables="cablesNonZero"
     :typechoose="typechoose"
   />
   <!-- <div><button>getorder</button></div>
@@ -163,23 +110,24 @@ import Formaffaire from "@/components/Formaffaire.vue";
 import FlyCaseManagment from "@/components/FlyCaseManagment.vue";
 
 import AddAffair from "@/components/AddAffair.vue";
+import CableList from "@/components/CableList.vue";
 
 import { ref, computed } from "vue";
 
 export default {
   name: "Cabletech",
-  components: { Formaffaire, FlyCaseManagment, AddAffair },
+  components: { Formaffaire, FlyCaseManagment, AddAffair, CableList },
 
   setup() {
     // cable list name total link info
     let cables = ref([]);
     api
       .call("cable_get")
-      .then(response => {
+      .then((response) => {
         console.log("cable_get:", response);
         cables.value = response;
       })
-      .catch(response => {
+      .catch((response) => {
         console.log("err_cable_get:", response);
       });
     let affaire = ref([]);
@@ -206,6 +154,7 @@ export default {
     let z2 = ref("");
     let z3 = ref("");
     // let totalCount = ref("");
+    let showMyList = ref(false);
 
     //from emit to v-if
     function toAffairOpen(data) {
@@ -228,7 +177,7 @@ export default {
 
       api
         .call("order_get", searchbyaff)
-        .then(response => {
+        .then((response) => {
           console.log("order_get:", response);
           orders.value = response;
 
@@ -236,18 +185,18 @@ export default {
 
           aggregateData(response, cables.value);
         })
-        .catch(function(response) {
+        .catch(function (response) {
           console.log("order_get:", response);
         });
     }
 
     // aggregateData table 'cables' et 'orders'
     function aggregateData(orders, cables) {
-      orders.forEach(o => {
+      orders.forEach((o) => {
         cableIdsInOrders.value.push(o.cableid);
       });
 
-      cables.forEach(cable => {
+      cables.forEach((cable) => {
         let line = {
           isChecked: false,
           name: cable.name,
@@ -267,11 +216,11 @@ export default {
           z2: "",
           z3: "",
           z4: "",
-          z5: ""
+          z5: "",
         };
 
         if (cableIdsInOrders.value.includes(cable.cableid)) {
-          const orderItem = orders.find(o => o.cableid === cable.cableid);
+          const orderItem = orders.find((o) => o.cableid === cable.cableid);
 
           line = {
             isChecked: true,
@@ -292,7 +241,7 @@ export default {
             z3: orderItem.z3,
             z4: orderItem.z4,
             z5: orderItem.z5,
-            orderid: orderItem.orderid
+            orderid: orderItem.orderid,
           };
         }
 
@@ -310,7 +259,7 @@ export default {
     // ---- recherche dans liste cable par searchKey
     const searchInCableTechJoinData = computed(() => {
       console.log("searchInCableTechJoinData:", searchInCableTechJoinData);
-      return cableTechJoinedData.value.filter(cable => {
+      return cableTechJoinedData.value.filter((cable) => {
         return cable.name.toLowerCase().includes(searchKey.value.toLowerCase());
       });
     });
@@ -321,13 +270,23 @@ export default {
       return parseInt(z1.value) + parseInt(z2.value);
     });
 
+    const cablesNonZero = computed(() => {
+      console.log(
+        "cablesNonZero | searchInCableTechJoinData.value",
+        searchInCableTechJoinData.value
+      );
+      return searchInCableTechJoinData.value.filter((c) => c.count > 0);
+    });
+
     // --- filtrer liste
     function filtreMaliste() {
-      console.log("cables", cables.value);
+      showMyList.value = true;
+      console.log("cables", cablesNonZero);
     }
 
     // choose display cable_type (buttons)
     function selectype(data) {
+      showMyList.value = false;
       console.log("typechoose", data);
       typechoose.value = data;
     }
@@ -343,6 +302,12 @@ export default {
       console.log("data cableTechLayout", data);
       cableLayoutData.value = data;
     }
+
+    const filteredCableByType = computed(() => {
+      return searchInCableTechJoinData.value.filter(
+        (c) => c.type === typechoose.value
+      );
+    });
 
     // open info
     // function toggleInfo() {
@@ -366,10 +331,12 @@ export default {
       reserved,
       selectype,
       typechoose,
+      filteredCableByType,
       filterCable,
       count,
       cableid,
       cableIdsInOrders,
+      cablesNonZero,
       cableTechJoinedData,
       cableTechLayout,
       cableLayoutData,
@@ -380,12 +347,13 @@ export default {
       order,
       searchInCableTechJoinData,
       searchKey,
+      showMyList,
       toAffairOpen,
       z1,
       z2,
-      z3
+      z3,
     };
-  }
+  },
 };
 </script>
 <style scoped>
@@ -579,6 +547,10 @@ input {
   box-shadow: 5px 7px 5px 0px rgba(143, 141, 141, 0.75);
   -webkit-box-shadow: 5px 7px 5px 0px rgba(143, 141, 141, 0.75);
   -moz-box-shadow: 5px 7px 5px 0px rgba(143, 141, 141, 0.75);
+}
+
+.selectedtype {
+  color: #fff;
 }
 
 .tech {
