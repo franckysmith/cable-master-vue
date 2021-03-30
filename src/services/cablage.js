@@ -1,7 +1,7 @@
 let cables = [];
 let affaires = [];
 let orders = [];
-let mfc = [];
+// let mfc = [];
 let cablemfc = [];
 
 import { Api } from "../js/api.js";
@@ -44,7 +44,7 @@ function cableread() {
 }
 
 /*//---- 'cable_add' ----*/
-function cableadd(data) {
+async function cableadd(data) {
   //   let data = [
   //     {
   //       name: "do48",
@@ -58,14 +58,21 @@ function cableadd(data) {
   //     }
   //   ];
 
-  api
-    .call("cable_add", data)
-    .then(function(response) {
-      console.log("cable_add:", response);
-    })
-    .catch(response => {
-      console.log("cable_add:", response);
-    });
+  // api
+  //   .call("cable_add", data)
+  //   .then(function(response) {
+  //     console.log("cable_add:", response);
+  //   })
+  //   .catch(response => {
+  //     console.log("cable_add:", response);
+  //   });
+  try {
+    const response = await api.call("cable_add", data);
+    return { status: 201, msg: `Cable créé avec l'id ${response}` };
+  } catch (err) {
+    console.log("CATCH cable_add:", err);
+    return { status: 500, msg: `Echec de création du cable` };
+  }
 }
 
 /*//---- 'cable_update' ----*/
@@ -174,23 +181,30 @@ function affairadd(data) {
 }
 
 /*//---- 'affair_update' ----*/
-function affaireupdate(data) {
+async function affaireupdate(data) {
   //   var data = {
   //     affairid: 5, // put here actual affairid you want to update
   //     name: "Crocus Hall",
   //     prep_time: "morning"
   //   };
 
-  api
-    .call("affair_update", data)
-    .then(function(response) {
-      console.log("affair_update:");
-      console.log(response);
-    })
-    .catch(function(response) {
-      console.log("affair_update:");
-      console.log(response);
-    });
+  // api
+  //   .call("affair_update", data)
+  //   .then(function(response) {
+  //     console.log("affair_update:");
+  //     console.log(response);
+  //   })
+  //   .catch(function(response) {
+  //     console.log("affair_update:");
+  //     console.log(response);
+  //   });
+  try {
+    await api.call("affair_update", data);
+    return { status: 200, msg: "Affaire mise à jour" };
+  } catch (error) {
+    console.log("affair_update error", error);
+    return { status: 500, msg: `La mise à jour de l'affaire a échoué` };
+  }
 }
 
 /*//---- 'affair_delete' ----*/
@@ -280,12 +294,12 @@ function orderdelete(data) {
 function mfcread() {
   api
     .call("mfc_get")
-    .then(function(response) {
-      console.log("caisse |mfc_get :response:", response);
-      return mfc;
+    .then(response => {
+      console.log("cablage |mfc_get response:", response);
+      return response;
     })
     .catch(response => {
-      console.log("cable_get:", response);
+      console.log("mfc_get:", response);
     });
 }
 // --------'mfcadd-New-------*/

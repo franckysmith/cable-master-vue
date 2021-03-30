@@ -23,7 +23,7 @@
         <button @click="selectype('special')">numériques</button>
 
         <div>
-          <button @click="selectype('3')">All</button>
+          <button @click="selectype('')">All</button>
           <input
             type="text"
             v-model="searchKey"
@@ -66,6 +66,7 @@
             <div v-for="cable in search" :key="cable.cableid">
               <!-- ------------ v-if="cable.count > 0" -->
               <!----------- v-if="filterCable" ------->
+
               <div v-if="cable.type == typechoose">
                 <div>
                   <div class="number">
@@ -77,26 +78,36 @@
                     </div>
 
                     <div>
-                      <input name="spare_count" v-model="cable.count" />
+                      <input name="spare_count" v-model="cable.spare_count" />
                     </div>
 
                     <div>
-                      <input name="" />
+                      <input name="" v-model="cable.z1" />
                     </div>
                     <div>
-                      <input name="" />
+                      <input name="" v-model="cable.z2" />
                     </div>
                     <div>
-                      <input name="" />
+                      <input name="" v-model="cable.z3" />
                     </div>
                     <div>
-                      <input name="" />
+                      <input name="" v-model="cable.z4" />
                     </div>
                     <div>
-                      <input name="" />
+                      <input name="" v-model="cable.z5" />
                     </div>
-
-                    <div></div>
+                    <div>
+                      <input name="" v-model="cable.count" />
+                    </div>
+                    <div>
+                      {{
+                        parseInt(cable.z1) +
+                          parseInt(cable.z2) +
+                          parseInt(cable.z3) +
+                          parseInt(cable.z4) +
+                          parseInt(cable.z5)
+                      }}
+                    </div>
                   </div>
                   <div class="info-content">
                     <div class="info">
@@ -137,7 +148,7 @@ import FlyCaseManagment from "@/components/FlyCaseManagment.vue";
 import AddAffair from "@/components/AddAffair.vue";
 
 import { ref, computed } from "vue";
-import { isEmpty } from "./js/lib/util.js";
+import { isEmpty } from "@/js/lib/util.js";
 
 export default {
   name: "Cabletech",
@@ -173,6 +184,8 @@ export default {
     let newAffairOpen = ref(Boolean);
     let searchKey = ref("");
     let zero = ref("-1");
+    let aggregateData = ref([]);
+    let searchbyAffairId = ref([]);
 
     function toAffairOpen(data) {
       affairIsOpen.value = data;
@@ -180,9 +193,10 @@ export default {
 
     // order get with affairid
     function affaireToList(data) {
+      console.log("affairetoliste Data", data);
       cableIdsInOrders.value = [];
       cableTechJoinedData.value = [];
-      let searchby = { affairid: data };
+      searchbyAffairId.value = data;
 
       const NO_ORDER = {
         isChecked: false,
@@ -192,15 +206,21 @@ export default {
         tfc2: "",
         tfc3: "",
         tfc4: "",
-        tfc5: ""
+        tfc5: "",
+        z1: "",
+        z2: "",
+        z3: "",
+        z4: "",
+        z5: ""
       };
 
       function cables() {
         return api.call("cable_get");
       }
 
-      function orders(searchby) {
-        return api.call("order_get", searchby);
+      function orders(searchbyAffairId) {
+        console.log("searchbyAffairId", searchbyAffairId);
+        return api.call("order_get", searchbyAffairId);
       }
 
       function aggregateData(orders, cables) {
@@ -215,7 +235,20 @@ export default {
             // prepare order
             let order = orders.get(cableid);
             if (order) {
-              let { count, spare_count, tfc1, tfc2, tfc3, tfc4, tfc5 } = order;
+              let {
+                count,
+                spare_count,
+                tfc1,
+                tfc2,
+                tfc3,
+                tfc4,
+                tfc5,
+                z1,
+                z2,
+                z3,
+                z4,
+                z5
+              } = order;
               order = {
                 isChecked: true,
                 count,
@@ -224,7 +257,12 @@ export default {
                 tfc2,
                 tfc3,
                 tfc4,
-                tfc5
+                tfc5,
+                z1,
+                z2,
+                z3,
+                z4,
+                z5
               }; // avoid unneeded fields in order
             } else order = NO_ORDER;
 
@@ -236,9 +274,10 @@ export default {
         });
       }
 
-      aggregateData(orders({ affairid: 3 }), cables())
+      aggregateData(orders({ affairid: searchbyAffairId.value }), cables())
         .then(function(data) {
-          console.log(data);
+          cableTechJoinedData.value = data;
+          console.log("aggregatDatamoi", data);
         })
         .catch(function(error) {
           console.log(error);
@@ -316,6 +355,7 @@ export default {
         return cable.name.toLowerCase().includes(searchKey.value.toLowerCase());
       });
     });
+
     // --- filtrer liste
     function filtreMaliste() {
       cable.value.count > 0;
@@ -376,7 +416,8 @@ export default {
       typechoose,
       toAffairOpen,
       update_order,
-      zero
+      zero,
+      aggregateData
     };
   }
 };

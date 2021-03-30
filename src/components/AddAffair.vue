@@ -1,4 +1,5 @@
 <template>
+  <slot></slot>
   <div class="content">
     <div class="content-form">
       <label for=""
@@ -93,7 +94,10 @@ export default {
   justify-content: space-evenly;
 }
 .content {
-  width: 400px;
+  margin: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 .content-form {
   display: flex;

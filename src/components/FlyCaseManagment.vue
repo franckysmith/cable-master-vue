@@ -3,21 +3,23 @@
     <div v-if="!flightcase">
       <form @subbmit.prevent="update_order()">
         <div class="head">
-          <div>count</div>
-          <div style="padding-left:3px" placeholder="z1">
-            <input type="text" />
+          <div>
+            <p>count</p>
+          </div>
+          <div style="padding-left:12px">
+            <input type="text" placeholder="Jar" />
           </div>
           <div style="padding-left:1px">
-            <input type="text" />
+            <input type="text" placeholder="Cours" />
           </div>
-          <div style="padding-left:1px">
-            <input type="text" />
+          <div style="padding-left:3px">
+            <input type="text" placeholder="Régie" />
           </div>
-          <div style="padding-left:1px">
-            <input type="text" />
+          <div style="padding-left:6px">
+            <input type="text" placeholder="Fc1" />
           </div>
-          <div style="padding-left:1px">
-            <input type="text" />
+          <div style="padding-left:3px">
+            <input type="text" placeholder="Fc2" />
           </div>
         </div>
         <div class="content-all">
@@ -150,12 +152,12 @@ export default {
       cableid,
       cableIdsInOrders,
       flightcase,
-
       cable
     };
   }
 };
 </script>
+
 <style scoped>
 input {
   padding: 5px;
@@ -164,7 +166,23 @@ input {
   display: flex;
   justify-content: space-around;
 }
+.head {
+  display: flex;
+  font-size: 12px;
+  width: 400px;
+  text-align: left;
+  padding-left: 128px;
+}
 
+.head input {
+  width: 30px;
+  border: 1px rgb(211, 210, 210);
+  font-size: 10px;
+  font-weight: 400;
+}
+.head p {
+  font-size: 12px;
+}
 .titre_affaire {
   width: 200px;
   height: 32px;
@@ -262,17 +280,7 @@ p {
 .list_name {
   width: 220px;
 }
-.head {
-  display: flex;
-  font-size: 12px;
-  width: 400px;
-  text-align: left;
-  padding-left: 135px;
-}
-.head input {
-  width: 30px;
-  border: 1px solid rgb(211, 210, 210);
-}
+
 .name h3 {
   font-size: 15px;
   font-weight: 500;

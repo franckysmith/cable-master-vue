@@ -14,10 +14,13 @@
       <button @click="selectype('speaker')">HP</button>
       <button @click="selectype('electrical')">Elec</button>
       <button @click="selectype('module')">Modules</button>
-      <button @click="selectype('special')">Special</button>
-      <button @click="selectype('multi')">multis</button>
+      <button @click="selectype('special')">Spéciaux</button>
+      <button @click="selectype('other')">autres</button>
       <button @click="selectype('microphone')">Micros</button>
       <button @click="selectype('c_type')">caisses-type</button>
+      <button @click="selectype('accessory')">accessoires</button>
+      <button @click="selectype('digital')">numériques</button>
+
       <button @click="selectype('microphone', 'speaker')">All</button>
     </div>
     <div class="ajouter">
@@ -31,10 +34,10 @@
   </div>
   <div class="home">
     <div class="head">
-      <div style="padding-left:8px">tampon</div>
-      <div style="padding-left:20px">total</div>
-      <div style="padding-left:28px">poids</div>
-      <div style="padding-left:18px">ordre</div>
+      <div style="padding-left:8px">seuil</div>
+      <div style="padding-left:26px">total</div>
+      <div style="padding-left:32px">poids</div>
+      <div style="padding-left:22px">ordre</div>
     </div>
 
     <div class="content-number" v-for="cable in cables" :key="cable.cableid">
@@ -214,7 +217,7 @@ export default {
 <style scoped>
 .head {
   display: flex;
-  margin-left: 215px;
+  margin-left: 220px;
   text-align: left;
   font-size: 12px;
 }
@@ -225,10 +228,12 @@ button {
   cursor: pointer;
 }
 .home {
-  /* display: flex;
+  /* margin: auto; */
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  height: 90vh; */
+
+  height: 90vh;
 }
 .info input {
   width: 400px;

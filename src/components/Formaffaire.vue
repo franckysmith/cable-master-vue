@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="main">
     <div class="search-tech-aff">
       <ul>
         <li style="display flex,padding:10px">
@@ -37,7 +37,7 @@
     </div>
 
     <form
-      @submit="update_affair(affaire.affairid)"
+      @submit.prevent="update_affair(affaire.affairid)"
       v-for="affaire in search"
       :key="affaire.affairid"
     >
@@ -62,7 +62,7 @@
           <button
             @click="description = false"
             v-if="description"
-            style="background:#e08d8d"
+            :style="closebuton"
           >
             description
           </button>
@@ -191,22 +191,13 @@
         <div class="contentUpdate">
           <div class="content-update1">
             <button @click="note = true" v-if="!note">note =></button>
-            <button
-              @click="note = false"
-              v-if="note"
-              :style="closebutton"
-              style="background:#e08d8d"
-            >
+            <button @click="note = false" v-if="note" :style="closebutton">
               note =>
             </button>
             <button @click="notemaster = true" v-if="!notemaster">
               Atelier
             </button>
-            <button
-              @click="notemaster = false"
-              v-if="notemaster"
-              style="background:#e08d8d"
-            >
+            <button @click="notemaster = false" v-if="notemaster">
               Atelier
             </button>
             <button
@@ -217,7 +208,7 @@
             >
               Enregistrer
             </button>
-
+            <span class="message">{{ message }}</span>
             <label for="end"
               >en ligne
               <input
@@ -246,7 +237,7 @@
         <button
           @click="description = false"
           v-if="description"
-          style="background:#e08d8d"
+          :class="closebuton"
         >
           fermer
         </button>
@@ -262,7 +253,7 @@
         <button
           @click="notemaster = false"
           v-if="notemaster"
-          style="background:#e08d8d"
+          :class="closebuton"
         >
           Fermer
         </button>
@@ -291,7 +282,7 @@
 </template>
 
 <script>
-import { ref, computed } from "vue";
+import { ref, computed, onBeforeMount } from "vue";
 import { Api } from "../js/api.js";
 const url = "https://cinod.fr/cables/api.php";
 const api = new Api(url);
@@ -322,6 +313,11 @@ export default {
     let tech_id = ref("");
     let tech_name = ref("");
     let name = ref("");
+    let message = ref("");
+
+    onBeforeMount(() => {
+      techSelected();
+    });
 
     function newAffairOpen() {
       newAffairIsOpen.value = true;
@@ -345,6 +341,7 @@ export default {
     }
     //lz1 ...lz2 lfc1 ...lfc2 Label zone et flightcase
     context.emit("lesson-affaire", affaire);
+    console.log("affaire?", affaire);
 
     // emit vers views/Cabletech
     function selectedaff(data) {
@@ -352,9 +349,17 @@ export default {
       console.log("selectedaff", data.affairid);
     }
     // update affair
-    function update_affair(param) {
+    async function update_affair(param) {
       console.log("formaffair | affairupdate", param);
-      cablageServices.affaireupdate(param);
+      const res = await cablageServices.affaireupdate(param);
+      console.log("res", res);
+      showMessage(res.msg);
+    }
+    function showMessage(text) {
+      message.value = text;
+      setTimeout(() => {
+        message.value = "";
+      }, 3000);
     }
 
     // add affair
@@ -393,7 +398,8 @@ export default {
       selectedaff,
       newAffairOpen,
       notemaster,
-      note
+      note,
+      message
     };
   }
 };
@@ -421,7 +427,7 @@ export default {
   border-radius: 4px;
 }
 .closebutton {
-  background: chocolate;
+  background: #e08d8d;
 }
 
 .cont_2 {
@@ -499,6 +505,15 @@ input {
 li {
   list-style: none;
 }
+.main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.message {
+  font-size: 10px;
+}
+
 .note-description {
   display: inline-flex;
   height: 40px;

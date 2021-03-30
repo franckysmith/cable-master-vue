@@ -3,23 +3,9 @@
   <div v-for="caissetype in mfc" :key="caissetype.mfcid">
     <div class="ct-content">
       <div class="ctct-content">
-        <div>
-          <input class="ct-name" type="text" v-model="caissetype.name" />
-        </div>
-
-        <div>
-          <button class="button" @click="deletemfc(caissetype)">delete</button>
-        </div>
-        <div>
-          <button
-            class="button3"
-            type="submit"
-            @click="mfcupdate(caissetype)"
-            name="save"
-          >
-            update / save
-          </button>
-        </div>
+        <input class="ct-name" type="text" v-model="caissetype.name" />
+        <button class="button" @click="deletemfc(caissetype)">delete</button>
+        <button class="button" @click="caisseToList(caissetype)">select</button>
       </div>
       <div>
         <input
@@ -36,68 +22,61 @@
   <div class="content-liste">
     ----------------------
     <h3>Listes cables etc ...</h3>
-    <div>
-      <div class="post">
-        <button @click="selectype('speaker')">HP</button>
-        <button @click="selectype('electrical')">Elec</button>
-        <button @click="selectype('module')">Modules</button>
-        <button @click="selectype('special')">Spéciaux</button>
-        <button @click="selectype('multi')">autres</button>
-        <button @click="selectype('microphone')">Micros</button>
-        <button @click="selectype('c_type')">caisses-type</button>
-        <button @click="selectype('c_type')">accessoires</button>
-        <button @click="selectype('c_type')">numériques</button>
+
+    <div class="post">
+      <button @click="selectype('speaker')">HP</button>
+      <button @click="selectype('electrical')">Elec</button>
+      <button @click="selectype('module')">Modules</button>
+      <button @click="selectype('special')">Spéciaux</button>
+      <button @click="selectype('other')">autres</button>
+      <button @click="selectype('microphone')">Micros</button>
+      <button @click="selectype('c_type')">caisses-type</button>
+      <button @click="selectype('accessory')">accessoires</button>
+      <button @click="selectype('digital')">numériques</button>
+
+      <div>
+        <!-- celectype('microphone'+'digital'+'other' ..... ) -->
+        <button @click="selectype('')">All</button>
+        <input
+          type="text"
+          v-model="searchKey"
+          placeholder="Rechercher un élément"
+        />
       </div>
+    </div>
+    <form @submit.prevent="mfcupdate(caissetype)">
+      <button class="button2" type="submit">
+        Update
+      </button>
 
-      <form @subbmit.prevent="update_cablemfc(cable)">
-        <button class="button2" id="save-liste" type="submit">
-          Enregistrer
-        </button>
+      <button class="button2" @click="filtreMaliste">ma liste</button>
 
-        <div>
-          <div class="head">
-            <div>count</div>
+      <div class="content-number">
+        <div v-for="cable in cableMfcTechJoinedData" :key="cable.cableid">
+          <!-- ------------ v-if="cable.count > 0" -->
+          <!----------- v-if="filterCable" ------->
+          <div v-if="cable.type == typechoose">
+            <div class="number">
+              <div class="name">
+                <h4>{{ cable.name }}</h4>
+              </div>
 
-            <div style="padding-left:13px">total</div>
-          </div>
-          <div class="content-number">
-            <div v-for="cable in cables" :key="cable.cableid">
-              <div v-if="cable.type == typechoose">
-                <div class="number">
-                  <div class="name">
-                    <h3>{{ cable.name }}</h3>
-                  </div>
-
-                  <div>
-                    <input name="count" v-model="cable.total" />
-                  </div>
-
-                  <div>
-                    <input name="total" v-model="cable.total" />
-                  </div>
-
-                  <div>
-                    <button type="button">
-                      <a :href="cable.link">link</a>
-                    </button>
-                  </div>
-                  <div>
-                    <button type="button">
-                      info
-                    </button>
-                  </div>
-                </div>
-                <div>
-                  <div class="info">
-                    {{ cable.info }}
-                  </div>
-                </div>
+              <div>
+                <input name="spare_count" v-model="cable.count" />
+              </div>
+            </div>
+            <div class="info-content">
+              <div class="info">
+                <p>{{ cable.info }}</p>
+                <button type="button" class="link">
+                  <a href="cable.link">link</a>
+                </button>
               </div>
             </div>
           </div>
         </div>
-      </form>
-    </div>
+      </div>
+    </form>
   </div>
 
   <!-- <div><button>getorder</button></div>
@@ -112,7 +91,7 @@ var api = new Api(url);
 import cablageServices from "@/services/cablage.js";
 import AddFlightCase from "@/components/AddFlightCase.vue";
 
-import { ref, onMounted } from "vue";
+import { ref, computed, onMounted } from "vue";
 
 export default {
   name: "CaisseType",
@@ -120,6 +99,12 @@ export default {
 
   setup() {
     // ----------- get caisses -------//
+
+    // let mfc_get = onMounted(() => {
+    //   cablageServices.mfcread();
+    //   console.log("mfc_get | ", mfc);
+    // });
+
     let mfc_get = onMounted(() => {
       api
         .call("mfc_get")
@@ -130,14 +115,7 @@ export default {
           console.log("mfc_get:", response);
         });
     });
-    // cable list name total link info etc ...
-    let cables = ref([]);
-    let caisses = ref([]);
-    // function cable_get() {
-    //   console.log("caissetype | cable_get");
-    //   cablageServices.cableread();
-    // }
-
+    // ------------ get cable --------
     api
       .call("cable_get")
       .then(response => {
@@ -147,7 +125,9 @@ export default {
       .catch(response => {
         console.log("err_cable_get:", response);
       });
-
+    //-------------------------------
+    let cables = ref([]);
+    let caisses = ref([]);
     let typechoose = ref("speaker");
     // let cable = ref("");
     let count = ref("");
@@ -158,17 +138,20 @@ export default {
     let cableTechBase = ref("");
     let mfc = ref([]);
     let cablemfc = ref([]);
+    // let searchbycaisse = ref([]);
 
-    // order get with affairid
+    // ------------------------------------
+
+    // cablemfc get with selected mfc
     function caisseToList(data) {
       //   cableIdsInOrders.value = [];
       //   cableTechJoinedData.value = [];
 
-      let searchbycaisse = { mfcid: 3 };
+      let searchbycaisse = data;
       api
         .call("cablemfc_get", searchbycaisse)
         .then(response => {
-          console.log("cablemfc_get:", response);
+          console.log("cablemfc_get::", response);
           cablemfc.value = response;
 
           // create a view-model joining order items and cables
@@ -176,10 +159,8 @@ export default {
           aggregateData(response, cables.value);
         })
         .catch(function(response) {
-          console.log("cablemfc_get:", response);
+          console.log("er_cablemfc_get", response);
         });
-
-      console.log("cablemfcid | CaisseType", data);
     }
 
     // aggregateData table 'cables' et 'cablemfc'
@@ -191,7 +172,7 @@ export default {
       cables.forEach(cable => {
         let line = {
           name: cable.name,
-          count: 0,
+          count: "",
           total: cable.total,
           link: cable.link,
           info: cable.info,
@@ -199,9 +180,7 @@ export default {
         };
 
         if (cableIdsInMfc.value.includes(cable.cableid)) {
-          const cablemfcItem = cablemfc.value.find(
-            o => o.cableid === cable.cableid
-          );
+          const cablemfcItem = cablemfc.find(o => o.cableid === cable.cableid);
 
           line = {
             name: cable.name,
@@ -250,13 +229,23 @@ export default {
       mfc_get();
     }
 
+    // ---- recherche dans liste cable par searchKey
+    let searchKey = ref("");
+    let cableTechJoinedData = ref([]);
+    const searchInCableTechJoinData = computed(() => {
+      console.log("searchInCableTechJoinData:", searchInCableTechJoinData);
+      return cableTechJoinedData.value.filter(cable => {
+        return cable.name.toLowerCase().includes(searchKey.value.toLowerCase());
+      });
+    });
+
     return {
       cables,
       caisseToList,
       mfcupdate,
       deletemfc,
-
-      //   cablemfc_order,
+      searchKey,
+      cableTechJoinedData,
       caisses,
       selectype,
       typechoose,
@@ -291,13 +280,25 @@ button {
   box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
   border-radius: 4px;
 }
+.button3 {
+  background-color: rgb(240, 216, 2);
+  color: #0c0b0b;
+  font-weight: 600;
+  box-shadow: 5px 7px 5px 0px rgba(143, 141, 141, 0.75);
+  -webkit-box-shadow: 5px 7px 5px 0px rgba(143, 141, 141, 0.75);
+  -moz-box-shadow: 5px 7px 5px 0px rgba(143, 141, 141, 0.75);
+}
+
 .content-liste {
   margin: auto;
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .content-number {
-  width: 400px;
+  width: 70px;
   height: 45px;
   /* display: flex; */
   /* flex-wrap: wrap; */
@@ -305,6 +306,8 @@ button {
 }
 .ct-content {
   display: flex;
+
+  margin: auto;
   width: 400px;
   flex-wrap: wrap;
   /* margin: auto; */
@@ -312,27 +315,39 @@ button {
 .ctct-content {
   display: flex;
   justify-content: space-between;
-  width: 400px;
+  width: 370px;
+  margin: 5px;
 }
 .ct-name {
   width: 120px;
   padding-right: 10px;
-  flex-wrap: wrap;
+  /* flex-wrap: wrap; */
+  font-weight: 500;
 }
 .ct-info {
-  width: 400px;
+  width: 370px;
 }
 input {
   padding: 5px;
 }
 .info {
   font-size: 12px;
-  width: 400px;
-
+  width: 350px;
+  display: flex;
+  justify-content: space-between;
   text-align: left;
   /* padding: 0px; */
   margin: 0px 0px 5px 30px;
 }
+.info-content {
+  display: flex;
+  border-bottom: 1px solid black;
+  width: 370px;
+}
+.info-content p {
+  margin: 0px;
+}
+
 .head {
   display: flex;
   /* margin: auto; */
@@ -340,6 +355,13 @@ input {
 
   text-align: left;
   padding-left: 155px;
+}
+.link {
+  height: 18px;
+  background: transparent;
+  border: 1px solid grey;
+  color: grey;
+  /* line-height: 10; */
 }
 .list {
   margin: 5px 25px;
@@ -360,18 +382,20 @@ input {
 .name {
   height: 10px;
 }
-.name h3 {
+.name h4 {
   font-size: 15px;
-  font-weight: 500;
+  font-weight: 700;
   text-align: left;
-  width: 130px;
-  /* margin-left: 5px; */
+  width: 110px;
+  padding: 1px 1px 1px 3px;
   background-color: #c1c7c33a;
+  border-left: 5px solid #4dcc59;
 }
+
 .number {
   display: flex;
   border-width: 0px 0px 1px 0px;
-  /* border-style: solid; */
+  align-content: flex-start;
 }
 
 .number input {
@@ -401,14 +425,6 @@ input {
   border-radius: 4px;
 }
 #save-liste {
-  background-color: rgb(240, 216, 2);
-  color: #0c0b0b;
-  font-weight: 600;
-  box-shadow: 5px 7px 5px 0px rgba(143, 141, 141, 0.75);
-  -webkit-box-shadow: 5px 7px 5px 0px rgba(143, 141, 141, 0.75);
-  -moz-box-shadow: 5px 7px 5px 0px rgba(143, 141, 141, 0.75);
-}
-.button3 {
   background-color: rgb(240, 216, 2);
   color: #0c0b0b;
   font-weight: 600;

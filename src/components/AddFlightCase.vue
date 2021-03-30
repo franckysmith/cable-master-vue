@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="content">
     <form>
       <div>
         <input type="text" v-model="name" placeholder="Nom de la caisse" />
@@ -38,4 +38,10 @@ export default {
 };
 </script>
 
-<style></style>
+<style scoped>
+.content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+</style>

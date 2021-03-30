@@ -1,39 +1,42 @@
 <template>
-  <div classe="contener">
-    <form>
-      <div class="form">
-        <div class="form1">
-          <div class="number">
-            <input v-model="name" placeholder="Nouvel élément" />
-
-            <input id="case" v-model.number="total" placeholder="dispo" />
-            <input id="case2" v-model.number="reserved" placeholder="tampon" />
-          </div>
-
-          <div class="menuder">
-            <select v-model="type">
-              <option value="choisir" placeholder="choisir"></option>
-              <option
-                v-for="choix in listeType"
-                :key="choix.id"
-                :value="choix.value"
-                >{{ choix.name }}
-              </option>
-            </select>
-          </div>
-        </div>
-        <div class="infolink">
-          <input v-model="info" placeholder="info" />
-          <input v-model="link" placeholder="Link" />
-        </div>
-      </div>
-
+  <form class="contener">
+    <div>
       <div>
-        <button @click="add_cable" id="enregistrer">enregistrer</button>
+        <div class="head">
+          <input class="name" v-model="name" placeholder="Nouvel élément" />
+
+          <label for=""
+            >Disponibles:<input class="dispo" v-model.number="total"
+          /></label>
+          <label for=""
+            >Alerte: <input class="seuil" v-model.number="reserved"
+          /></label>
+        </div>
+
+        <div class="type">
+          <label for="">Choisir une catégorie :</label>
+          <select v-model="type">
+            <option value="choisir" placeholder="choisir"></option>
+            <option
+              v-for="choix in listeType"
+              :key="choix.id"
+              :value="choix.value"
+              >{{ choix.name }}
+            </option>
+          </select>
+        </div>
       </div>
-    </form>
-    ----------------------
-  </div>
+      <div class="infolink">
+        <input v-model="info" placeholder="info" />
+        <input v-model="link" placeholder="Link" />
+      </div>
+    </div>
+
+    <div>
+      <button class="ajouter" @click="add_cable">ajouter</button>
+    </div>
+  </form>
+  ----------------------
 </template>
 
 <script>
@@ -75,13 +78,23 @@ export default {
       },
       {
         id: 6,
-        name: "multi",
-        value: "multi"
+        name: "other",
+        value: "other"
       },
       {
         id: 7,
         name: "c_type",
         value: "c_type"
+      },
+      {
+        id: 8,
+        name: "accessoire",
+        value: "accessory"
+      },
+      {
+        id: 9,
+        name: "numérique",
+        value: "digital"
       }
     ]);
     const total = ref("");
@@ -122,48 +135,48 @@ export default {
 </script>
 <style scoped>
 .contener {
-  padding: 100px 10px;
+  background: rgb(224, 223, 222);
+  padding: 1rem;
+  /* display: flex;
+  flex-direction: column;
+  align-items: center; */
+  margin: auto;
+}
+.dispo {
+  width: 20px;
 }
 .head {
   display: flex;
-  flex-direction: column;
-  margin-left: 20px;
-
-  text-align: left;
+  justify-content: space-between;
 }
-.menuder {
-  margin: 5px;
-  font-size: 25px;
+.type {
+  margin-top: 10px;
 }
 .form1 {
-  display: flex;
+  /* display: flex; */
 }
 
 .form {
-  display: flex;
-  flex-direction: column;
-  text-align: left;
 }
-#case,
-#case2 {
+.info .link {
   width: 40px;
   margin: 10px;
 }
 .infolink input {
-  width: 250px;
+  margin: 10px;
+  width: 385px;
   margin-right: 10px;
 }
-
-.name input {
-  font-size: 10px;
-  font-weight: 600;
-  text-align: left;
-  width: 180px;
-  margin-left: 15px;
-  background-color: #c1c7c33a;
+.name {
+  width: 110px;
 }
-#enregistrer {
+
+.ajouter {
   margin: 10px;
   background: red;
+  padding: 5px;
+}
+.seuil {
+  width: 20px;
 }
 </style>

@@ -931,7 +931,7 @@ api::$FIELDS = [
   'cable_add' =>
   [
     'name'      =>  RSTR(25),
-    'type'      =>  ENUM('electrical', 'speaker', 'microphone', 'module', 'special', 'multi', 'c_type'),
+    'type'      =>  ENUM('electrical', 'speaker', 'microphone', 'module', 'special', 'other', 'c_type','accessory','digital'),
     //'sortno'    =>  UINT, auto-assigned so omitted
     'weight'    =>  UINT,
     'total'     =>  UINT,
@@ -944,7 +944,7 @@ api::$FIELDS = [
   [
     'cableid'   =>  RID,
     'name'      =>  STR(25),
-    'type'      =>  ENUM('electrical', 'speaker', 'microphone', 'module', 'special', 'multi', 'c_type'),
+    'type'      =>  ENUM('electrical', 'speaker', 'microphone', 'module', 'special', 'other', 'c_type','accessory','digital'),
     'sortno'    =>  UINT,
     'weight'    =>  UINT,
     'total'     =>  UINT,
