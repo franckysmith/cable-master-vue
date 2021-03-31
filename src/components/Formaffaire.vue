@@ -294,7 +294,7 @@ import cablageServices from "@/services/cablage.js";
 export default {
   name: "Formaffaire",
   props: ["cables"],
-  emit: ["lesson-open-newaff", "lesson-affaire"],
+  emit: ["lesson-open-newaff", "lesson-affaire", "lessonaffairelabel"],
   setup(props, context) {
     let affaire = ref([]);
     let affaires = ref([]);
@@ -347,6 +347,7 @@ export default {
     // emit vers views/Cabletech
     function selectedaff(data) {
       context.emit("lessonaffaire", data);
+      context.emit("lessonaffairelabel", data);
       // console.log("selectedaff", data);
     }
     // update affair

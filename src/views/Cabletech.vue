@@ -2,6 +2,7 @@
   <AddAffair v-if="affairIsOpen" @lesson-fermer-newAff="toAffairOpen" />
   <Formaffaire
     @lessonaffaire="affaireIdToList"
+    @lessonaffairelabel="getAffaireToLabel"
     @lesson-open-newaff="toAffairOpen"
     v-if="!affairIsOpen"
   />
@@ -11,19 +12,76 @@
     <h3>Listes cables etc ...</h3>
     <div>
       <div class="post">
-        <button @click="selectype('speaker')">HP</button>
-        <button @click="selectype('electrical')">Elec</button>
-        <button @click="selectype('module')">Modules</button>
-        <button @click="selectype('special')">Spéciaux</button>
-        <button @click="selectype('other')">autres</button>
-        <button @click="selectype('microphone')">Micros</button>
-        <button @click="selectype('c_type')">caisses-type</button>
-        <button @click="selectype('accessory')">accessoires</button>
-        <button @click="selectype('digital')">numériques</button>
+        <button
+          @click="selectype('speaker')"
+          :class="typechoose === 'speaker' ? 'selectedtype' : ''"
+        >
+          HP
+        </button>
+        <button
+          @click="selectype('electrical')"
+          :class="typechoose === 'electrical' ? 'selectedtype' : ''"
+        >
+          Elec
+        </button>
+        <button
+          @click="selectype('module')"
+          :class="typechoose === 'module' ? 'selectedtype' : ''"
+        >
+          Modules
+        </button>
+        <button
+          @click="selectype('special')"
+          :class="typechoose === 'special' ? 'selectedtype' : ''"
+        >
+          Spéciaux
+        </button>
+        <button
+          @click="selectype('other')"
+          :class="typechoose === 'other' ? 'selectedtype' : ''"
+        >
+          autres
+        </button>
+        <button
+          @click="selectype('microphone')"
+          :class="typechoose === 'microphone' ? 'selectedtype' : ''"
+        >
+          Micros
+        </button>
+        <button
+          @click="selectype('c_type')"
+          :class="typechoose === 'c_type' ? 'selectedtype' : ''"
+        >
+          caisses-type
+        </button>
+        <button
+          @click="selectype('accessory')"
+          :class="typechoose === 'accessory' ? 'selectedtype' : ''"
+        >
+          accessoires
+        </button>
+        <button
+          @click="selectype('digital')"
+          :class="typechoose === 'digital' ? 'selectedtype' : ''"
+        >
+          numériques
+        </button>
+      </div>
 
+      <div>
         <div>
           <!-- celectype('microphone'+'digital'+'other' ..... ) -->
-          <button @click="selectype('electrical')">All</button>
+          <button class="button3" @click="filtreMaliste">ma liste</button>
+          <!-- <button
+            @click="filtreMaliste"
+            :class="activ == thrue ? 'selectedtype' : ''"
+          > -->
+          <button
+            @click="selectype('')"
+            :class="typechoose === 'button3' ? 'selectedtype' : ''"
+          >
+            All
+          </button>
           <input
             type="text"
             v-model="searchKey"
@@ -32,26 +90,10 @@
         </div>
       </div>
       <form @submit.prevent="update_order(orders)">
-        <button class="button1" type="submit">
+        <button class="button2" type="submit">
           Update
         </button>
 
-        <button
-          class="button2"
-          @click="filtreMaliste"
-          type="button"
-          v-if="malist == 1"
-        >
-          ma liste
-        </button>
-        <button
-          class="button"
-          @click="filtreMaliste"
-          type="button"
-          v-if="malist == -1"
-        >
-          voir ma liste
-        </button>
         <button
           class="button"
           @click="cableTechLayout('cableTechBase')"
@@ -67,85 +109,60 @@
         >
           flightcase
         </button>
-
+        {{ affaireSelected }}
         <div v-if="cableLayoutData == 'cableTechBase'">
           <div class="head">
             <div><p>Sécu</p></div>
             <div style="padding-left:12px">
-              <input type="text" v-model="affaire.lz1" placeholder="Zone1" />
+              <input
+                type="text"
+                placeholder="Zone1"
+                v-model="affaireSelected.lz1"
+              />
             </div>
             <div style="padding-left:5px">
-              <input type="text" placeholder="Zone2" />
+              <input
+                type="text"
+                placeholder="Zone2"
+                v-model="affaireSelected.lz2"
+              />
             </div>
             <div style="padding-left:3px">
-              <input type="text" placeholder="Zone3" />
+              <input
+                type="text"
+                placeholder="Zone3"
+                v-model="affaireSelected.lz3"
+              />
             </div>
             <div style="padding-left:4px">
-              <input type="text" placeholder="Zone4" />
+              <input
+                type="text"
+                placeholder="Zone4"
+                v-model="affaireSelected.lz4"
+              />
             </div>
             <div style="padding-left:4px">
-              <input type="text" placeholder="Zone5" />
+              <input
+                type="text"
+                placeholder="Zone5"
+                v-model="affaireSelected.lz5"
+              />
             </div>
           </div>
           <div class="content-number">
-            <div
-              v-for="cable in searchInCableTechJoinData"
-              :key="cable.cableid"
-            >
-              <!-- ------------ v-if="cable.count > 0" -->
-              <!----------- v-if="filterCable" ------->
-              <div v-if="cable.type == typechoose">
-                <div v-if="cable.count >= malist">
-                  <div class="number">
-                    <div>
-                      <input type="checkbox" :checked="cable.isChecked" />
-                    </div>
-                    <div class="name">
-                      <h4>{{ cable.name }}</h4>
-                    </div>
-
-                    <div>
-                      <input name="spare_count" v-model="cable.spare_count" />
-                    </div>
-
-                    <div>
-                      <input name="" v-model="cable.z1" />
-                    </div>
-                    <div>
-                      <input name="" v-model="cable.z2" />
-                    </div>
-                    <div>
-                      <input name="" v-model="cable.z3" />
-                    </div>
-                    <div>
-                      <input name="" v-model="cable.z4" />
-                    </div>
-                    <div>
-                      <input name="" v-model="cable.z5" />
-                    </div>
-                    <div>
-                      <input name="" v-model="cable.count" />
-                    </div>
-                    <div>
-                      {{
-                        parseInt(cable.z1) +
-                          parseInt(cable.z2) +
-                          parseInt(cable.z3) +
-                          parseInt(cable.z4) +
-                          parseInt(cable.z5)
-                      }}
-                    </div>
-                  </div>
-                  <div class="info-content">
-                    <div class="info">
-                      <p>{{ cable.info }}</p>
-                      <button type="button" class="link">
-                        <a href="cable.link">link</a>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
+            <div v-if="typechoose !== ''">
+              <CableList
+                :cables="filteredCableByType"
+                :cable-type="typechoose"
+                :show-my-list="showMyList"
+              />
+            </div>
+            <div v-else>
+              <CableList
+                :cables="searchInCableTechJoinData"
+                cable-type=""
+                :show-my-list="showMyList"
+              />
             </div>
           </div>
         </div>
@@ -155,7 +172,7 @@
 
   <FlyCaseManagment
     v-if="cableLayoutData == 'flightcase'"
-    :cables="searchInCableTechJoinData"
+    :cables="cablesNonZero"
     :typechoose="typechoose"
   />
   <!-- <div><button>getorder</button></div>
@@ -173,12 +190,13 @@ import Formaffaire from "@/components/Formaffaire.vue";
 import FlyCaseManagment from "@/components/FlyCaseManagment.vue";
 
 import AddAffair from "@/components/AddAffair.vue";
+import CableList from "@/components/CableList.vue";
 
 import { ref, computed } from "vue";
 
 export default {
   name: "Cabletech",
-  components: { Formaffaire, FlyCaseManagment, AddAffair },
+  components: { Formaffaire, FlyCaseManagment, AddAffair, CableList },
 
   setup() {
     // cable list name total link info
@@ -215,28 +233,28 @@ export default {
     let z1 = ref("");
     let z2 = ref("");
     let z3 = ref("");
-    let malist = ref(-1);
-    // let listKey = ref("0");
+
     // let totalCount = ref("");
+    let showMyList = ref(false);
 
     //from emit to v-if
     function toAffairOpen(data) {
       affairIsOpen.value = data;
     }
 
-    // function faffaireSelected(data) {
-    //   affaireSelected.value = data;
-    //   console.log("affaireSelected", affaireSelected);
-    // }
+    function getAffaireToLabel(data) {
+      affaireSelected.value = data;
+      console.log("affaireSelected::", affaireSelected.value.name);
+    }
 
     // order get with affairid
     function affaireIdToList(data) {
       cableIdsInOrders.value = [];
       cableTechJoinedData.value = [];
+      affaireSelected.value = data;
       let searchbyaff = { affairid: data.affairid };
-      let affaireSelected = data;
-      console.log("affaireSelected", affaireSelected);
-      console.log("affairToList data", data);
+
+      console.log("affaireSelected name::", affaireSelected.value.name);
 
       api
         .call("order_get", searchbyaff)
@@ -333,14 +351,23 @@ export default {
       return parseInt(z1.value) + parseInt(z2.value);
     });
 
+    const cablesNonZero = computed(() => {
+      console.log(
+        "cablesNonZero | searchInCableTechJoinData.value",
+        searchInCableTechJoinData.value
+      );
+      return searchInCableTechJoinData.value.filter(c => c.count > 0);
+    });
+
     // --- filtrer liste
     function filtreMaliste() {
-      console.log("malist.value", malist.value);
-      malist.value = -malist.value;
+      showMyList.value = true;
+      console.log("cables", cablesNonZero);
     }
 
     // choose display cable_type (buttons)
     function selectype(data) {
+      showMyList.value = false;
       console.log("typechoose", data);
       typechoose.value = data;
     }
@@ -356,6 +383,12 @@ export default {
       console.log("data cableTechLayout", data);
       cableLayoutData.value = data;
     }
+
+    const filteredCableByType = computed(() => {
+      return searchInCableTechJoinData.value.filter(
+        c => c.type === typechoose.value
+      );
+    });
 
     // open info
     // function toggleInfo() {
@@ -379,21 +412,24 @@ export default {
       reserved,
       selectype,
       typechoose,
+      filteredCableByType,
       filterCable,
+      getAffaireToLabel,
       count,
       cableid,
       cableIdsInOrders,
+      cablesNonZero,
       cableTechJoinedData,
       cableTechLayout,
       cableLayoutData,
       cableTechBase,
       calculCount,
       filtreMaliste,
-      malist,
       newAffairOpen,
       order,
       searchInCableTechJoinData,
       searchKey,
+      showMyList,
       toAffairOpen,
       z1,
       z2,
@@ -404,13 +440,7 @@ export default {
 </script>
 <style scoped>
 button {
-  margin: 3px;
   cursor: pointer;
-}
-button.link {
-  margin: 0px 0px 3px 0px;
-}
-.button {
   margin: 10px;
   padding: 5px;
   min-width: 50px;
@@ -420,17 +450,21 @@ button.link {
   box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
   border-radius: 4px;
 }
-.button1 {
+button.link {
+  margin: 0px 0px 3px 0px;
+}
+
+.button2 {
   margin: 10px;
   padding: 5px;
   min-width: 50px;
-  background: #ddcf10;
+  background: #f3e309;
   border: 1px solid #000000;
   box-sizing: border-box;
   box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
   border-radius: 4px;
 }
-.button2 {
+.button3 {
   margin: 10px;
   padding: 5px;
   min-width: 50px;
@@ -596,13 +630,17 @@ input {
   box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
   border-radius: 4px;
 }
-#save-liste {
+/* #save-liste {
   background-color: rgb(240, 216, 2);
   color: #0c0b0b;
   font-weight: 00;
   box-shadow: 5px 7px 5px 0px rgba(143, 141, 141, 0.75);
   -webkit-box-shadow: 5px 7px 5px 0px rgba(143, 141, 141, 0.75);
   -moz-box-shadow: 5px 7px 5px 0px rgba(143, 141, 141, 0.75);
+} */
+
+.selectedtype {
+  color: #fff;
 }
 
 .tech {
