@@ -1,7 +1,7 @@
 <template>
   <div class="content-liste">
     <div v-if="!flightcase">
-      <form @subbmit.prevent="update_order()">
+      <form @submit.prevent="update_order()">
         <div class="head">
           <div>
             <p>count</p>
@@ -25,10 +25,10 @@
         <div class="content-all">
           <div
             class="content-number"
-            v-for="cable in cables"
+            v-for="cable in allCables"
             :key="cable.cableid"
           >
-            <div class="number" v-if="cable.type == typechoose">
+            <div class="number" v-if="cable.type == typechoose || typechoose === ''">
               <div>
                 <input type="checkbox" :checked="cable.tfc_done" />
               </div>
@@ -39,12 +39,7 @@
               <div class="countfc">
                 <p>
                   {{
-                    cable.count -
-                      cable.tfc1 -
-                      cable.tfc2 -
-                      cable.tfc3 -
-                      cable.tfc4 -
-                      cable.tfc5
+                    updateRemainingTotal(cable)
                   }}
                 </p>
               </div>
@@ -58,6 +53,7 @@
               <input name="tfc4" v-model="cable.tfc4" />
 
               <input name="tfc5" v-model="cable.tfc5" />
+              Total {{ calculateTotal(cable)}}
             </div>
           </div>
         </div>
@@ -69,22 +65,22 @@
 import { Api } from "../js/api.js";
 var url = "https://cinod.fr/cables/api.php";
 var api = new Api(url);
-import cablageServices from "@/services/cablage.js";
+// import cablageServices from "@/services/cablage.js";
 
-import { ref } from "vue";
+import { ref, computed } from "vue";
 
 export default {
   name: "FlyCaseManagment",
   props: {
     typechoose: {
-      type: String
+      type: String,
     },
     cables: {
-      type: Array
-    }
+      type: Array,
+    },
   },
 
-  setup() {
+  setup(props) {
     // let fcCount = computed(() => {
     //   console.log("cable.value.count", cable.value.count);
     //   return cable.value.count - cable.value.tfc1;
@@ -100,6 +96,7 @@ export default {
     let cableIdsInOrders = ref([]);
     let flightcase = ref("");
     let cable = ref([]);
+    let allCables = ref([]);
 
     // order get with affairid
     function affaireToList(data) {
@@ -107,15 +104,15 @@ export default {
 
       api
         .call("order_get", searchbyaff)
-        .then(response => {
+        .then((response) => {
           console.log("order_get:", response);
           orders.value = response;
-          orders.value.forEach(o => {
+          orders.value.forEach((o) => {
             cableIdsInOrders.value.push(o.cableid);
           });
         })
 
-        .catch(function(response) {
+        .catch(function (response) {
           console.log("order_get:", response);
         });
 
@@ -131,7 +128,8 @@ export default {
     // save/update order
     function update_order(param) {
       console.log("cabletech | orderupdate", param);
-      cablageServices.orderupdate([param]);
+      // TODO uncomment
+      // cablageServices.orderupdate([param]);
     }
 
     // addition total et reserved
@@ -139,6 +137,37 @@ export default {
     //   console.log("cableTotalTech", cable.value.total);
     //   return cable.value.total + cable.value.reserved;
     // });
+
+    function calculateTotal(cable) {
+      return (
+        (cable.spare_count === "" ? 0 : parseInt(cable.spare_count)) +
+        (cable.z1 === "" ? 0 : parseInt(cable.z1)) +
+        (cable.z2 === "" ? 0 : parseInt(cable.z2)) +
+        (cable.z3 === "" ? 0 : parseInt(cable.z3)) +
+        (cable.z4 === "" ? 0 : parseInt(cable.z4)) +
+        (cable.z5 === "" ? 0 : parseInt(cable.z5))
+      );
+    }
+
+    allCables = computed(() => {
+      return props.cables.filter((c) => {
+        const result = calculateTotal(c);
+        // console.log("allCalbles | result", result);
+        return result > 0;
+      });
+    });
+
+    function updateRemainingTotal(cable) {
+      const result =
+        calculateTotal(cable) -
+        cable.tfc1 -
+        cable.tfc2 -
+        cable.tfc3 -
+        cable.tfc4 -
+        cable.tfc4 -
+        cable.tfc5;
+      return result;
+    }
 
     return {
       affaireToList,
@@ -152,9 +181,12 @@ export default {
       cableid,
       cableIdsInOrders,
       flightcase,
-      cable
+      cable,
+      allCables,
+      calculateTotal,
+      updateRemainingTotal
     };
-  }
+  },
 };
 </script>
 
@@ -241,7 +273,7 @@ input {
   justify-content: space-around;
 }
 .content-number {
-  width: 400px;
+  width: 90%;
   display: flex;
 
   /* flex-wrap: wrap; */
@@ -295,7 +327,7 @@ p {
   /* align-items: center; */
   border-width: 0px 0px 1px 0px;
   border-style: solid;
-  height: 40px;
+  font-size: 12px;
 }
 
 .number input {

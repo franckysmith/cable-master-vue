@@ -92,7 +92,7 @@
 
   <FlyCaseManagment
     v-if="cableLayoutData == 'flightcase'"
-    :cables="cablesNonZero"
+    :cables="searchInCableTechJoinData"
     :typechoose="typechoose"
   />
   <!-- <div><button>getorder</button></div>
@@ -104,7 +104,7 @@
 import { Api } from "../js/api.js";
 var url = "https://cinod.fr/cables/api.php";
 var api = new Api(url);
-import cablageServices from "@/services/cablage.js";
+// import cablageServices from "@/services/cablage.js";
 
 import Formaffaire from "@/components/Formaffaire.vue";
 import FlyCaseManagment from "@/components/FlyCaseManagment.vue";
@@ -294,7 +294,8 @@ export default {
     // save/update order
     function update_order(param) {
       console.log("cabletech | orderupdate", param);
-      cablageServices.orderupdate([param]);
+      // TODO uncomment
+      // cablageServices.orderupdate([param]);
     }
 
     //cableTechLayout button organisation fightcase et
