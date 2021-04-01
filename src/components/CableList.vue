@@ -7,7 +7,7 @@
             <input type="checkbox" :checked="cable.isChecked" />
           </div>
           <div class="name">
-            <h4>{{ cable.name }}</h4>
+            <h4 :class="setColorIndicator(cable)">{{ cable.name }}</h4>
           </div>
 
           <div>
@@ -86,9 +86,20 @@ export default {
       return props.cables;
     });
 
+    function setColorIndicator (cable) {
+      if (cable.total > 10) {
+        return 'available-info';
+      } else if (cable.total > 5) {
+        return 'available-warning';
+      } else {
+        return 'available-alert';
+      }
+    }
+
     return {
       calculateTotal,
-      allCables
+      allCables,
+      setColorIndicator
     };
   }
 };
@@ -240,7 +251,15 @@ input {
   padding: 1px 1px 1px 3px;
   /* margin-left: 5px; */
   background-color: #c1c7c33a;
+}
+.available-info {
   border-left: 5px solid #4dcc59;
+}
+.available-warning {
+  border-left: 5px solid orange;
+}
+.available-alert {
+  border-left: 5px solid red;
 }
 .number {
   display: flex;
