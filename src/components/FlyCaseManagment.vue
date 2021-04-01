@@ -28,7 +28,7 @@
             v-for="cable in cables"
             :key="cable.cableid"
           >
-            <div class="number" v-if="cable.type == typechoose">
+            <div class="number">
               <div>
                 <input type="checkbox" :checked="cable.tfc_done" />
               </div>
@@ -36,15 +36,10 @@
                 <h3>{{ cable.name }}</h3>
               </div>
 
-              <div class="countfc">
+              <div :class="(calculateCount(cable) === 0) ? 'ready' : 'countfc' ">
                 <p>
                   {{
-                    cable.count -
-                      cable.tfc1 -
-                      cable.tfc2 -
-                      cable.tfc3 -
-                      cable.tfc4 -
-                      cable.tfc5
+                    calculateCount(cable)                    
                   }}
                 </p>
               </div>
@@ -77,11 +72,11 @@ export default {
   name: "FlyCaseManagment",
   props: {
     typechoose: {
-      type: String
+      type: String,
     },
     cables: {
-      type: Array
-    }
+      type: Array,
+    },
   },
 
   setup() {
@@ -107,15 +102,15 @@ export default {
 
       api
         .call("order_get", searchbyaff)
-        .then(response => {
+        .then((response) => {
           console.log("order_get:", response);
           orders.value = response;
-          orders.value.forEach(o => {
+          orders.value.forEach((o) => {
             cableIdsInOrders.value.push(o.cableid);
           });
         })
 
-        .catch(function(response) {
+        .catch(function (response) {
           console.log("order_get:", response);
         });
 
@@ -132,6 +127,17 @@ export default {
     function update_order(param) {
       console.log("cabletech | orderupdate", param);
       cablageServices.orderupdate([param]);
+    }
+
+    function calculateCount(cable) {
+      return (
+        cable.count -
+        cable.tfc1 -
+        cable.tfc2 -
+        cable.tfc3 -
+        cable.tfc4 -
+        cable.tfc5
+      );
     }
 
     // addition total et reserved
@@ -152,9 +158,10 @@ export default {
       cableid,
       cableIdsInOrders,
       flightcase,
-      cable
+      cable,
+      calculateCount,
     };
-  }
+  },
 };
 </script>
 
@@ -313,5 +320,17 @@ p {
 }
 button {
   margin: 3px;
+}
+.ready {
+  color: white;
+  background-color: #4dcc59;
+  line-height: 6px;
+  padding-top: 5px;
+  border: 1px solid green;
+  width: 23px;
+  height: 20px;
+  margin-top: 6px;
+  margin-left: 4px;
+  margin-right: 9px;
 }
 </style>
