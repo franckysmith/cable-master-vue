@@ -25,11 +25,11 @@
             id="selectaff"
           >
             <option
-              v-for="affairere in affaireSelectedTech"
-              :key="affairere.affairid"
-              :value="affairere"
+              v-for="affaire in affaireSelectedTech"
+              :key="affaire.affairid"
+              :value="affaire"
               placeholder="choisir"
-              >{{ affairere.name }}
+              >{{ affaire.name }}
             </option>
           </select>
         </li>
@@ -57,7 +57,7 @@
       </div>
 
       <div class="description">
-        <div>
+        <div class="dess-supp">
           <button @click="description = true" v-if="!description">
             description
           </button>
@@ -67,6 +67,9 @@
             :style="closebuton"
           >
             description
+          </button>
+          <button @click="delete_affair(affaire)">
+            Supprimer l'affaire
           </button>
         </div>
         <div class="label">
@@ -303,6 +306,7 @@ export default {
 
     // let newAffairOpen = ref(false);
     let searchby = ref([]);
+
     let affaireSelect = ref([]);
     let affaireSelectedId = ref([]);
     let affaireSelectedTech = ref([]);
@@ -316,6 +320,7 @@ export default {
     let tech_name = ref("");
     let name = ref("");
     let message = ref("");
+    // let del = ref([]);
 
     onBeforeMount(() => {
       techSelected();
@@ -350,9 +355,16 @@ export default {
       context.emit("lessonaffairelabel", data);
       // console.log("selectedaff", data);
     }
+    // delete une affair
+    function delete_affair(data) {
+      let del = { affairid: data.affairid };
+      console.log("Formaffaire | delete_affair()", del);
+      cablageServices.affairedelete(del);
+      affaire.value = [""];
+    }
     // update affair
     async function update_affair(param) {
-      console.log("formaffair | affairupdate", param);
+      // console.log("formaffair | affairupdate", param);
       const res = await cablageServices.affaireupdate(param);
       console.log("res", res);
       showMessage(res.msg);
@@ -387,8 +399,10 @@ export default {
       searchby,
       selectAffaire,
       techSelected,
+      delete_affair,
       update_affair,
       add_affair,
+
       affaireSelectedId,
       affaireSelected,
       affaireSelectedTech,
@@ -462,12 +476,16 @@ export default {
   width: 120px;
 }
 .description {
-  margin: 3px 0px 0px 32px;
+  margin: 3px 0px 0px 0px;
   display: flex;
+}
+.dess-supp {
+  display: flex;
+  height: 20px;
 }
 .entete {
   display: flex;
-  justify-content: space-around;
+  justify-content: space-between;
   width: 400px;
   margin: auto;
   align-items: baseline;
@@ -501,7 +519,7 @@ input {
 }
 .label {
   display: flex;
-  margin-left: 155px;
+  margin-left: 30px;
   /* padding: 10px; */
 }
 li {

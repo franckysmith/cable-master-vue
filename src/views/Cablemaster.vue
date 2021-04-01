@@ -10,28 +10,89 @@
 
   <div>
     <div v-show="displayAddCable"><AddCable /></div>
-    <div class="post">
-      <button @click="selectype('speaker')">HP</button>
-      <button @click="selectype('electrical')">Elec</button>
-      <button @click="selectype('module')">Modules</button>
-      <button @click="selectype('special')">Spéciaux</button>
-      <button @click="selectype('other')">autres</button>
-      <button @click="selectype('microphone')">Micros</button>
-      <button @click="selectype('c_type')">caisses-type</button>
-      <button @click="selectype('accessory')">accessoires</button>
-      <button @click="selectype('digital')">numériques</button>
 
-      <button @click="selectype('microphone', 'speaker')">All</button>
-    </div>
-    <div class="ajouter">
-      <button @click="displayAddCable = true" v-show="!displayAddCable">
-        Ajouter un élément
+    <div class="post">
+      <button
+        @click="selectype('speaker')"
+        :class="typechoose === 'speaker' ? 'selectedtype' : ''"
+      >
+        HP
       </button>
-      <button @click="displayAddCable = false" v-show="displayAddCable">
-        fermer
+      <button
+        @click="selectype('electrical')"
+        :class="typechoose === 'electrical' ? 'selectedtype' : ''"
+      >
+        Elec
+      </button>
+      <button
+        @click="selectype('module')"
+        :class="typechoose === 'module' ? 'selectedtype' : ''"
+      >
+        Modules
+      </button>
+      <button
+        @click="selectype('special')"
+        :class="typechoose === 'special' ? 'selectedtype' : ''"
+      >
+        Spéciaux
+      </button>
+      <button
+        @click="selectype('other')"
+        :class="typechoose === 'other' ? 'selectedtype' : ''"
+      >
+        autres
+      </button>
+      <button
+        @click="selectype('microphone')"
+        :class="typechoose === 'microphone' ? 'selectedtype' : ''"
+      >
+        Micros
+      </button>
+      <button
+        @click="selectype('c_type')"
+        :class="typechoose === 'c_type' ? 'selectedtype' : ''"
+      >
+        caisses-type
+      </button>
+      <button
+        @click="selectype('accessory')"
+        :class="typechoose === 'accessory' ? 'selectedtype' : ''"
+      >
+        accessoires
+      </button>
+      <button
+        @click="selectype('digital')"
+        :class="typechoose === 'digital' ? 'selectedtype' : ''"
+      >
+        numériques
+      </button>
+
+      <button
+        @click="selectype('')"
+        :class="typechoose === '' ? 'selectedtype' : 'button'"
+      >
+        All
       </button>
     </div>
   </div>
+  <div class="ajouter">
+    <input
+      type="text"
+      v-model="searchKey"
+      placeholder="Rechercher un élément"
+    />
+    <button
+      class="button3"
+      @click="displayAddCable = true"
+      v-show="!displayAddCable"
+    >
+      Ajouter un élément
+    </button>
+    <button @click="displayAddCable = false" v-show="displayAddCable">
+      fermer
+    </button>
+  </div>
+
   <div class="home">
     <div class="head">
       <div style="padding-left:0px">seuil</div>
@@ -40,7 +101,7 @@
       <div style="padding-left:22px">ordre</div>
     </div>
 
-    <div class="content-number" v-for="cable in cables" :key="cable.cableid">
+    <div class="content-number" v-for="cable in search" :key="cable.cableid">
       <div class="number" v-if="cable.type == typechoose">
         <div class="number1">
           <div class="name"><input v-model="cable.name" /></div>
@@ -94,7 +155,7 @@ import { Api } from "../js/api.js";
 var url = "https://cinod.fr/cables/api.php";
 var api = new Api(url);
 
-import { ref, onMounted } from "vue";
+import { ref, onMounted, computed } from "vue";
 
 import ModalDelete from "@/components/ModalDelete.vue";
 import cablageServices from "@/services/cablage.js";
@@ -113,6 +174,8 @@ export default {
     let isModalDelete = ref(false);
     let isOpen = ref("");
     let cableToDelete = ref([]);
+    let searchKey = ref("");
+
     const listeType = ref([
       {
         id: 1,
@@ -141,21 +204,38 @@ export default {
       },
       {
         id: 6,
-        name: "multi",
-        value: "multi"
+        name: "other",
+        value: "other"
       },
       {
         id: 7,
         name: "c_type",
         value: "c_type"
+      },
+      {
+        id: 8,
+        name: "accessoire",
+        value: "accessory"
+      },
+      {
+        id: 9,
+        name: "numérique",
+        value: "digital"
       }
     ]);
 
-    // choose display type (buttons)
+    // choose display cable_type (buttons)
     function selectype(data) {
       console.log("typechoose", data);
       typechoose.value = data;
     }
+
+    // ---- recherche dans liste cable par searchKey
+    const search = computed(() => {
+      return cables.value.filter(cable => {
+        return cable.name.toLowerCase().includes(searchKey.value.toLowerCase());
+      });
+    });
     // get cable
     let cable_get = onMounted(() => {
       api
@@ -209,7 +289,9 @@ export default {
       suppCable,
       isOpen,
       isModalDelete,
-      cable
+      cable,
+      search,
+      searchKey
     };
   }
 };
@@ -221,9 +303,19 @@ export default {
 button {
   cursor: pointer;
 }
+.button3 {
+  margin: 10px;
+  padding: 5px;
+  min-width: 50px;
+  background: #eb910a;
+  border: 1px solid #000000;
+  box-sizing: border-box;
+  box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+  border-radius: 4px;
+}
 .head {
   display: flex;
-  margin-left: 15px;
+  margin-left: 0px;
   text-align: left;
   font-size: 12px;
 }
@@ -295,6 +387,10 @@ button {
   margin-left: 15px;
   background-color: #c1c7c33a;
 }
+.selectedtype {
+  color: rgb(255, 255, 255);
+}
+
 .type {
   line-height: 30px;
 

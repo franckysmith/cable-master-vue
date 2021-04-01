@@ -2,26 +2,35 @@
   <div class="content-liste">
     <div v-if="!flightcase">
       <form @subbmit.prevent="update_order()">
-        <div class="head">
+        <!-- <div
+          class="head"
+          v-for="affaireSelectedd in affaireSelected"
+          :key="affaireSelectedd.affairid"
+        >
           <div>
-            <p>count</p>
+            {{ affaireSelectedd }}
+            <p>à répartir</p>
           </div>
           <div style="padding-left:12px">
-            <input type="text" placeholder="Jar" />
+            <input
+              type="text"
+              placeholder="FC1"
+              v-model="affaireSelectedd.lfc1"
+            />
           </div>
           <div style="padding-left:1px">
-            <input type="text" placeholder="Cours" />
-          </div>
-          <div style="padding-left:3px">
-            <input type="text" placeholder="Régie" />
-          </div>
-          <div style="padding-left:6px">
-            <input type="text" placeholder="Fc1" />
-          </div>
-          <div style="padding-left:3px">
             <input type="text" placeholder="Fc2" />
           </div>
-        </div>
+          <div style="padding-left:3px">
+            <input type="text" placeholder="Fc3" />
+          </div>
+          <div style="padding-left:6px">
+            <input type="text" placeholder="Fc4" />
+          </div>
+          <div style="padding-left:3px">
+            <input type="text" placeholder="Fc5" />
+          </div>
+        </div> -->
         <div class="content-all">
           <div
             class="content-number"
@@ -171,7 +180,7 @@ input {
   font-size: 12px;
   width: 400px;
   text-align: left;
-  padding-left: 128px;
+  padding-left: 118px;
 }
 
 .head input {

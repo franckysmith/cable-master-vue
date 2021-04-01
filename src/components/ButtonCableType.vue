@@ -54,31 +54,53 @@
     >
       numériques
     </button>
+  </div>
 
+  <div>
     <div>
+      <!-- celectype('microphone'+'digital'+'other' ..... ) -->
+      <button class="button3" @click="filtreMaliste">ma liste</button>
+      <!-- <button
+            @click="filtreMaliste"
+            :class="activ == thrue ? 'selectedtype' : ''"
+          > -->
       <button
-        class="button3"
-        @click="filtreMaliste"
-        type="button"
-        v-if="malist == 1"
+        @click="selectype('')"
+        :class="typechoose === 'button3' ? 'selectedtype' : ''"
       >
-        ma liste
+        All
       </button>
-      <button
-        class="button3"
-        @click="filtreMaliste"
-        type="button"
-        v-if="malist == -1"
-      >
-        voir ma liste
-      </button>
-      <button @click="selectype('electrical')">All</button>
       <input
         type="text"
         v-model="searchKey"
         placeholder="Rechercher un élément"
       />
     </div>
+  </div>
+
+  <div>
+    <button
+      class="button3"
+      @click="filtreMaliste"
+      type="button"
+      v-if="malist == 1"
+    >
+      ma liste
+    </button>
+    <button
+      class="button3"
+      @click="filtreMaliste"
+      type="button"
+      v-if="malist == -1"
+    >
+      voir ma liste
+    </button>
+    <button @click="selectype('electrical')">All</button>
+    <input
+      type="text"
+      v-model="searchKey"
+      placeholder="Rechercher un élément"
+    />
   </div>
 </template>
 

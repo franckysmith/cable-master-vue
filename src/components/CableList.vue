@@ -62,6 +62,9 @@ export default {
     },
     showMyList: {
       type: Boolean
+    },
+    affaireSelected: {
+      type: Array
     }
   },
 

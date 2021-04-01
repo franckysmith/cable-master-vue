@@ -71,14 +71,14 @@
       <div>
         <div>
           <!-- celectype('microphone'+'digital'+'other' ..... ) -->
-          <button class="button3" @click="filtreMaliste">ma liste</button>
           <!-- <button
             @click="filtreMaliste"
-            :class="activ == thrue ? 'selectedtype' : ''"
+            :class=" == thrue ? 'selectedtype' : ''"</button>
           > -->
           <button
+            class="buttonv"
             @click="selectype('')"
-            :class="typechoose === 'button3' ? 'selectedtype' : ''"
+            :class="typechoose === '' ? 'selectedtype' : 'button'"
           >
             All
           </button>
@@ -87,6 +87,7 @@
             v-model="searchKey"
             placeholder="Rechercher un élément"
           />
+          <button class="button3" @click="filtreMaliste">ma liste</button>
         </div>
       </div>
       <form @submit.prevent="update_order(orders)">
@@ -109,10 +110,52 @@
         >
           flightcase
         </button>
-        {{ affaireSelected }}
+        <div v-if="cableLayoutData == 'flightcase'">
+          <div class="head">
+            <div>
+              <p>à répartir</p>
+            </div>
+            <div style="padding-left:12px">
+              <input
+                type="text"
+                placeholder="FC1"
+                v-model="affaireSelected.lfc1"
+              />
+            </div>
+            <div style="padding-left:1px">
+              <input
+                type="text"
+                placeholder="Fc2"
+                v-model="affaireSelected.lfc2"
+              />
+            </div>
+            <div style="padding-left:3px">
+              <input
+                type="text"
+                placeholder="Fc3"
+                v-model="affaireSelected.lfc3"
+              />
+            </div>
+            <div style="padding-left:6px">
+              <input
+                type="text"
+                placeholder="Fc4"
+                v-model="affaireSelected.lfc4"
+              />
+            </div>
+            <div style="padding-left:3px">
+              <input
+                type="text"
+                placeholder="Fc5"
+                v-model="affaireSelected.lfc5"
+              />
+            </div>
+          </div>
+        </div>
+
         <div v-if="cableLayoutData == 'cableTechBase'">
           <div class="head">
-            <div><p>Sécu</p></div>
+            <div><p>Spare</p></div>
             <div style="padding-left:12px">
               <input
                 type="text"
@@ -120,7 +163,7 @@
                 v-model="affaireSelected.lz1"
               />
             </div>
-            <div style="padding-left:5px">
+            <div style="padding-left:0px">
               <input
                 type="text"
                 placeholder="Zone2"
@@ -145,6 +188,13 @@
               <input
                 type="text"
                 placeholder="Zone5"
+                v-model="affaireSelected.lz5"
+              />
+            </div>
+            <div style="padding-left:4px">
+              <input
+                type="text"
+                placeholder="(count)"
                 v-model="affaireSelected.lz5"
               />
             </div>
@@ -431,6 +481,7 @@ export default {
       searchKey,
       showMyList,
       toAffairOpen,
+
       z1,
       z2,
       z3
@@ -453,7 +504,17 @@ button {
 button.link {
   margin: 0px 0px 3px 0px;
 }
+.buttonv {
+  margin: 10px;
+  padding: 5px;
+  min-width: 50px;
+  background: #4dcc59;
 
+  border: 1px solid #000000;
+  box-sizing: border-box;
+  box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+  border-radius: 4px;
+}
 .button2 {
   margin: 10px;
   padding: 5px;
@@ -517,13 +578,14 @@ button.link {
   width: 400px;
   height: 20px;
   text-align: left;
-  padding-left: 135px;
+  padding-left: 140px;
 }
 .head input {
   width: 30px;
   border: 1px rgb(211, 210, 210);
   font-size: 10px;
   font-weight: 400;
+  text-align: center;
 }
 .head p {
   line-height: 1px;
