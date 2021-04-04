@@ -1,16 +1,17 @@
 <template>
-  <AddAffair v-if="affairIsOpen" @lesson-fermer-newAff="toAffairOpen" />
-  <Formaffaire
-    @lessonaffaire="affaireIdToList"
-    @lessonaffairelabel="getAffaireToLabel"
-    @lesson-open-newaff="toAffairOpen"
-    v-if="!affairIsOpen"
-  />
+  <div class="main">
+    <AddAffair v-if="affairIsOpen" @lesson-fermer-newAff="toAffairOpen" />
+    <Formaffaire
+      @lessonaffaire="affaireIdToList"
+      @lessonaffairelabel="getAffaireToLabel"
+      @lesson-open-newaff="toAffairOpen"
+      v-if="!affairIsOpen"
+    />
 
-  <div class="content-liste">
-    ----------------------
-    <h3>Listes cables etc ...</h3>
-    <div>
+    <div class="content-liste">
+      ----------------------
+      <h3>Listes cables etc ...</h3>
+
       <div class="post">
         <button
           @click="selectype('speaker')"
@@ -72,9 +73,9 @@
         <div>
           <!-- celectype('microphone'+'digital'+'other' ..... ) -->
           <!-- <button
-            @click="filtreMaliste"
-            :class=" == thrue ? 'selectedtype' : ''"</button>
-          > -->
+              @click="filtreMaliste"
+              :class=" == thrue ? 'selectedtype' : ''"</button>
+            > -->
           <button
             class="buttonv"
             @click="selectype('')"
@@ -87,29 +88,45 @@
             v-model="searchKey"
             placeholder="Rechercher un élément"
           />
-          <button class="button3" @click="filtreMaliste">ma liste</button>
+          <!-- Rounded switch -->
+          <label class="toggle-label" v-if="cableLayoutData == 'flightcase'">
+            ma liste
+            <label class="switch">
+              <input type="checkbox" />
+              <span class="sliderder round"></span>
+            </label>
+          </label>
+          <label class="toggle-label" v-if="cableLayoutData == 'cableTechBase'">
+            ma liste
+            <label class="switch">
+              <input type="checkbox" @click="filtreMaliste" />
+              <span class="slider round"></span>
+            </label>
+          </label>
         </div>
       </div>
       <form @submit.prevent="update_order(orders)">
-        <button class="button2" type="submit">
-          Update
-        </button>
+        <div class="total-flightcase">
+          <button class="button2" type="submit">
+            Update
+          </button>
 
-        <button
-          class="button"
-          @click="cableTechLayout('cableTechBase')"
-          type="button"
-        >
-          Nb total
-        </button>
+          <button
+            class="button"
+            @click="cableTechLayout('cableTechBase')"
+            type="button"
+          >
+            Nb total
+          </button>
 
-        <button
-          class="button"
-          @click="cableTechLayout('flightcase')"
-          type="button"
-        >
-          flightcase
-        </button>
+          <button
+            class="button"
+            @click="cableTechLayout('flightcase')"
+            type="button"
+          >
+            flightcase
+          </button>
+        </div>
         <div v-if="cableLayoutData == 'flightcase'">
           <div class="head">
             <div>
@@ -156,7 +173,7 @@
         <div v-if="cableLayoutData == 'cableTechBase'">
           <div class="head">
             <div><p>Spare</p></div>
-            <div style="padding-left:12px">
+            <div style="padding-left:5px">
               <input
                 type="text"
                 placeholder="Zone1"
@@ -170,14 +187,14 @@
                 v-model="affaireSelected.lz2"
               />
             </div>
-            <div style="padding-left:3px">
+            <div style="padding-left:0px">
               <input
                 type="text"
                 placeholder="Zone3"
                 v-model="affaireSelected.lz3"
               />
             </div>
-            <div style="padding-left:4px">
+            <div style="padding-left:0px">
               <input
                 type="text"
                 placeholder="Zone4"
@@ -188,13 +205,6 @@
               <input
                 type="text"
                 placeholder="Zone5"
-                v-model="affaireSelected.lz5"
-              />
-            </div>
-            <div style="padding-left:4px">
-              <input
-                type="text"
-                placeholder="(count)"
                 v-model="affaireSelected.lz5"
               />
             </div>
@@ -218,17 +228,17 @@
         </div>
       </form>
     </div>
-  </div>
 
-  <FlyCaseManagment
-    v-if="cableLayoutData == 'flightcase'"
-    :cables="cablesNonZero"
-    :typechoose="typechoose"
-  />
-  <!-- <div><button>getorder</button></div>
-  <div v-for="order in orders" :key="order.orderid">
-    {{ order.count }} {{ order.cableid }}
-  </div> -->
+    <FlyCaseManagment
+      v-if="cableLayoutData == 'flightcase'"
+      :cables="cablesNonZero"
+      :typechoose="typechoose"
+    />
+    <!-- <div><button>getorder</button></div>
+    <div v-for="order in orders" :key="order.orderid">
+      {{ order.count }} {{ order.cableid }}
+    </div> -->
+  </div>
 </template>
 <script>
 import { Api } from "../js/api.js";
@@ -411,13 +421,13 @@ export default {
 
     // --- filtrer liste
     function filtreMaliste() {
-      showMyList.value = true;
+      showMyList.value = !showMyList.value;
       console.log("cables", cablesNonZero);
     }
 
     // choose display cable_type (buttons)
     function selectype(data) {
-      showMyList.value = false;
+      // showMyList.value = false;
       console.log("typechoose", data);
       typechoose.value = data;
     }
@@ -537,26 +547,24 @@ button.link {
 }
 
 .content-liste {
-  margin: auto;
-  text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
+  padding-bottom: 30px;
 }
 .content-resume {
   display: flex;
   text-align: left;
-  width: 400px;
+  width: 375px;
   justify-content: space-between;
 }
 
 .content-number {
-  width: 400px;
-  height: 45px;
-  /* display: flex; */
-  /* flex-wrap: wrap; */
-  /* margin: auto; */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
+
 .cont_2 {
   display: flex;
 }
@@ -575,13 +583,13 @@ button.link {
 .head {
   display: flex;
   /* margin: auto; */
-  width: 400px;
+  width: 375px;
   height: 20px;
   text-align: left;
-  padding-left: 140px;
+  padding-left: 265px;
 }
 .head input {
-  width: 30px;
+  width: 28px;
   border: 1px rgb(211, 210, 210);
   font-size: 10px;
   font-weight: 400;
@@ -634,13 +642,17 @@ input {
 
 .list input {
   margin: 0px 10px;
-  width: 30px;
+  width: 20px;
 }
 .list_name {
   width: 220px;
 }
 .list_container {
-  width: 400px;
+  width: 375px;
+}
+.main {
+  /* width: 100%;
+  margin: 0 auto; */
 }
 .name {
   height: 10px;
@@ -678,8 +690,8 @@ input {
   margin: 0px 15px 20px;
 }
 .post {
-  margin: 10px 0px 20px 0px;
-  width: 400px;
+  margin: 0px 0px 20px 0px;
+  width: 375px;
 }
 
 .post button {
@@ -732,5 +744,93 @@ th {
   border: 1px solid #000000;
   box-sizing: border-box;
   box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+}
+.total-flightcase {
+  display: flex;
+}
+/* ------------------------------------------------------------------- */
+/* The switch - the box around the slider */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 60px;
+  height: 32px;
+  margin-left: 8px;
+}
+
+/* Hide default HTML checkbox */
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+/* The slider */
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgb(216, 211, 207);
+  -webkit-transition: 0.4s;
+  transition: 0.4s;
+  border: 2px solid rgb(13, 216, 47);
+}
+.sliderder {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgb(224, 119, 20);
+  -webkit-transition: 0.4s;
+  transition: 0.4s;
+  border: 2px solid rgb(13, 216, 47);
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 22px;
+  width: 22px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  -webkit-transition: 0.4s;
+  transition: 0.4s;
+}
+
+input:checked + .slider {
+  background-color: rgb(224, 119, 20);
+}
+
+input:focus + .slider {
+  box-shadow: 0 0 1px #2196f3;
+}
+
+input:checked + .slider:before {
+  -webkit-transform: translateX(26px);
+  -ms-transform: translateX(26px);
+  transform: translateX(26px);
+}
+
+/* Rounded sliders */
+.slider.round,
+.sliderder.round {
+  border-radius: 34px;
+}
+
+.slider.round:before {
+  border-radius: 50%;
+}
+.toggle-label {
+  display: block;
+  float: right;
+  width: 50px;
+  font-size: 12px;
+  padding-left: 10px;
 }
 </style>

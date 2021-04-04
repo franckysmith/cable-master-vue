@@ -20,8 +20,8 @@ export default {
   affaireupdate,
   affairedelete,
   orderread,
-  orderupdate,
-  orderadd,
+
+  orderset,
   orderdelete,
   mfcadd,
   mfcread,
@@ -245,8 +245,8 @@ function orderread() {
     });
 }
 
-/*//---- 'order_add' ----*/
-function orderadd(data) {
+/*//---- 'order_set' ----*/
+function orderset(data) {
   //        cableid,
   //        affairid,
   //        tech_id,
@@ -255,29 +255,29 @@ function orderadd(data) {
   //      },
 
   api
-    .call("order_add", data)
+    .call("order_set", data)
     .then(function(response) {
-      console.log("order_add:", response);
+      console.log("order_set:", response);
       return orders;
     })
     .catch(function(response) {
-      console.log("order_add:", response);
+      console.log("order_set:", response);
     });
 }
 
 /*//---- 'order_update' ----*/
-function orderupdate(data) {
-  api
-    .call("order_update", data)
-    .then(function(response) {
-      console.log("order_update:");
-      console.log(response);
-    })
-    .catch(function(response) {
-      console.log("order_update:");
-      console.log(response);
-    });
-}
+// function orderupdate(data) {
+//   api
+//     .call("order_update", data)
+//     .then(function(response) {
+//       console.log("order_update:");
+//       console.log(response);
+//     })
+//     .catch(function(response) {
+//       console.log("order_update:");
+//       console.log(response);
+//     });
+// }
 
 /*//---- 'order_delete' ----*/
 function orderdelete(data) {

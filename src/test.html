@@ -21,13 +21,13 @@ var api = new Api(apiUrl);
 
 //---- 'cable_get' ----
 
-/*api.call('cable_get').then(function(response) {
+api.call('cable_get').then(function(response) {
   console.log('cable_get:');
   console.log(response);
 }).catch(function(response) {
   console.log('cable_get:');
   console.log(response);
-});*/
+});
 
 /*//---- 'cable_add' ----
  
@@ -155,65 +155,6 @@ api.call('affair_delete', data).then(function(response) {
   console.log('affair_delete:');
   console.log(response);
 });*/
-
-//---- aggregateData(orders, cables) ----
-
-import { isEmpty } from './js/lib/util.js';
-
-const NO_ORDER = {
-  isChecked:    false,
-  count:        '',
-  spare_count:  0,
-  tfc1:         '',
-  tfc2:         '',
-  tfc3:         '',
-  tfc4:         '',
-  tfc5:         ''
-}
-
-function cables()
-{
-  return api.call('cable_get');
-}
-
-function orders(searchby)
-{
-  return api.call('order_get', searchby);
-}
-
-function aggregateData(orders, cables)
-{
-  return Promise.all([ orders, cables ]).then(([ orders, cables ]) => {
-    
-    let data = [];
-    
-    orders = new Map(orders.map(o => [ o.cableid, o ]));  // turn Array into Map of [ cableid, { order } ] items
-    
-    for(const { cableid, name, type, total, link, info } of cables) {
-      // prepare cable
-      let cable = { name, type, total, link, info };
-      // prepare order
-      let order = orders.get(cableid);
-      if(order) {
-        let { count, spare_count, tfc1, tfc2, tfc3, tfc4, tfc5 } = order;
-        order = { isChecked: true, count, spare_count, tfc1, tfc2, tfc3, tfc4, tfc5 }; // avoid unneeded fields in order
-      }
-      else
-        order = NO_ORDER;
-        
-      let line = { ...order, ...cable };
-      data.push(line);
-    }
-
-    return data;
-  });
-}
-
-aggregateData(orders({ affairid: 3 }), cables()).then(function(data) {
-  console.log(data);
-}).catch(function(error) {
-  console.log(error);
-});
 
 </script>
 

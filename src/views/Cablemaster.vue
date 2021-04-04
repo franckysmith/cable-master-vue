@@ -127,10 +127,15 @@
               save
             </button>
           </div>
-          <div>
-            <button @click="suppCable(cable)">delete</button>
 
-            <!-- <button @click="delete_cable(cable.cableid)" name="delete"> -->
+          <div>
+            <div><button @click="isOpen = true">delete</button></div>
+            <!-- <ModalView v-if="isOpen" @close="isOpen = false"0>
+              <h3>Vou êtes sur de vouloir supprimer {{ cable.name }}</h3>
+              <button @click="delete_cable(cable.cableid)" name="delete">
+                supprimer {{ cable.name }}
+              </button>
+            </ModalView> -->
           </div>
         </div>
         <div class="number2">
@@ -249,7 +254,7 @@ export default {
         });
     });
 
-    // suppresion cable => modalDelete
+    //suppresion cable => modalDelete
     const suppCable = function(data) {
       isOpen.value = true;
       cableToDelete.value = data;
@@ -276,7 +281,7 @@ export default {
     }
     return {
       add_cable,
-      update_cable,
+      cable,
       cables,
       cableToDelete,
       delete_cable,
@@ -289,9 +294,11 @@ export default {
       suppCable,
       isOpen,
       isModalDelete,
-      cable,
+      ModalDelete,
+
       search,
-      searchKey
+      searchKey,
+      update_cable
     };
   }
 };

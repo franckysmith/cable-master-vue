@@ -32,6 +32,12 @@
               >{{ affaire.name }}
             </option>
           </select>
+          <input
+            class="tech-name"
+            v-model="affaire.tech_name"
+            type="text"
+            placeholder="Nom du technicien"
+          />
         </li>
       </ul>
     </div>
@@ -72,13 +78,13 @@
             Supprimer l'affaire
           </button>
         </div>
-        <div class="label">
-          <div><p>matin</p></div>
-          <div style="margin-left:20px"><p>ap-midi</p></div>
-        </div>
       </div>
 
       <div class="content-dates">
+        <div class="label">
+          <div><p>matin</p></div>
+          <div style="margin-left:13px"><p>ap-midi</p></div>
+        </div>
         <div class="dates">
           <h4>Prépa</h4>
 
@@ -158,13 +164,6 @@
 
       <div class="cont_2">
         <div class="tech">
-          <input
-            class="tech-name"
-            v-model="affaire.tech_name"
-            type="text"
-            placeholder="Nom du technicien"
-          />
-
           <label for="face">face</label>
           <input
             class="radio"
@@ -460,7 +459,12 @@ export default {
   align-items: baseline;
 }
 .content-dates {
+  margin-top: 10px;
+  margin-bottom: 5px;
+  padding-bottom: 5px;
   line-height: 0px;
+  border: 1px solid rgb(160, 157, 157);
+  width: 360px;
 }
 /* .content-dates input[type="radio"]:checked {
   background: #135806;
@@ -470,12 +474,13 @@ export default {
   align-items: baseline;
   display: flex;
   justify-content: space-evenly;
-  width: 400px;
+  width: 375px;
 }
 .date-size {
   width: 120px;
 }
 .description {
+  justify-content: space-evenly;
   margin: 3px 0px 0px 0px;
   display: flex;
 }
@@ -486,11 +491,8 @@ export default {
 .entete {
   display: flex;
   justify-content: space-between;
-  width: 400px;
-  margin: auto;
-  align-items: baseline;
+  width: 375px;
 }
-
 .entete-name-aff {
   width: 200px;
   height: 32px;
@@ -512,14 +514,17 @@ export default {
   box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
 }
 form {
-  width: 400px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 375px;
 }
 input {
   padding: 5px;
 }
 .label {
   display: flex;
-  margin-left: 30px;
+  margin-left: 250px;
   /* padding: 10px; */
 }
 li {
@@ -542,7 +547,7 @@ li {
   margin-bottom: 15px;
 }
 .search-tech-aff select {
-  margin-bottom: 15px;
+  margin: 0px 15px 15px 0px;
 }
 .tech-name {
   width: 120px;

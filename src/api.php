@@ -311,8 +311,8 @@ class api extends errorhandled {
         //    },
         //    or nothing to get all affairs
         // Note:
-        //    'master_note', 'tech_note' and 'timestamp' are excluded from the list of search fields until the search by
-        //    words and value ranges will be supported
+        //    'description', 'master_note', 'tech_note' and 'timestamp' are excluded from the list of search fields
+        //    until the search by words and value ranges will be supported
         // Output:
         //    [
         //      {
@@ -321,6 +321,7 @@ class api extends errorhandled {
         //        tech_name,
         //        name,
         //        ref,
+        //        description,
         //        prep_date,
         //        prep_time,
         //        receipt_date,
@@ -332,6 +333,16 @@ class api extends errorhandled {
         //        stage,
         //        master_note,        
         //        tech_note,
+        //        lz1,
+        //        lz2,
+        //        lz3,
+        //        lz4,
+        //        lz5,
+        //        lfc1,
+        //        lfc2,
+        //        lfc3,
+        //        lfc4,
+        //        lfc5,
         //        done,
         //        timestamp
         //      },
@@ -355,6 +366,7 @@ class api extends errorhandled {
         //      tech_name,
         //      name,
         //      [ref],
+        //      [description],
         //      [prep_date],
         //      [prep_time],
         //      receipt_date,
@@ -366,6 +378,16 @@ class api extends errorhandled {
         //      [stage]:        <is set to 0 if missing>,
         //      [master_note],
         //      [tech_note],
+        //      [lz1],
+        //      [lz2],
+        //      [lz3],
+        //      [lz4],
+        //      [lz5],
+        //      [lfc1],
+        //      [lfc2],
+        //      [lfc3],
+        //      [lfc4],
+        //      [lfc5],
         //      [done]:         <is set to false if missing>
         //    }
         // Output:
@@ -410,6 +432,7 @@ class api extends errorhandled {
         //      [tech_name],
         //      [name],
         //      [ref],
+        //      [description],
         //      [prep_date],
         //      [prep_time],
         //      [receipt_date],
@@ -421,6 +444,16 @@ class api extends errorhandled {
         //      [stage],
         //      [master_note],
         //      [tech_note],
+        //      [lz1],
+        //      [lz2],
+        //      [lz3],
+        //      [lz4],
+        //      [lz5],
+        //      [lfc1],
+        //      [lfc2],
+        //      [lfc3],
+        //      [lfc4],
+        //      [lfc5],
         //      [done]
         //    }
         // Output:
@@ -511,6 +544,11 @@ class api extends errorhandled {
         //        tfc4,
         //        tfc5,
         //        tfc_done,
+        //        z1,
+        //        z2,
+        //        z3,
+        //        z4,
+        //        z5,
         //        timestamp
         //      },
         //      ...
@@ -534,7 +572,18 @@ class api extends errorhandled {
         //        affairid,
         //        tech_id,
         //        count,
-        //        [done]: <is set to false if missing>
+        //        [done]: <is set to false if missing>,
+        //        [tfc1],
+        //        [tfc2],
+        //        [tfc3],
+        //        [tfc4],
+        //        [tfc5],
+        //        [tfc_done],
+        //        [z1],
+        //        [z2],
+        //        [z3],
+        //        [z4],
+        //        [z5]
         //      },
         //      ...
         //    ]
@@ -598,7 +647,12 @@ class api extends errorhandled {
         //        [tfc3],
         //        [tfc4],
         //        [tfc5],
-        //        [tfc_done]
+        //        [tfc_done],
+        //        [z1],
+        //        [z2],
+        //        [z3],
+        //        [z4],
+        //        [z5]
         //      },
         //      ...
         //    ]
@@ -661,7 +715,12 @@ class api extends errorhandled {
         //        [tfc3],
         //        [tfc4],
         //        [tfc5],
-        //        [tfc_done]
+        //        [tfc_done],
+        //        [z1],
+        //        [z2],
+        //        [z3],
+        //        [z4],
+        //        [z5]
         //      },
         //      ...
         //    ]
@@ -1049,6 +1108,7 @@ api::$FIELDS = [
     'tech_name'     =>  RSTR(50),
     'name'          =>  RSTR(50),
     'ref'           =>  STR(50),
+    'description'   =>  ANY,
     'prep_date'     =>  DATE,
     'prep_time'     =>  ENUM('morning', 'afternoon'),
     'receipt_date'  =>  RDATE,
@@ -1060,6 +1120,16 @@ api::$FIELDS = [
     'stage'         =>  BOOL,
     'master_note'   =>  ANY,
     'tech_note'     =>  ANY,
+    'lz1'           =>  STR(5),
+    'lz2'           =>  STR(5),
+    'lz3'           =>  STR(5),
+    'lz4'           =>  STR(5),
+    'lz5'           =>  STR(5),
+    'lfc1'          =>  STR(5),
+    'lfc2'          =>  STR(5),
+    'lfc3'          =>  STR(5),
+    'lfc4'          =>  STR(5),
+    'lfc5'          =>  STR(5),
     'done'          =>  BOOL
   ],
   
@@ -1070,6 +1140,7 @@ api::$FIELDS = [
     'tech_name'     =>  STR(50),
     'name'          =>  STR(50),
     'ref'           =>  STR(50),
+    'description'   =>  ANY,
     'prep_date'     =>  DATE,
     'prep_time'     =>  ENUM('morning', 'afternoon'),
     'receipt_date'  =>  DATE,
@@ -1081,6 +1152,16 @@ api::$FIELDS = [
     'stage'         =>  BOOL,
     'master_note'   =>  ANY,
     'tech_note'     =>  ANY,
+    'lz1'           =>  STR(5),
+    'lz2'           =>  STR(5),
+    'lz3'           =>  STR(5),
+    'lz4'           =>  STR(5),
+    'lz5'           =>  STR(5),
+    'lfc1'          =>  STR(5),
+    'lfc2'          =>  STR(5),
+    'lfc3'          =>  STR(5),
+    'lfc4'          =>  STR(5),
+    'lfc5'          =>  STR(5),
     'done'          =>  BOOL
   ],
   
@@ -1110,7 +1191,18 @@ api::$FIELDS = [
     'tech_id'       =>  RID,
     'count'         =>  RID,    // RID not RUINT to prevent 0
     'spare_count'   =>  RUINT,  // 0 is allowed
-    'done'          =>  BOOL
+    'done'          =>  BOOL,
+    'tfc1'          =>  UINT,
+    'tfc2'          =>  UINT,
+    'tfc3'          =>  UINT,
+    'tfc4'          =>  UINT,
+    'tfc5'          =>  UINT,
+    'tfc_done'      =>  BOOL,
+    'z1'            =>  UINT,
+    'z2'            =>  UINT,
+    'z3'            =>  UINT,
+    'z4'            =>  UINT,
+    'z5'            =>  UINT
   ],
   
   'order_update' =>
@@ -1127,7 +1219,12 @@ api::$FIELDS = [
     'tfc3'          =>  UINT,
     'tfc4'          =>  UINT,
     'tfc5'          =>  UINT,
-    'tfc_done'      =>  BOOL
+    'tfc_done'      =>  BOOL,
+    'z1'            =>  UINT,
+    'z2'            =>  UINT,
+    'z3'            =>  UINT,
+    'z4'            =>  UINT,
+    'z5'            =>  UINT
   ],*/
   
   'order_set' =>
@@ -1143,7 +1240,12 @@ api::$FIELDS = [
     'tfc3'          =>  UINT,
     'tfc4'          =>  UINT,
     'tfc5'          =>  UINT,
-    'tfc_done'      =>  BOOL
+    'tfc_done'      =>  BOOL,
+    'z1'            =>  UINT,
+    'z2'            =>  UINT,
+    'z3'            =>  UINT,
+    'z4'            =>  UINT,
+    'z5'            =>  UINT
   ],
   
   /*'order_delete' =>
