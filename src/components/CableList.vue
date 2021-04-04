@@ -7,7 +7,7 @@
             <input type="checkbox" :checked="cable.isChecked" />
           </div>
           <div class="name">
-            <h4>{{ cable.name }}</h4>
+            <h4 :class="setColorIndicator(cable)">{{ cable.name }}</h4>
           </div>
 
           <div>

@@ -84,9 +84,10 @@
             All
           </button>
           <input
+            class="search"
             type="text"
             v-model="searchKey"
-            placeholder="Rechercher un élément"
+            placeholder="Rechercher "
           />
           <!-- Rounded switch -->
           <label class="toggle-label" v-if="cableLayoutData == 'flightcase'">
@@ -97,7 +98,7 @@
             </label>
           </label>
           <label class="toggle-label" v-if="cableLayoutData == 'cableTechBase'">
-            ma liste
+            All ..... ma liste
             <label class="switch">
               <input type="checkbox" @click="filtreMaliste" />
               <span class="slider round"></span>
@@ -105,7 +106,7 @@
           </label>
         </div>
       </div>
-      <form @submit.prevent="update_order(orders)">
+      <form @submit.prevent="set_order()">
         <div class="total-flightcase">
           <button class="button2" type="submit">
             Update
@@ -114,21 +115,21 @@
           <button
             class="button"
             @click="cableTechLayout('cableTechBase')"
-            type="button"
+            :class="cableLayoutData === 'cableTechBase' ? 'button3' : 'button'"
           >
-            Nb total
+            sélectionner
           </button>
 
           <button
             class="button"
             @click="cableTechLayout('flightcase')"
-            type="button"
+            :class="cableLayoutData === 'flightcase' ? 'button3' : 'button'"
           >
             flightcase
           </button>
         </div>
         <div v-if="cableLayoutData == 'flightcase'">
-          <div class="head">
+          <div class="head-fc">
             <div>
               <p>à répartir</p>
             </div>
@@ -146,14 +147,14 @@
                 v-model="affaireSelected.lfc2"
               />
             </div>
-            <div style="padding-left:3px">
+            <div style="padding-left:0px">
               <input
                 type="text"
                 placeholder="Fc3"
                 v-model="affaireSelected.lfc3"
               />
             </div>
-            <div style="padding-left:6px">
+            <div style="padding-left:2px">
               <input
                 type="text"
                 placeholder="Fc4"
@@ -171,7 +172,7 @@
         </div>
 
         <div v-if="cableLayoutData == 'cableTechBase'">
-          <div class="head">
+          <div class="head-zone">
             <div><p>Spare</p></div>
             <div style="padding-left:5px">
               <input
@@ -228,9 +229,13 @@
         </div>
       </form>
     </div>
-
     <FlyCaseManagment
-      v-if="cableLayoutData == 'flightcase'"
+      v-if="cableLayoutData == 'flightcase' && typechoose == ''"
+      :cables="searchInCableTechJoinData"
+      :typechoose="typechoose"
+    />
+    <FlyCaseManagment
+      v-if="cableLayoutData == 'flightcase' && typechoose == !''"
       :cables="cablesNonZero"
       :typechoose="typechoose"
     />
@@ -293,6 +298,26 @@ export default {
     let z1 = ref("");
     let z2 = ref("");
     let z3 = ref("");
+    let test = [
+      {
+        cableid: "4",
+        affairid: "3",
+        tech_id: "135",
+        count: "50",
+        spare_count: "25",
+        done: true,
+        tfc1: "3",
+        tfc2: "3",
+        tfc3: "2"
+      },
+      {
+        cableid: "6",
+        affairid: "3",
+        tech_id: "135",
+        count: "10",
+        spare_count: "5"
+      }
+    ];
 
     // let totalCount = ref("");
     let showMyList = ref(false);
@@ -432,11 +457,19 @@ export default {
       typechoose.value = data;
     }
 
-    // save/update order
-    function update_order(param) {
-      console.log("cabletech | orderupdate", param);
-      cablageServices.orderupdate([param]);
+    // save/set_order
+    function set_order(test) {
+      console.log("cabletech | orderset", test);
+      cablageServices.orderset([test]);
     }
+
+    //---- 'order_set' --------------------------------------------------------
+    // function set_order(test) {
+    //   api.call("order_set", test).catch(response => {
+    //     console.log("order_set:", test);
+    //     console.log(response);
+    //   });
+    // }
 
     //cableTechLayout button organisation fightcase et
     function cableTechLayout(data) {
@@ -468,7 +501,7 @@ export default {
       affaireSelected,
 
       orders,
-      update_order,
+      set_order,
       reserved,
       selectype,
       typechoose,
@@ -491,6 +524,7 @@ export default {
       searchKey,
       showMyList,
       toAffairOpen,
+      test,
 
       z1,
       z2,
@@ -550,7 +584,6 @@ button.link {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding-bottom: 30px;
 }
 .content-resume {
   display: flex;
@@ -580,22 +613,41 @@ button.link {
   display: flex;
   justify-content: space-around;
 }
-.head {
+.head-fc {
   display: flex;
   /* margin: auto; */
   width: 375px;
   height: 20px;
   text-align: left;
-  padding-left: 265px;
+  padding-left: 205px;
 }
-.head input {
+.head-zone {
+  display: flex;
+  /* margin: auto; */
+  width: 375px;
+  height: 20px;
+  text-align: left;
+  padding-left: 268px;
+}
+.head-zone input {
   width: 28px;
   border: 1px rgb(211, 210, 210);
   font-size: 10px;
   font-weight: 400;
   text-align: center;
 }
-.head p {
+.head-fc input {
+  width: 28px;
+  border: 1px rgb(211, 210, 210);
+  font-size: 10px;
+  font-weight: 400;
+  text-align: center;
+}
+.head-zone p {
+  line-height: 1px;
+  font-size: 12px;
+}
+.head-fc p {
   line-height: 1px;
   font-size: 12px;
 }
@@ -712,7 +764,10 @@ input {
   -webkit-box-shadow: 5px 7px 5px 0px rgba(143, 141, 141, 0.75);
   -moz-box-shadow: 5px 7px 5px 0px rgba(143, 141, 141, 0.75);
 } */
-
+.search {
+  width: 100px;
+  margin: 0px 15px;
+}
 .selectedtype {
   color: #fff;
 }
@@ -774,6 +829,7 @@ th {
   right: 0;
   bottom: 0;
   background-color: rgb(216, 211, 207);
+  /* background-color: rgb(224, 119, 20); */
   -webkit-transition: 0.4s;
   transition: 0.4s;
   border: 2px solid rgb(13, 216, 47);
@@ -785,6 +841,7 @@ th {
   left: 0;
   right: 0;
   bottom: 0;
+  /* background-color: rgb(216, 211, 207); */
   background-color: rgb(224, 119, 20);
   -webkit-transition: 0.4s;
   transition: 0.4s;
@@ -805,6 +862,7 @@ th {
 
 input:checked + .slider {
   background-color: rgb(224, 119, 20);
+  /* background-color: rgb(216, 211, 207); */
 }
 
 input:focus + .slider {
@@ -829,7 +887,7 @@ input:checked + .slider:before {
 .toggle-label {
   display: block;
   float: right;
-  width: 50px;
+  width: 100px;
   font-size: 12px;
   padding-left: 10px;
 }

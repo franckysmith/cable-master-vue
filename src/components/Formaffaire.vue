@@ -63,21 +63,19 @@
       </div>
 
       <div class="description">
-        <div class="dess-supp">
-          <button @click="description = true" v-if="!description">
-            description
-          </button>
-          <button
-            @click="description = false"
-            v-if="description"
-            :style="closebuton"
-          >
-            description
-          </button>
-          <button @click="delete_affair(affaire)">
-            Supprimer l'affaire
-          </button>
-        </div>
+        <button @click="description = true" v-if="!description">
+          description
+        </button>
+        <button
+          @click="description = false"
+          v-if="description"
+          :style="closebuton"
+        >
+          description
+        </button>
+        <button @click="delete_affair(affaire)">
+          Supprimer l'affaire
+        </button>
       </div>
 
       <div class="content-dates">
@@ -238,11 +236,7 @@
       </div>
       <div v-if="description">
         <h4>Description</h4>
-        <button
-          @click="description = false"
-          v-if="description"
-          :class="closebuton"
-        >
+        <button @click="description = false" v-if="description" class="button3">
           fermer
         </button>
         <textarea
@@ -254,11 +248,7 @@
       </div>
       <div v-if="notemaster">
         <h4>Atelier => Technicien</h4>
-        <button
-          @click="notemaster = false"
-          v-if="notemaster"
-          :class="closebuton"
-        >
+        <button @click="notemaster = false" v-if="notemaster" class="button3">
           Fermer
         </button>
         <textarea
@@ -271,7 +261,7 @@
 
       <div v-if="note">
         <h4>Technicien => Atelier</h4>
-        <button @click="note = false" v-if="note" :style="closebutton">
+        <button @click="note = false" v-if="note" class="button3">
           fermer
         </button>
         <textarea
@@ -431,11 +421,32 @@ export default {
   box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
   border-radius: 4px;
 }
+.buttonv {
+  margin: 10px;
+  padding: 5px;
+  min-width: 50px;
+  background: #4dcc59;
+
+  border: 1px solid #000000;
+  box-sizing: border-box;
+  box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+  border-radius: 4px;
+}
 .button2 {
   margin: 10px;
   padding: 5px;
   min-width: 50px;
-  background: #dde0de;
+  background: #f3e309;
+  border: 1px solid #000000;
+  box-sizing: border-box;
+  box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+  border-radius: 4px;
+}
+.button3 {
+  margin: 10px;
+  padding: 5px;
+  min-width: 50px;
+  background: #eb910a;
   border: 1px solid #000000;
   box-sizing: border-box;
   box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
