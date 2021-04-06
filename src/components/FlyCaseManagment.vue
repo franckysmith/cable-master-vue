@@ -1,7 +1,7 @@
 <template>
   <div class="main" v-for="cable in allCables" :key="cable.cableid">
-    <form @subbmit.prevent="update_order()">
-      <div class="number" v-if="cable.type == typechoose">
+    <div>
+      <div class="number">
         <div class="name">
           <h4>{{ cable.name }}</h4>
         </div>
@@ -30,13 +30,14 @@
 
         <div><input name="tfc5" v-model="cable.tfc5" /></div>
       </div>
-    </form>
+    </div>
   </div>
 </template>
 <script>
 import { computed, ref } from "vue";
 
 export default {
+  name: "FlyCaseManagement",
   props: {
     cables: {
       type: Array
@@ -69,6 +70,7 @@ export default {
     }
 
     allCables = computed(() => {
+      console.log("allCables::", allCables);
       if (props.showMyList) {
         return props.cables.filter(c => calculateTotal(c) > 0);
       }

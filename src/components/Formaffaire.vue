@@ -11,7 +11,7 @@
         <li>
           <!-- /* ouverture component AddAffair*/ -->
           <button
-            class="button"
+            class="buttonv"
             @click="newAffairOpen"
             value="New"
             type="button"
@@ -63,17 +63,13 @@
       </div>
 
       <div class="description">
-        <button @click="description = true" v-if="!description">
+        <button @click="description = true" v-if="!description" class="button">
           description
         </button>
-        <button
-          @click="description = false"
-          v-if="description"
-          :style="closebuton"
-        >
+        <button @click="description = false" v-if="description" class="button3">
           description
         </button>
-        <button @click="delete_affair(affaire)">
+        <button @click="delete_affair(affaire)" class="button">
           Supprimer l'affaire
         </button>
       </div>
@@ -192,14 +188,24 @@
         </div>
         <div class="contentUpdate">
           <div class="content-update1">
-            <button @click="note = true" v-if="!note">note =></button>
-            <button @click="note = false" v-if="note" :style="closebutton">
+            <button @click="note = true" v-if="!note" class="button">
               note =>
             </button>
-            <button @click="notemaster = true" v-if="!notemaster">
+            <button @click="note = false" v-if="note" class="button3">
+              note =>
+            </button>
+            <button
+              @click="notemaster = true"
+              v-if="!notemaster"
+              class="button"
+            >
               Atelier
             </button>
-            <button @click="notemaster = false" v-if="notemaster">
+            <button
+              @click="notemaster = false"
+              v-if="notemaster"
+              class="button3"
+            >
               Atelier
             </button>
             <button
@@ -324,10 +330,8 @@ export default {
     console.log("emit | newAffairopen ", newAffairIsOpen.value);
     // get affair by techid
     function techSelected(param) {
-      let searchby = { tech_id: param };
-
       api
-        .call("affair_get", searchby)
+        .call("affair_get", { tech_id: param })
         .then(response => {
           affaireSelectedTech.value = response;
         })
@@ -415,7 +419,7 @@ export default {
   margin: 10px;
   padding: 5px;
   min-width: 50px;
-  background: #4dcc59;
+  background: #dce0dd;
   border: 1px solid #000000;
   box-sizing: border-box;
   box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);

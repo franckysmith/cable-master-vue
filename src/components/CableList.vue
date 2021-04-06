@@ -1,46 +1,44 @@
 <template>
   <div v-for="cable in allCables" :key="cable.cableid">
     <div>
-      <div>
-        <div class="number">
-          <div>
-            <input type="checkbox" :checked="cable.isChecked" />
-          </div>
-          <div class="name">
-            <h4 :class="setColorIndicator(cable)">{{ cable.name }}</h4>
-          </div>
+      <div class="number">
+        <div>
+          <input type="checkbox" :checked="cable.isChecked" />
+        </div>
+        <div class="name">
+          <h4 :class="setColorIndicator(cable)">{{ cable.name }}</h4>
+        </div>
 
-          <div>
-            <input name="spare_count" v-model="cable.spare_count" />
-          </div>
+        <div>
+          <input name="spare_count" v-model="cable.spare_count" />
+        </div>
 
-          <div>
-            <input name="" v-model="cable.z1" />
-          </div>
-          <div>
-            <input name="" v-model="cable.z2" />
-          </div>
-          <div>
-            <input name="" v-model="cable.z3" />
-          </div>
-          <div>
-            <input name="" v-model="cable.z4" />
-          </div>
-          <div>
-            <input name="" v-model="cable.z5" />
-          </div>
+        <div>
+          <input name="" v-model="cable.z1" />
+        </div>
+        <div>
+          <input name="" v-model="cable.z2" />
+        </div>
+        <div>
+          <input name="" v-model="cable.z3" />
+        </div>
+        <div>
+          <input name="" v-model="cable.z4" />
+        </div>
+        <div>
+          <input name="" v-model="cable.z5" />
+        </div>
 
-          <!-- <div>
+        <!-- <div>
             {{ calculateTotal(cable) }}
           </div> -->
-        </div>
-        <div class="info-content">
-          <div class="info">
-            <p>{{ cable.info }}</p>
-            <button type="button" class="link">
-              <a href="cable.link" target="_blank">link</a>
-            </button>
-          </div>
+      </div>
+      <div class="info-content">
+        <div class="info">
+          <p>{{ cable.info }}</p>
+          <button type="button" class="link">
+            <a href="cable.link" target="_blank">link</a>
+          </button>
         </div>
       </div>
     </div>

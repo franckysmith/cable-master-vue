@@ -1,18 +1,23 @@
 <template>
   <div class="addflfightcase"><AddFlightCase /></div>
-  <div v-for="caissetype in mfc" :key="caissetype.mfcid">
-    <div class="ct-content">
-      <div class="ctct-content">
-        <input class="ct-name" type="text" v-model="caissetype.name" />
-        <button class="button" @click="deletemfc(caissetype)">delete</button>
-        <button class="button" @click="caisseToList(caissetype)">select</button>
-        <button class="button3" @click="mfcupdate(caissetype)">update</button>
-      </div>
+
+  <div class="ct-content">
+    <div>
+      <select v-model="caisseSelected" @change="caisseToList(caisseSelected)">
+        <option
+          v-for="caissetype in mfc"
+          :key="caissetype.mfcid"
+          :value="caissetype"
+          placeholder="choisir"
+          >{{ caissetype.name }}
+        </option>
+      </select>
       <div>
         <input
           class="ct-info"
           type="textarea"
-          v-model="caissetype.info"
+          v-model="caisseSelected.info"
+          placeholder="pas d'information"
           cols="2"
           rows="3"
         />
@@ -37,12 +42,27 @@
 
       <div>
         <!-- celectype('microphone'+'digital'+'other' ..... ) -->
-        <button @click="selectype('')">All</button>
+        <button @click="filtreMaliste">All</button>
         <input
           type="text"
           v-model="searchKey"
           placeholder="Rechercher un élément"
         />
+        <!-- Rounded switch -->
+        <label class="toggle-label" v-if="cableLayoutData == 'flightcase'">
+          ma liste
+          <label class="switch">
+            <input type="checkbox" />
+            <span class="sliderder round"></span>
+          </label>
+        </label>
+        <label class="toggle-label" v-if="cableLayoutData == 'cableTechBase'">
+          All ..... ma liste
+          <label class="switch">
+            <input type="checkbox" @click="filtreMaliste" />
+            <span class="slider round"></span>
+          </label>
+        </label>
       </div>
     </div>
     <form @submit.prevent="mfcupdate(caissetype)">
@@ -50,12 +70,8 @@
         Update
       </button>
 
-      <button class="button2" @click="filtreMaliste">ma liste</button>
-
       <div class="content-number">
-        <div v-for="cable in cableMfcTechJoinedData" :key="cable.cableid">
-          <!-- ------------ v-if="cable.count > 0" -->
-          <!----------- v-if="filterCable" ------->
+        <div v-for="cable in allCable" :key="cable.cableid">
           <div v-if="cable.type == typechoose">
             <div class="number">
               <div class="name">
@@ -63,7 +79,7 @@
               </div>
 
               <div>
-                <input name="spare_count" v-model="cable.count" />
+                <input name="count" v-model="cable.count" />
               </div>
             </div>
             <div class="info-content">
@@ -99,6 +115,46 @@ export default {
   components: { AddFlightCase },
 
   setup() {
+    let allCables = ref([]);
+    let cables = ref([]);
+    let caisses = ref([]);
+    let typechoose = ref("speaker");
+    // let cable = ref("");
+    let count = ref("");
+    let cableid = ref("");
+    let cableLayoutData = ref("cableTechBase");
+    let cableIdsInMfc = ref([]);
+    let cableMfcTechJoinedData = ref([]);
+    let cableTechBase = ref("");
+    let caisseSelected = ref("");
+    let caissetype = ref([]);
+    let mfc = ref([]);
+    let cablemfc = ref([]);
+    let calculateTotal = ref("");
+    let showMyList = ref(false);
+    // let searchbycaisse = ref([]);
+
+    // --- filtrer liste ----------------------------
+    function filtreMaliste() {
+      showMyList.value = !showMyList.value;
+      console.log("cables", cablesNonZero);
+    }
+    allCables = computed(() => {
+      if (showMyList.value) {
+        return cableMfcTechJoinedData.value.filter(c => calculateTotal(c) > 0);
+      }
+      return cableMfcTechJoinedData.value;
+    });
+
+    // --------------  cableNonZero ---------------
+    const cablesNonZero = computed(() => {
+      console.log(
+        "cablesNonZero | searchInCableTechJoinData.value",
+        searchInCableTechJoinData.value
+      );
+      return searchInCableTechJoinData.value.filter(c => c.count > 0);
+    });
+
     // ----------- get caisses -------//
 
     // let mfc_get = onMounted(() => {
@@ -127,30 +183,15 @@ export default {
         console.log("err_cable_get:", response);
       });
     //-------------------------------
-    let cables = ref([]);
-    let caisses = ref([]);
-    let typechoose = ref("speaker");
-    // let cable = ref("");
-    let count = ref("");
-    let cableid = ref("");
-    let cableLayoutData = ref("cableTechBase");
-    let cableIdsInMfc = ref([]);
-    let cableMfcTechJoinedData = ref([]);
-    let cableTechBase = ref("");
-    let mfc = ref([]);
-    let cablemfc = ref([]);
-    // let searchbycaisse = ref([]);
-
-    // ------------------------------------
 
     // cablemfc get with selected mfc
+
     function caisseToList(data) {
       //   cableIdsInOrders.value = [];
       //   cableTechJoinedData.value = [];
 
-      let searchbycaisse = data;
       api
-        .call("cablemfc_get", searchbycaisse)
+        .call("cablemfc_get", data)
         .then(response => {
           console.log("cablemfc_get::", response);
           cablemfc.value = response;
@@ -168,12 +209,13 @@ export default {
     function aggregateData(cablemfc, cables) {
       cablemfc.forEach(o => {
         cableIdsInMfc.value.push(o.cableid);
+        console.log("cableIdsInMfc!!", cableIdsInMfc);
       });
 
       cables.forEach(cable => {
         let line = {
           name: cable.name,
-          count: "",
+          count: 0,
           total: cable.total,
           link: cable.link,
           info: cable.info,
@@ -223,30 +265,32 @@ export default {
     //   console.log("caisse | updatemfc:", param);
     //   cablageServices.mfcupdate([param]);
     // }
+
     // delete mfc
+
     function deletemfc(param) {
       console.log("caisse | deletemfc", param);
-      cablageServices.mfcdelete(param);
+      cablageServices.mfcdelete({ mfcid: param });
       mfc_get();
     }
 
     // ---- recherche dans liste cable par searchKey
     let searchKey = ref("");
-    let cableTechJoinedData = ref([]);
+
     const searchInCableTechJoinData = computed(() => {
       console.log("searchInCableTechJoinData:", searchInCableTechJoinData);
-      return cableTechJoinedData.value.filter(cable => {
+      return cableMfcTechJoinedData.value.filter(cable => {
         return cable.name.toLowerCase().includes(searchKey.value.toLowerCase());
       });
     });
 
     return {
+      allCables,
       cables,
       caisseToList,
       mfcupdate,
       deletemfc,
       searchKey,
-      cableTechJoinedData,
       caisses,
       selectype,
       typechoose,
@@ -254,11 +298,13 @@ export default {
       cableid,
       cableIdsInMfc,
       cableMfcTechJoinedData,
-
+      cablemfc,
       cableLayoutData,
       cableTechBase,
-      //   mfcget,
-      //   cable_get,
+      caisseSelected,
+      caissetype,
+      calculateTotal,
+      filtreMaliste,
       mfc
     };
   }
@@ -301,9 +347,9 @@ button {
 .content-number {
   width: 70px;
   height: 45px;
-  /* display: flex; */
-  /* flex-wrap: wrap; */
-  /* margin: auto; */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 .ct-content {
   display: flex;
@@ -333,6 +379,7 @@ input {
 }
 .info {
   font-size: 12px;
+  height: 15px;
   width: 350px;
   display: flex;
   justify-content: space-between;
@@ -432,5 +479,93 @@ input {
   box-shadow: 5px 7px 5px 0px rgba(143, 141, 141, 0.75);
   -webkit-box-shadow: 5px 7px 5px 0px rgba(143, 141, 141, 0.75);
   -moz-box-shadow: 5px 7px 5px 0px rgba(143, 141, 141, 0.75);
+}
+/* ------------------------------------------------------------------- */
+/* The switch - the box around the slider */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 60px;
+  height: 32px;
+  margin-left: 8px;
+}
+
+/* Hide default HTML checkbox */
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+/* The slider */
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgb(216, 211, 207);
+  /* background-color: rgb(224, 119, 20); */
+  -webkit-transition: 0.4s;
+  transition: 0.4s;
+  border: 2px solid rgb(13, 216, 47);
+}
+.sliderder {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  /* background-color: rgb(216, 211, 207); */
+  background-color: rgb(224, 119, 20);
+  -webkit-transition: 0.4s;
+  transition: 0.4s;
+  border: 2px solid rgb(13, 216, 47);
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 22px;
+  width: 22px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  -webkit-transition: 0.4s;
+  transition: 0.4s;
+}
+
+input:checked + .slider {
+  background-color: rgb(224, 119, 20);
+  /* background-color: rgb(216, 211, 207); */
+}
+
+input:focus + .slider {
+  box-shadow: 0 0 1px #2196f3;
+}
+
+input:checked + .slider:before {
+  -webkit-transform: translateX(26px);
+  -ms-transform: translateX(26px);
+  transform: translateX(26px);
+}
+
+/* Rounded sliders */
+.slider.round,
+.sliderder.round {
+  border-radius: 34px;
+}
+
+.slider.round:before {
+  border-radius: 50%;
+}
+.toggle-label {
+  display: block;
+  float: right;
+  width: 100px;
+  font-size: 12px;
+  padding-left: 10px;
 }
 </style>

@@ -1,28 +1,15 @@
 <template>
-  test
   <div>
     <div class="modal-mask" @click="isOpenClose">
       <div class="modal-wrapper">
         <div class="modal-container">
           <div class="modal-header">
-            <slot name="header">
-              Vous êtes sur de vouloir supprimer
-            </slot>
+            <slot name="main"> </slot>
           </div>
 
-          <div class="modal-body">
-            <h2>{{ cableToDelete.name }}</h2>
-          </div>
-
+          <slot name="body"> </slot>
           <div class="modal-footer">
-            <slot name="footer">
-              <button class="modal-default-button" @click="validDelete">
-                supprimer
-              </button>
-              <button class="modal-default-button" @click="isOpenClose">
-                non
-              </button>
-            </slot>
+            <slot name="footer"> </slot>
           </div>
         </div>
       </div>
@@ -34,9 +21,7 @@
 // import { ref } from "vue";
 export default {
   name: "ModalDelete",
-  props: {
-    cableToDelete: Object
-  },
+
   emits: ["supp", "close"],
   setup(_, { emit }) {
     const validDelete = function() {
@@ -75,9 +60,10 @@ export default {
   width: 300px;
   margin: 0px auto;
   padding: 20px 30px;
-  background-color: rgb(167, 159, 159);
-  border-radius: 2px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.33);
+  background-color: rgb(240, 233, 233);
+  border-radius: 4px;
+  border: 2px solid #4dcc59;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease;
 }
 .modal-header h3 {

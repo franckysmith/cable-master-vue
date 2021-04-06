@@ -226,19 +226,25 @@
               />
             </div>
           </div>
+          <div class="content-number" v-if="cableLayoutData == 'flightcase'">
+            <div v-if="typechoose !== ''">
+              <FlyCaseManagment
+                :cables="filteredCableByType"
+                :show-my-list="showMyList"
+              />
+            </div>
+            <div>
+              <FlyCaseManagment
+                :cables="searchInCableTechJoinData"
+                :typechoose="typechoose"
+                :show-my-list="showMyList"
+              />
+            </div>
+          </div>
         </div>
       </form>
     </div>
-    <FlyCaseManagment
-      v-if="cableLayoutData == 'flightcase' && typechoose == ''"
-      :cables="searchInCableTechJoinData"
-      :typechoose="typechoose"
-    />
-    <FlyCaseManagment
-      v-if="cableLayoutData == 'flightcase' && typechoose == !''"
-      :cables="cablesNonZero"
-      :typechoose="typechoose"
-    />
+
     <!-- <div><button>getorder</button></div>
     <div v-for="order in orders" :key="order.orderid">
       {{ order.count }} {{ order.cableid }}
@@ -253,9 +259,8 @@ import cablageServices from "@/services/cablage.js";
 
 import Formaffaire from "@/components/Formaffaire.vue";
 import FlyCaseManagment from "@/components/FlyCaseManagment.vue";
-
-import AddAffair from "@/components/AddAffair.vue";
 import CableList from "@/components/CableList.vue";
+import AddAffair from "@/components/AddAffair.vue";
 
 import { ref, computed } from "vue";
 
@@ -294,33 +299,11 @@ export default {
     let filterCable = ref(false);
     let newAffairOpen = ref(Boolean);
     let searchKey = ref("");
+    let showMyList = ref(false);
     let affairefrom = ref([]);
     let z1 = ref("");
     let z2 = ref("");
     let z3 = ref("");
-    let test = [
-      {
-        cableid: "4",
-        affairid: "3",
-        tech_id: "135",
-        count: "50",
-        spare_count: "25",
-        done: true,
-        tfc1: "3",
-        tfc2: "3",
-        tfc3: "2"
-      },
-      {
-        cableid: "6",
-        affairid: "3",
-        tech_id: "135",
-        count: "10",
-        spare_count: "5"
-      }
-    ];
-
-    // let totalCount = ref("");
-    let showMyList = ref(false);
 
     //from emit to v-if
     function toAffairOpen(data) {
@@ -436,6 +419,7 @@ export default {
       return parseInt(z1.value) + parseInt(z2.value);
     });
 
+    //  --------------- ma liste ----- count>0 -------------
     const cablesNonZero = computed(() => {
       console.log(
         "cablesNonZero | searchInCableTechJoinData.value",
@@ -524,7 +508,6 @@ export default {
       searchKey,
       showMyList,
       toAffairOpen,
-      test,
 
       z1,
       z2,

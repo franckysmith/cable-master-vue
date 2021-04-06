@@ -1,11 +1,23 @@
 <template>
   <div class="modaldelete">
-    <ModalDelete
-      :cableToDelete="cableToDelete"
-      @close="isOpen = false"
-      @supp="delete_cable(cableToDelete.cableid)"
-      v-if="isOpen"
-    />
+    <ModalDelete @close="isOpen = false" v-if="isOpen">
+      <template v-slot:main>
+        <div v-for="cable in cableToDelete" :key="cable">
+          <h1>{{ cable.name }}</h1>
+          <button
+            class="modal-default-button"
+            @click="delete_cable(cable.cableid)"
+          >
+            supprimer
+          </button>
+        </div>
+      </template>
+      <template #footer>
+        <button class="buttonv" @click="isOpenClose">
+          non
+        </button>
+      </template>
+    </ModalDelete>
   </div>
 
   <div>
@@ -94,60 +106,64 @@
   </div>
 
   <div class="home">
-    <div class="head">
-      <div style="padding-left:0px">seuil</div>
-      <div style="padding-left:26px">total</div>
-      <div style="padding-left:32px">poids</div>
-      <div style="padding-left:22px">ordre</div>
-    </div>
+    <div>
+      <div class="head">
+        <div style="padding-left:0px">seuil</div>
+        <div style="padding-left:26px">total</div>
+        <div style="padding-left:32px">poids</div>
+        <div style="padding-left:22px">ordre</div>
+      </div>
 
-    <div class="content-number" v-for="cable in search" :key="cable.cableid">
-      <div class="number" v-if="cable.type == typechoose">
-        <div class="number1">
-          <div class="name"><input v-model="cable.name" /></div>
-          <div><input v-model="cable.reserved" name="tampon" /></div>
-          <div><input v-model="cable.total" name="total" /></div>
-          <div><input v-model="cable.weight" name="poids" /></div>
-          <div><input v-model="cable.sortno" name="ordre" /></div>
-          <div class="type">
-            <select v-model="cable.type" @change="update_cable(cable)">
-              <option
-                v-for="choix in listeType"
-                :key="choix.id"
-                :value="choix.value"
-                >{{ choix.name }}
-              </option>
-            </select>
-          </div>
-          <div>
-            <button id="id" :href="cable.link">link</button>
-          </div>
-          <div>
-            <button type="submit" @click="update_cable(cable)" name="save">
-              save
-            </button>
-          </div>
-
-          <div>
-            <div><button @click="isOpen = true">delete</button></div>
-            <!-- <ModalView v-if="isOpen" @close="isOpen = false"0>
-              <h3>Vou êtes sur de vouloir supprimer {{ cable.name }}</h3>
-              <button @click="delete_cable(cable.cableid)" name="delete">
-                supprimer {{ cable.name }}
+      <div class="content-number" v-for="cable in search" :key="cable.cableid">
+        <div class="number" v-if="cable.type == typechoose">
+          <div class="number1">
+            <div class="name"><input v-model="cable.name" /></div>
+            <div><input v-model="cable.reserved" name="tampon" /></div>
+            <div><input v-model="cable.total" name="total" /></div>
+            <div><input v-model="cable.weight" name="poids" /></div>
+            <div><input v-model="cable.sortno" name="ordre" /></div>
+            <div class="type">
+              <select v-model="cable.type" @change="update_cable(cable)">
+                <option
+                  v-for="choix in listeType"
+                  :key="choix.id"
+                  :value="choix.value"
+                  >{{ choix.name }}
+                </option>
+              </select>
+            </div>
+            <div>
+              <button id="id" :href="cable.link">link</button>
+            </div>
+            <div>
+              <button type="submit" @click="update_cable(cable)" name="save">
+                save
               </button>
-            </ModalView> -->
+            </div>
+
+            <div>
+              <div>
+                <button @click="suppcable(cable)">delete</button>
+              </div>
+              <!-- <ModalView v-if="isOpen" @close="isOpen = false"0>
+                <h3>Vou êtes sur de vouloir supprimer {{ cable.name }}</h3>
+                <button @click="delete_cable(cable.cableid)" name="delete">
+                  supprimer {{ cable.name }}
+                </button>
+              </ModalView> -->
+            </div>
           </div>
-        </div>
-        <div class="number2">
-          <div class="info">
-            <input v-model="cable.info" placeholder="details" />
-          </div>
-          <div>
-            <input
-              style="color:#c9c9c9"
-              v-model="cable.link"
-              placeholder="link"
-            />
+          <div class="number2">
+            <div class="info">
+              <input v-model="cable.info" placeholder="details" />
+            </div>
+            <div>
+              <input
+                style="color:#c9c9c9"
+                v-model="cable.link"
+                placeholder="link"
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -254,12 +270,11 @@ export default {
         });
     });
 
-    //suppresion cable => modalDelete
-    const suppCable = function(data) {
-      isOpen.value = true;
-      cableToDelete.value = data;
+    //suppresion cable => modalDelete --------------
+    const suppcable = function(data) {
+      cableToDelete.value = [data];
       console.log("suppCable", data);
-      cable_get();
+      isOpen.value = true;
     };
     // ajouter un cable
     function add_cable(data) {
@@ -291,7 +306,7 @@ export default {
       cable_get,
       displayAddCable,
       sureToDelete,
-      suppCable,
+      suppcable,
       isOpen,
       isModalDelete,
       ModalDelete,
@@ -322,7 +337,7 @@ button {
 }
 .head {
   display: flex;
-  margin-left: 0px;
+  margin-left: 160px;
   text-align: left;
   font-size: 12px;
 }
