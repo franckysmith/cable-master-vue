@@ -88,11 +88,6 @@
     </div>
   </div>
   <div class="ajouter">
-    <input
-      type="text"
-      v-model="searchKey"
-      placeholder="Rechercher un élément"
-    />
     <button
       class="button3"
       @click="displayAddCable = true"
@@ -103,8 +98,12 @@
     <button @click="displayAddCable = false" v-show="displayAddCable">
       fermer
     </button>
+    <input
+      type="text"
+      v-model="searchKey"
+      placeholder="Rechercher un élément"
+    />
   </div>
-
   <div class="home">
     <div>
       <div class="head">
@@ -113,58 +112,22 @@
         <div style="padding-left:32px">poids</div>
         <div style="padding-left:22px">ordre</div>
       </div>
-
-      <div class="content-number" v-for="cable in search" :key="cable.cableid">
-        <div class="number" v-if="cable.type == typechoose">
-          <div class="number1">
-            <div class="name"><input v-model="cable.name" /></div>
-            <div><input v-model="cable.reserved" name="tampon" /></div>
-            <div><input v-model="cable.total" name="total" /></div>
-            <div><input v-model="cable.weight" name="poids" /></div>
-            <div><input v-model="cable.sortno" name="ordre" /></div>
-            <div class="type">
-              <select v-model="cable.type" @change="update_cable(cable)">
-                <option
-                  v-for="choix in listeType"
-                  :key="choix.id"
-                  :value="choix.value"
-                  >{{ choix.name }}
-                </option>
-              </select>
-            </div>
-            <div>
-              <button id="id" :href="cable.link">link</button>
-            </div>
-            <div>
-              <button type="submit" @click="update_cable(cable)" name="save">
-                save
-              </button>
-            </div>
-
-            <div>
-              <div>
-                <button @click="suppcable(cable)">delete</button>
-              </div>
-              <!-- <ModalView v-if="isOpen" @close="isOpen = false"0>
-                <h3>Vou êtes sur de vouloir supprimer {{ cable.name }}</h3>
-                <button @click="delete_cable(cable.cableid)" name="delete">
-                  supprimer {{ cable.name }}
-                </button>
-              </ModalView> -->
-            </div>
-          </div>
-          <div class="number2">
-            <div class="info">
-              <input v-model="cable.info" placeholder="details" />
-            </div>
-            <div>
-              <input
-                style="color:#c9c9c9"
-                v-model="cable.link"
-                placeholder="link"
-              />
-            </div>
-          </div>
+      <div>
+        <div v-if="typechoose !== ''">
+          <MasterCableList
+            @supp="delete_cable"
+            @update="update_cable"
+            :cables="filteredCableByType"
+            :cable-type="typechoose"
+          />
+        </div>
+        <div v-else>
+          <MasterCableList
+            @supp="delete_cable"
+            :cables="search"
+            cable-type=""
+            @update="update_cable"
+          />
         </div>
       </div>
     </div>
@@ -181,10 +144,11 @@ import { ref, onMounted, computed } from "vue";
 import ModalDelete from "@/components/ModalDelete.vue";
 import cablageServices from "@/services/cablage.js";
 import AddCable from "@/components/AddCable.vue";
+import MasterCableList from "@/components/MasterCableList.vue";
 
 export default {
   name: "Cablemaster",
-  components: { AddCable, ModalDelete },
+  components: { AddCable, ModalDelete, MasterCableList },
 
   setup() {
     let cables = ref([]);
@@ -196,68 +160,33 @@ export default {
     let isOpen = ref("");
     let cableToDelete = ref([]);
     let searchKey = ref("");
+    let searchInCableTechJoinData = ref([]);
+    let showMyList = ref([]);
 
-    const listeType = ref([
-      {
-        id: 1,
-        name: "électricité",
-        value: "electrical"
-      },
-      {
-        id: 2,
-        name: "hp",
-        value: "speaker"
-      },
-      {
-        id: 3,
-        name: "microphone",
-        value: "microphone"
-      },
-      {
-        id: 4,
-        name: "module",
-        value: "module"
-      },
-      {
-        id: 5,
-        name: "special",
-        value: "special"
-      },
-      {
-        id: 6,
-        name: "other",
-        value: "other"
-      },
-      {
-        id: 7,
-        name: "c_type",
-        value: "c_type"
-      },
-      {
-        id: 8,
-        name: "accessoire",
-        value: "accessory"
-      },
-      {
-        id: 9,
-        name: "numérique",
-        value: "digital"
-      }
-    ]);
-
-    // choose display cable_type (buttons)
+    // choose display cable_type (buttons) --------------------------
     function selectype(data) {
       console.log("typechoose", data);
       typechoose.value = data;
     }
 
-    // ---- recherche dans liste cable par searchKey
+    // ---- search by searchKey -----------------
     const search = computed(() => {
       return cables.value.filter(cable => {
         return cable.name.toLowerCase().includes(searchKey.value.toLowerCase());
       });
     });
-    // get cable
+
+    const filteredCableByType = computed(() => {
+      return search.value.filter(c => c.type === typechoose.value);
+    });
+
+    // --- filtrer liste
+    function filtreMaliste() {
+      showMyList.value = !showMyList.value;
+      console.log("cables", showMyList.value);
+    }
+
+    // get cable ---------------------------------------
     let cable_get = onMounted(() => {
       api
         .call("cable_get")
@@ -294,23 +223,27 @@ export default {
       cablageServices.cableupdate([param]);
       cable_get();
     }
+    // -----------------------------------------------
     return {
       add_cable,
       cable,
       cables,
       cableToDelete,
       delete_cable,
-      listeType,
+      filteredCableByType,
+      filtreMaliste,
+
       selectype,
       typechoose,
       cable_get,
       displayAddCable,
       sureToDelete,
+      searchInCableTechJoinData,
       suppcable,
       isOpen,
       isModalDelete,
       ModalDelete,
-
+      showMyList,
       search,
       searchKey,
       update_cable

@@ -1,54 +1,44 @@
 <template>
-  <div v-for="cable in allCables" :key="cable.cableid">
+  coucou
+  <div class="main" v-for="cable in cables" :key="cable.cableid">
     <div>
       <div class="number">
-        <div>
-          <input type="checkbox" :checked="cable.isChecked" />
-        </div>
         <div class="name">
-          <h4 :class="setColorIndicator(cable)">{{ cable.name }}</h4>
+          <h4>{{ cable.name }}</h4>
         </div>
 
-        <div>
-          <input name="spare_count" v-model="cable.spare_count" />
+        <div class="countfc">
+          <p>
+            <!-- {{
+              countcopy -
+                cable.tfc1 -
+                cable.tfc2 -
+                cable.tfc3 -
+                cable.tfc4 -
+                cable.tfc5
+            }} -->
+          </p>
         </div>
 
-        <div>
-          <input name="" v-model="cable.z1" />
-        </div>
-        <div>
-          <input name="" v-model="cable.z2" />
-        </div>
-        <div>
-          <input name="" v-model="cable.z3" />
-        </div>
-        <div>
-          <input name="" v-model="cable.z4" />
-        </div>
-        <div>
-          <input name="" v-model="cable.z5" />
-        </div>
+        <div><input name="tfc1" v-model="cable.tfc1" /></div>
 
         <div>
-          {{ calculateTotal(cable) }}
+          <input name="tfc2" v-model="cable.tfc2" />
         </div>
-      </div>
-      <div class="info-content">
-        <div class="info">
-          <p>{{ cable.info }}</p>
-          <button type="button" class="link">
-            <a href="cable.link" target="_blank">link</a>
-          </button>
-        </div>
+        <div><input name="tfc3" v-model="cable.tfc3" /></div>
+
+        <div><input name="tfc4" v-model="cable.tfc4" /></div>
+
+        <div><input name="tfc5" v-model="cable.tfc5" /></div>
       </div>
     </div>
   </div>
 </template>
-
 <script>
 import { computed, ref } from "vue";
 
 export default {
+  name: "FlightCaseManagement",
   props: {
     cables: {
       type: Array
@@ -66,8 +56,10 @@ export default {
 
   setup(props) {
     let allCables = ref([]);
+    let countcopy = ref("");
 
     function calculateTotal(cable) {
+      countcopy.value = cable.count;
       return (
         parseInt(cable.spare_count) +
         parseInt(cable.z1 || 0) +
@@ -79,31 +71,34 @@ export default {
     }
 
     allCables = computed(() => {
+      console.log("allCables::", allCables);
       if (props.showMyList) {
         return props.cables.filter(c => calculateTotal(c) > 0);
       }
       return props.cables;
     });
-    function setColorIndicator(cable) {
-      if (cable.total > 10) {
-        return "available-info";
-      } else if (cable.total > 5) {
-        return "available-warning";
-      } else {
-        return "available-alert";
-      }
-    }
 
     return {
       calculateTotal,
       allCables,
-      setColorIndicator
+      countcopy
     };
   }
 };
 </script>
 
 <style scoped>
+.countfc {
+  margin-right: 10px;
+}
+.countfc p {
+  /* line-height: 10px; */
+  padding-top: 5px;
+  border: 1px solid black;
+  background: rgb(224, 222, 222);
+  width: 23px;
+  height: 20px;
+}
 input {
   padding: 5px;
 }
@@ -132,17 +127,12 @@ input {
   color: grey;
   /* line-height: 10; */
 }
-.main {
-}
-.name {
-  height: 10px;
-  width: 100px;
-}
+
 .name h4 {
-  margin: 10px 0px;
+  /* margin: 10px 0px; */
   font-weight: 500;
   text-align: left;
-  width: 110px;
+  width: 100px;
   padding: 1px 1px 1px 3px;
   /* margin-left: 5px; */
   background-color: #c1c7c33a;
@@ -152,6 +142,7 @@ input {
   display: flex;
   border-width: 0px 0px 1px 0px;
   align-content: flex-start;
+  align-items: center;
 }
 
 .number input {

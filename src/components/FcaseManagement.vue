@@ -8,27 +8,26 @@
 
         <div class="countfc">
           <p>
-            <!-- {{
+            {{
               countcopy -
                 cable.tfc1 -
                 cable.tfc2 -
                 cable.tfc3 -
                 cable.tfc4 -
                 cable.tfc5
-            }} -->
+            }}
           </p>
         </div>
 
-        <div><input name="tfc1" v-model="cable.tfc1" /></div>
+        <input name="tfc1" v-model="cable.tfc1" />
 
-        <div>
-          <input name="tfc2" v-model="cable.tfc2" />
-        </div>
-        <div><input name="tfc3" v-model="cable.tfc3" /></div>
+        <input name="tfc2" v-model="cable.tfc2" />
 
-        <div><input name="tfc4" v-model="cable.tfc4" /></div>
+        <input name="tfc3" v-model="cable.tfc3" />
 
-        <div><input name="tfc5" v-model="cable.tfc5" /></div>
+        <input name="tfc4" v-model="cable.tfc4" />
+
+        <input name="tfc5" v-model="cable.tfc5" />
       </div>
     </div>
   </div>
@@ -37,7 +36,7 @@
 import { computed, ref } from "vue";
 
 export default {
-  name: "FlyCaseManagement",
+  name: "FlightCaseManagement",
   props: {
     cables: {
       type: Array
@@ -126,6 +125,10 @@ input {
   color: grey;
   /* line-height: 10; */
 }
+.main {
+  margin: 0px;
+  padding: 0px;
+}
 
 .name h4 {
   /* margin: 10px 0px; */
@@ -140,8 +143,9 @@ input {
 .number {
   display: flex;
   border-width: 0px 0px 1px 0px;
-  align-content: flex-start;
+  /* align-content: flex-start; */
   align-items: center;
+  padding: 0px;
 }
 
 .number input {
