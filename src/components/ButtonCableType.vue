@@ -109,13 +109,15 @@ export default {
   name: "ButtonCableType",
   props: {
     selectype: {
-      type: String
-    }
+      type: String,
+    },
   },
 
   setup(props) {
     let typechoose = ref("speaker");
-  }
+
+    return { typechoose };
+  },
 };
 </script>
 

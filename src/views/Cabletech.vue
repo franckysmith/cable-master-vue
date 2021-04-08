@@ -89,14 +89,13 @@
             v-model="searchKey"
             placeholder="Rechercher "
           />
-          <!-- Rounded switch -->
-          <label class="toggle-label" v-if="cableLayoutData == 'flightcase'">
-            ma liste
-            <label class="switch">
-              <input type="checkbox" />
-              <span class="sliderder round"></span>
-            </label>
+          <!-- <label for="showmylist">
+          <input type="radio" name="showMyList" @click="filtreMaliste()" :checked="showMyList" id="showmylist"> liste
           </label>
+          <label for="showflightcase">
+          <input type="radio" name="showMyList" @click="filtreMaliste()" :checked="!showMyList" id="showflightcase"> flightcase
+          </label> -->
+          <button @click="showMyList = !showMyList">ma liste</button>{{showMyList}}
           <label class="toggle-label" v-if="cableLayoutData == 'cableTechBase'">
             All ..... ma liste
             <label class="switch">
@@ -229,16 +228,20 @@
         </div>
       </form>
     </div>
-    <FlyCaseManagment
-      v-if="cableLayoutData == 'flightcase' && typechoose == ''"
-      :cables="searchInCableTechJoinData"
-      :typechoose="typechoose"
-    />
-    <FlyCaseManagment
-      v-if="cableLayoutData == 'flightcase' && typechoose == !''"
-      :cables="cablesNonZero"
-      :typechoose="typechoose"
-    />
+    <div v-if="cableLayoutData == 'flightcase' && typechoose === ''">
+      <FlyCaseManagment
+        :cables="searchInCableTechJoinData"
+        :typechoose="typechoose"
+        @updateorder="set_order($event)"
+      />
+    </div>
+    <div v-if="cableLayoutData == 'flightcase' && typechoose !== ''">
+      <FlyCaseManagment
+        :cables="cablesNonZero"
+        :typechoose="typechoose"
+        @updateorder="set_order($event)"
+      />
+    </div>
     <!-- <div><button>getorder</button></div>
     <div v-for="order in orders" :key="order.orderid">
       {{ order.count }} {{ order.cableid }}
@@ -268,11 +271,11 @@ export default {
     let cables = ref([]);
     api
       .call("cable_get")
-      .then(response => {
+      .then((response) => {
         console.log("cable_get:", response);
         cables.value = response;
       })
-      .catch(response => {
+      .catch((response) => {
         console.log("err_cable_get:", response);
       });
     let affaire = ref([]);
@@ -308,15 +311,15 @@ export default {
         done: true,
         tfc1: "3",
         tfc2: "3",
-        tfc3: "2"
+        tfc3: "2",
       },
       {
         cableid: "6",
         affairid: "3",
         tech_id: "135",
         count: "10",
-        spare_count: "5"
-      }
+        spare_count: "5",
+      },
     ];
 
     // let totalCount = ref("");
@@ -343,7 +346,7 @@ export default {
 
       api
         .call("order_get", searchbyaff)
-        .then(response => {
+        .then((response) => {
           console.log("order_get:", response);
           orders.value = response;
 
@@ -351,18 +354,18 @@ export default {
 
           aggregateData(response, cables.value);
         })
-        .catch(function(response) {
+        .catch(function (response) {
           console.log("order_get:", response);
         });
     }
 
     // aggregateData table 'cables' et 'orders'
     function aggregateData(orders, cables) {
-      orders.forEach(o => {
+      orders.forEach((o) => {
         cableIdsInOrders.value.push(o.cableid);
       });
 
-      cables.forEach(cable => {
+      cables.forEach((cable) => {
         let line = {
           isChecked: false,
           name: cable.name,
@@ -382,11 +385,11 @@ export default {
           z2: "",
           z3: "",
           z4: "",
-          z5: ""
+          z5: "",
         };
 
         if (cableIdsInOrders.value.includes(cable.cableid)) {
-          const orderItem = orders.find(o => o.cableid === cable.cableid);
+          const orderItem = orders.find((o) => o.cableid === cable.cableid);
 
           line = {
             isChecked: true,
@@ -407,7 +410,7 @@ export default {
             z3: orderItem.z3,
             z4: orderItem.z4,
             z5: orderItem.z5,
-            orderid: orderItem.orderid
+            orderid: orderItem.orderid,
           };
         }
 
@@ -425,7 +428,7 @@ export default {
     // ---- recherche dans liste cable par searchKey
     const searchInCableTechJoinData = computed(() => {
       console.log("searchInCableTechJoinData:", searchInCableTechJoinData);
-      return cableTechJoinedData.value.filter(cable => {
+      return cableTechJoinedData.value.filter((cable) => {
         return cable.name.toLowerCase().includes(searchKey.value.toLowerCase());
       });
     });
@@ -441,12 +444,13 @@ export default {
         "cablesNonZero | searchInCableTechJoinData.value",
         searchInCableTechJoinData.value
       );
-      return searchInCableTechJoinData.value.filter(c => c.count > 0);
+      return searchInCableTechJoinData.value.filter((c) => c.count > 0);
     });
 
     // --- filtrer liste
     function filtreMaliste() {
       showMyList.value = !showMyList.value;
+      console.log("showMyList", showMyList.value);
       console.log("cables", cablesNonZero);
     }
 
@@ -457,10 +461,27 @@ export default {
       typechoose.value = data;
     }
 
+    // // save/set_order
+    // function set_order() {
+    //   console.log("TODO orderset after ALL bugs are fixed");
+    //   console.log("cabletech | orderset", test);
+    //   cablageServices.orderset(test);
+    // }
+
     // save/set_order
-    function set_order(test) {
-      console.log("cabletech | orderset", test);
-      cablageServices.orderset([test]);
+    function set_order(data) {
+      if (!data) {
+        return;
+      }
+      console.log("data as payload", data);
+      const cablesWithAffaireData = data.value.map((d) => {
+        d.affairid = affaireSelected.value.affairid;
+        // d.tech_id = affaire.value.tech_id;
+        return d;
+      });
+      console.log("cablesWithAffaireData", cablesWithAffaireData);
+      console.log("JSON.stringify(cablesWithAffaireData)", JSON.stringify(cablesWithAffaireData));
+      cablageServices.orderset(JSON.stringify(cablesWithAffaireData));
     }
 
     //---- 'order_set' --------------------------------------------------------
@@ -479,7 +500,7 @@ export default {
 
     const filteredCableByType = computed(() => {
       return searchInCableTechJoinData.value.filter(
-        c => c.type === typechoose.value
+        (c) => c.type === typechoose.value
       );
     });
 
@@ -528,9 +549,9 @@ export default {
 
       z1,
       z2,
-      z3
+      z3,
     };
-  }
+  },
 };
 </script>
 <style scoped>

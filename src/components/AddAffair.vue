@@ -47,7 +47,7 @@ import { ref } from "vue";
 import cablageServices from "@/services/cablage.js";
 export default {
   name: "AddAffair",
-  emit: ["lesson-fermer-newAff"],
+  emits: ["lessonFermerNewAff"],
   setup(_, context) {
     let name = ref("");
     let tech_name = ref("");

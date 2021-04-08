@@ -1,21 +1,22 @@
 <template>
+   <button
+      v-longclick="() => changeValue(1)"
+      @click="changeValue(1)">+</button>
+    <button
+      v-longclick="() => changeValue(-1)"
+      @click="() => changeValue(-1)">-</button> {{ counter }}
   <div class="main" v-for="cable in allCables" :key="cable.cableid">
-    <form @subbmit.prevent="update_order()">
-      <div class="number" v-if="cable.type == typechoose">
+    <form @submit.prevent="updateOrder()">
+      <div class="number" v-if="cable.type == typechoose || typechoose === '' ">
         <div class="name">
           <h4>{{ cable.name }}</h4>
         </div>
 
-        <div class="countfc">
+        <div :class="(calculateTotal(cable) === 0) ? 'ready' : 'countfc' ">
           <p>
-            <!-- {{
-              countcopy -
-                cable.tfc1 -
-                cable.tfc2 -
-                cable.tfc3 -
-                cable.tfc4 -
-                cable.tfc5
-            }} -->
+            {{
+              calculateTotal(cable)
+            }}
           </p>
         </div>
 
@@ -35,52 +36,141 @@
 </template>
 <script>
 import { computed, ref } from "vue";
+// import { longClickDirective } from 'vue-long-click';
+
+// const longClickInstance = longClickDirective({ delay: 400, interval: 50 });
 
 export default {
   props: {
     cables: {
-      type: Array
+      type: Array,
     },
     cableType: {
-      type: String
+      type: String,
     },
     showMyList: {
-      type: Boolean
+      type: Boolean,
     },
     affaireSelected: {
-      type: Array
-    }
+      type: Array,
+    },
+    typechoose: {
+      type: String,
+    },
+  },
+  emits: ["updateorder"],
+  directives: {
+    longclick: {
+      beforeMount(el, binding, vNode) {
+        let delay = 400;
+        let interval = 50;
+
+        if (typeof binding.value !== "function") {
+          const compName = vNode.context.name;
+          let warn = `[longclick:] provided expression '${binding.expression}' is not a function, but has to be`;
+          if (compName) {
+            warn += `Found in component '${compName}' `;
+          }
+          console.warn(warn); // eslint-disable-line
+        }
+
+        let pressTimer = null;
+        let pressInterval = null;
+
+        const start = (e) => {
+          if (e.type === "click" && e.button !== 0) {
+            return;
+          }
+
+          if (pressTimer === null) {
+            pressTimer = setTimeout(() => {
+              if (interval && interval > 0) {
+                pressInterval = setInterval(() => {
+                  handler();
+                }, interval);
+              }
+              handler();
+            }, delay);
+          }
+        };
+
+        // Cancel Timeout
+        const cancel = () => {
+          if (pressTimer !== null) {
+            clearTimeout(pressTimer);
+            pressTimer = null;
+          }
+          if (pressInterval) {
+            clearInterval(pressInterval);
+            pressInterval = null;
+          }
+        };
+        // Run Function
+        const handler = (e) => {
+          binding.value(e);
+        };
+
+        ["mousedown", "touchstart"].forEach((e) =>
+          el.addEventListener(e, start)
+        );
+        ["click", "mouseout", "touchend", "touchcancel"].forEach((e) =>
+          el.addEventListener(e, cancel)
+        );
+      },
+    },
   },
 
-  setup(props) {
+  setup(props, context) {
     let allCables = ref([]);
     let countcopy = ref("");
+    let counter = ref(0);
 
     function calculateTotal(cable) {
-      countcopy.value = cable.count;
+      console.log("calculateTotal | cable", cable);
+      updateOrder();
       return (
-        parseInt(cable.spare_count) +
-        parseInt(cable.z1 || 0) +
-        parseInt(cable.z2 || 0) +
-        parseInt(cable.z3 || 0) +
-        parseInt(cable.z4 || 0) +
-        parseInt(cable.z5 || 0)
+        cable.count -
+        cable.tfc1 -
+        cable.tfc2 -
+        cable.tfc3 -
+        cable.tfc4 -
+        cable.tfc5
       );
     }
 
     allCables = computed(() => {
-      if (props.showMyList) {
-        return props.cables.filter(c => calculateTotal(c) > 0);
-      }
-      return props.cables;
+      return props.cables.filter(
+        (cable) =>
+          cable.count -
+            cable.tfc1 +
+            cable.tfc2 +
+            cable.tfc3 +
+            cable.tfc4 +
+            cable.tfc5 >
+          0
+      );
+      // return props.cables;
     });
+
+    function updateOrder() {
+      console.log("updateOrder / allCables", allCables);
+      context.emit("updateorder", allCables);
+    }
+
+    function changeValue(amount) {
+      console.log(`Change amount by ${amount}`); // eslint-disable-line
+      counter.value = counter.value + amount;
+    }
 
     return {
       calculateTotal,
       allCables,
-      countcopy
+      countcopy,
+      updateOrder,
+      changeValue,
+      counter,
     };
-  }
+  },
 };
 </script>
 
@@ -155,5 +245,21 @@ form {
   display: flex;
   flex-direction: column;
   align-items: center;
+}
+.ready {
+  color: white;
+  background-color: #4dcc59;
+  line-height: 6px;
+  padding-top: 5px;
+  border: 1px solid green;
+  width: 23px;
+  height: 20px;
+  margin-top: 5px;
+  margin-left: 4px;
+  margin-right: 9px;
+}
+
+.ready p {
+  margin-top: 5px;
 }
 </style>
