@@ -208,6 +208,7 @@
           <div class="content-number">
             <div v-if="typechoose !== ''">
               <CableList
+                @lessontotalcable="calculcable"
                 :cables="filteredCableByType"
                 :cable-type="typechoose"
                 :show-my-list="showMyList"
@@ -215,6 +216,7 @@
             </div>
             <div v-else>
               <CableList
+                @lessontotalcable="calculcable"
                 :cables="searchInCableTechJoinData"
                 cable-type=""
                 :show-my-list="showMyList"
@@ -225,6 +227,7 @@
         <div class="content-number" v-if="cableLayoutData == 'flightcase'">
           <div v-if="typechoose !== ''">
             <FcaseManagement
+              :calculcable="calculcable"
               :cables="filteredCableByType"
               :cable-type="typechoose"
               :show-my-list="showMyList"
@@ -232,6 +235,7 @@
           </div>
           <div v-else>
             <FcaseManagement
+              :calculcable="calculcable"
               :cables="searchInCableTechJoinData"
               cable-type=""
               :show-my-list="showMyList"
@@ -277,6 +281,7 @@ export default {
     let cableIdsInOrders = ref([]);
     let cableTechJoinedData = ref([]);
     let cableTechBase = ref("");
+    let calculcable = ref("");
     let filterCable = ref(false);
     let newAffairOpen = ref(Boolean);
     let searchKey = ref("");
@@ -428,25 +433,11 @@ export default {
       cablageServices.orderset([data]);
     }
 
-    //---- 'order_set' --------------------------------------------------------
-    // function set_order(test) {
-    //   api.call("order_set", test).catch(response => {
-    //     console.log("order_set:", test);
-    //     console.log(response);
-    //   });
-    // }
-
     //cableTechLayout button organisation fightcase et
     function cableTechLayout(data) {
       console.log("data cableTechLayout", data);
       cableLayoutData.value = data;
     }
-
-    // open info
-    // function toggleInfo() {
-    //   let infoToggle = infoToggle;
-    //   console.log("toggleInfo", toggleInfo);
-    // }
 
     return {
       cables,
@@ -457,7 +448,7 @@ export default {
       affairid,
       affairefrom,
       affaireSelected,
-
+      calculcable,
       orders,
       set_order,
       reserved,
@@ -579,7 +570,7 @@ button.link {
   width: 375px;
   height: 20px;
   text-align: left;
-  padding-left: 240px;
+  padding-left: 270px;
 }
 .head-zone input {
   width: 28px;

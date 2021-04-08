@@ -10,28 +10,54 @@
         </div>
 
         <div>
-          <input name="spare_count" v-model="cable.spare_count" />
+          <input
+            name="spare_count"
+            v-model="cable.spare_count"
+            @click="cable.spare_count = parseInt(cable.spare_count || 0) + 1"
+          />
         </div>
 
         <div>
-          <input name="" v-model="cable.z1" />
+          <input
+            name=""
+            v-model="cable.z1"
+            @click="cable.z1 = parseInt(cable.z1 || 0) + 1"
+            @dblclick="cable.z1 = 0"
+          />
         </div>
         <div>
-          <input name="" v-model="cable.z2" />
+          <input
+            name=""
+            id="z2"
+            v-model="cable.z2"
+            @click="cable.z2 = parseInt(cable.z2 || 0) + 1"
+          />
         </div>
         <div>
-          <input name="" v-model="cable.z3" />
+          <input
+            name=""
+            v-model="cable.z3"
+            @click="cable.z3 = parseInt(cable.z3 || 0) + 1"
+          />
         </div>
         <div>
-          <input name="" v-model="cable.z4" />
+          <input
+            name=""
+            v-model="cable.z4"
+            @click="cable.z4 = parseInt(cable.z4 || 0) + 1"
+          />
         </div>
         <div>
-          <input name="" v-model="cable.z5" />
+          <input
+            name=""
+            v-model="cable.z5"
+            @click="cable.z5 = parseInt(cable.z5 || 0) + 1"
+          />
         </div>
 
-        <div>
+        <!-- <div>
           {{ calculateTotal(cable) }}
-        </div>
+        </div> -->
       </div>
       <div class="info-content">
         <div class="info">
@@ -47,8 +73,10 @@
 
 <script>
 import { computed, ref } from "vue";
+import { longClickDirective } from "vue-long-click";
 
 export default {
+  emits: ["lessontotalcable"],
   props: {
     cables: {
       type: Array
@@ -66,6 +94,13 @@ export default {
 
   setup(props) {
     let allCables = ref([]);
+    let cable = ref([]);
+
+    // const longClickInstance = longClickDirective({ delay: 400, interval: 50 });
+    // Vue.directive("longclick", longClickInstance);
+
+    cable.value.count = ref(calculateTotal(cable));
+    console.log("totalcable", cable.value.count);
 
     function calculateTotal(cable) {
       return (
@@ -97,7 +132,9 @@ export default {
     return {
       calculateTotal,
       allCables,
-      setColorIndicator
+      setColorIndicator,
+      longClickDirective,
+      cable
     };
   }
 };
@@ -167,5 +204,9 @@ form {
   display: flex;
   flex-direction: column;
   align-items: center;
+}
+#z2 {
+  background-color: rgb(248, 245, 245);
+  border: 1px solid rgb(12, 12, 2);
 }
 </style>

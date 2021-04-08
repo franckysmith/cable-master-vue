@@ -6,28 +6,50 @@
           <h4>{{ cable.name }}</h4>
         </div>
 
-        <div class="countfc">
+        <div class="countfc" :class="setColorIndicator(cable)">
           <p>
+            <!-- {{ calculateTotal(cable) }} -->
             {{
-              countcopy -
-                cable.tfc1 -
-                cable.tfc2 -
-                cable.tfc3 -
-                cable.tfc4 -
-                cable.tfc5
+              count - cable.tfc1 ||
+                0 - cable.tfc2 ||
+                0 - cable.tfc3 ||
+                0 - cable.tfc4 ||
+                0 - cable.tfc5 ||
+                0
             }}
           </p>
         </div>
 
-        <input name="tfc1" v-model="cable.tfc1" />
+        <input
+          name="tfc1"
+          v-model="cable.tfc1"
+          @click="cable.tfc1 = parseInt(cable.tfc1 || 0) + 1"
+        />
 
-        <input name="tfc2" v-model="cable.tfc2" />
+        <input
+          name="tfc2"
+          v-model="cable.tfc2"
+          @click="cable.tfc2 = parseInt(cable.tfc2 || 0) + 1"
+        />
 
-        <input name="tfc3" v-model="cable.tfc3" />
+        <input
+          id="tfc3"
+          name="tfc3"
+          v-model="cable.tfc3"
+          @click="cable.tfc3 = parseInt(cable.tfc3 || 0) + 1"
+        />
 
-        <input name="tfc4" v-model="cable.tfc4" />
+        <input
+          name="tfc4"
+          v-model="cable.tfc4"
+          @click="cable.tfc4 = parseInt(cable.tfc4 || 0) + 1"
+        />
 
-        <input name="tfc5" v-model="cable.tfc5" />
+        <input
+          name="tfc5"
+          v-model="cable.tfc5"
+          @click="cable.tfc5 = parseInt(cable.tfc5 || 0) + 1"
+        />
       </div>
     </div>
   </div>
@@ -54,18 +76,26 @@ export default {
 
   setup(props) {
     let allCables = ref([]);
-    let countcopy = ref("");
+    let count = ref("");
 
     function calculateTotal(cable) {
-      countcopy.value = cable.count;
       return (
-        parseInt(cable.spare_count) +
-        parseInt(cable.z1 || 0) +
-        parseInt(cable.z2 || 0) +
-        parseInt(cable.z3 || 0) +
-        parseInt(cable.z4 || 0) +
-        parseInt(cable.z5 || 0)
+        parseInt(cable.count) -
+        parseInt(cable.tfc1 || 0) -
+        parseInt(cable.tfc2 || 0) -
+        parseInt(cable.tfc3 || 0) -
+        parseInt(cable.tfc4 || 0) -
+        parseInt(cable.tfc5 || 0)
       );
+    }
+    function setColorIndicator(cable) {
+      if (cable.total > 10) {
+        return "available-info";
+      } else if (cable.total > 5) {
+        return "available-warning";
+      } else {
+        return "available-alert";
+      }
     }
 
     allCables = computed(() => {
@@ -79,7 +109,8 @@ export default {
     return {
       calculateTotal,
       allCables,
-      countcopy
+      count,
+      setColorIndicator
     };
   }
 };
@@ -161,5 +192,9 @@ form {
   display: flex;
   flex-direction: column;
   align-items: center;
+}
+#tfc3 {
+  background-color: rgb(248, 245, 245);
+  border: 1px solid rgb(12, 12, 2);
 }
 </style>
