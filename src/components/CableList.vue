@@ -28,7 +28,7 @@
         <div>
           <input
             name=""
-            id="z2"
+            class="z2"
             v-model="cable.z2"
             @click="cable.z2 = parseInt(cable.z2 || 0) + 1"
           />
@@ -205,7 +205,7 @@ form {
   flex-direction: column;
   align-items: center;
 }
-#z2 {
+.z2 {
   background-color: rgb(248, 245, 245);
   border: 1px solid rgb(12, 12, 2);
 }

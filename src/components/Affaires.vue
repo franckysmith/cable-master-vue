@@ -23,12 +23,11 @@
             v-model="affaireSelectedId"
             @change="selectedaff(affaireSelectedId)"
             id="selectaff"
-          >
+            ><option value="" selected disabled>Choose</option>
             <option
               v-for="affaire in affaireSelectedTech"
               :key="affaire.affairid"
               :value="affaire"
-              placeholder="choisir"
               >{{ affaire.name }}
             </option>
           </select>
@@ -229,14 +228,17 @@
             /></label>
           </div>
           <div>
-            <label for="update"
-              >Update le:
-              <input
-                v-model="affaire.timestamp"
-                style="width:150px"
-                type="timestamp"
-                name="update"
-            /></label>
+            <div class="date" name="update" style="width:350px">
+              <label for="update"
+                >Update le:
+                {{
+                  format(
+                    new Date(affaire.timestamp),
+                    "EEEE do MMM yyyy hh:mm a"
+                  )
+                }}
+              </label>
+            </div>
           </div>
         </div>
       </div>
@@ -282,6 +284,8 @@
 </template>
 
 <script>
+import { format } from "date-fns";
+
 import { ref, computed, onBeforeMount } from "vue";
 import { Api } from "../js/api.js";
 const url = "https://cinod.fr/cables/api.php";
@@ -355,6 +359,7 @@ export default {
       cablageServices.affairedelete(del);
       affaire.value = [""];
     }
+
     // update affair
     async function update_affair(param) {
       // console.log("formaffair | affairupdate", param);
@@ -395,7 +400,7 @@ export default {
       delete_affair,
       update_affair,
       add_affair,
-
+      format,
       affaireSelectedId,
       affaireSelected,
       affaireSelectedTech,

@@ -7,7 +7,23 @@
       @lesson-open-newaff="toAffairOpen"
       v-if="!affairIsOpen"
     />
+    <ModalDelete @close="isOpentfc = false" v-if="isOpentfc">
+      <template v-slot:main>
+        <h1>{{ affaireSelected.[countlfc] }}</h1>
 
+        <div v-for="cable in searchInCableTechJoinData" :key="cable.cableid">
+          <div v-if="cable.[countfc] > 0" class="content-list-tfc">
+            <h2>{{ cable.[countfc] }}</h2>
+            <h3>{{ cable.name }}</h3>
+          </div>
+        </div>
+      </template>
+      <template #footer>
+        <button class="buttonv" @click="isOpenClose">
+          fermer
+        </button>
+      </template>
+    </ModalDelete>
     <div class="content-liste">
       ----------------------
       <h3>Listes cables etc ...</h3>
@@ -114,6 +130,7 @@
           </button>
 
           <button
+            type="button"
             @click="cableTechLayout('flightcase')"
             :class="cableLayoutData === 'flightcase' ? 'button3' : 'button'"
           >
@@ -121,6 +138,28 @@
           </button>
         </div>
         <!-- label fc ---------------- -->
+        <div class="flightcases-button" v-if="cableLayoutData == 'flightcase'">
+          <button
+            type="button"
+            @click="modalOpentfc({ tfc: 'tfc1', lfc: 'lfc1' })"
+          ></button>
+          <button
+            type="button"
+            @click="modalOpentfc({ tfc: 'tfc2', lfc: 'lfc2' })"
+          ></button>
+          <button
+            type="button"
+            @click="modalOpentfc({ tfc: 'tfc3', lfc: 'lfc3' })"
+          ></button>
+          <button
+            type="button"
+            @click="modalOpentfc({ tfc: 'tfc4', lfc1: 'lfc4' })"
+          ></button>
+          <button
+            type="button"
+            @click="modalOpentfc({ tfc: 'tfc5', lfc: 'lfc5' })"
+          ></button>
+        </div>
         <div v-if="cableLayoutData == 'flightcase'">
           <div class="head-fc">
             <div>
@@ -131,6 +170,7 @@
                 type="text"
                 placeholder="FC1"
                 v-model="affaireSelected.lfc1"
+                default
               />
             </div>
             <div style="padding-left:1px">
@@ -253,6 +293,7 @@ var url = "https://cinod.fr/cables/api.php";
 var api = new Api(url);
 import cablageServices from "@/services/cablage.js";
 
+import ModalDelete from "@/components/ModalDelete.vue";
 import Affaires from "@/components/Affaires.vue";
 import FcaseManagement from "@/components/FcaseManagement.vue";
 import CableList from "@/components/CableList.vue";
@@ -262,7 +303,7 @@ import { ref, computed } from "vue";
 
 export default {
   name: "Cabletech",
-  components: { Affaires, FcaseManagement, AddAffair, CableList },
+  components: { Affaires, FcaseManagement, AddAffair, CableList, ModalDelete },
 
   setup() {
     let cables = ref([]);
@@ -276,6 +317,8 @@ export default {
     let typechoose = ref("speaker");
     let cable = ref("");
     let count = ref("");
+    let countfc = ref([]);
+    let countlfc = ref([]);
     let cableid = ref("");
     let cableLayoutData = ref("cableTechBase");
     let cableIdsInOrders = ref([]);
@@ -287,6 +330,16 @@ export default {
     let searchKey = ref("");
     let showMyList = ref(false);
     let affairefrom = ref([]);
+    let isOpentfc = ref(false);
+
+    function modalOpentfc(data) {
+      countfc.value = data.tfc;
+      countlfc.value = data.lfc;
+      // if ((countfc.value == "tfc1", (countlfc = "lfc1")));
+
+      isOpentfc.value = true;
+      console.log("countfc.value | data", data);
+    }
 
     //from emit to v-if
     function toAffairOpen(data) {
@@ -428,9 +481,27 @@ export default {
     });
 
     // save/set_order
+    // function set_order(data) {
+    //   console.log("cabletech | orderset", data);
+    //   cablageServices.orderset([data]);
+    // }
+
     function set_order(data) {
-      console.log("cabletech | orderset", data);
-      cablageServices.orderset([data]);
+      if (!data) {
+        return;
+      }
+      console.log("data as payload", data);
+      const cablesWithAffaireData = data.value.map(d => {
+        d.affairid = affaireSelected.value.affairid;
+        // d.tech_id = affaire.value.tech_id;
+        return d;
+      });
+      console.log("cablesWithAffaireData", cablesWithAffaireData);
+      console.log(
+        "JSON.stringify(cablesWithAffaireData)",
+        JSON.stringify(cablesWithAffaireData)
+      );
+      cablageServices.orderset(JSON.stringify(cablesWithAffaireData));
     }
 
     //cableTechLayout button organisation fightcase et
@@ -458,6 +529,8 @@ export default {
       filterCable,
       getAffaireToLabel,
       count,
+      countfc,
+      countlfc,
       cableid,
       cableIdsInOrders,
       cablesNonZero,
@@ -465,9 +538,11 @@ export default {
       cableTechLayout,
       cableLayoutData,
       cableTechBase,
+      isOpentfc,
       filtreMaliste,
       newAffairOpen,
       order,
+      modalOpentfc,
       searchInCableTechJoinData,
       searchKey,
       showMyList,
@@ -522,7 +597,13 @@ button.link {
   box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
   border-radius: 4px;
 }
-
+.content-list-tfc {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid black;
+}
 .content-liste {
   display: flex;
   flex-direction: column;
@@ -555,6 +636,22 @@ button.link {
 .entete {
   display: flex;
   justify-content: space-around;
+}
+.flightcases-button {
+  display: flex;
+
+  width: 370px;
+  padding-left: 317px;
+}
+.flightcases-button button {
+  margin: 10px;
+  padding: 5px;
+  min-width: 20px;
+  background: rgb(211, 210, 210);
+  border: 1px solid #000000;
+  box-sizing: border-box;
+  box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+  border-radius: 4px;
 }
 .head-fc {
   display: flex;

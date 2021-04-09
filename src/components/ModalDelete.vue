@@ -22,18 +22,13 @@
 export default {
   name: "ModalDelete",
 
-  emits: ["supp", "close"],
+  emits: ["close"],
   setup(_, { emit }) {
-    const validDelete = function() {
-      console.log("validDelete", validDelete);
-      emit("supp", validDelete.value);
-    };
     const isOpenClose = function() {
       emit("close");
     };
 
     return {
-      validDelete,
       isOpenClose
     };
   }

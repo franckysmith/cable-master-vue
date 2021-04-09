@@ -1,22 +1,20 @@
 <template>
+  <button v-longclick="() => changeValue(1)" @click="changeValue(1)">+</button>
+  <button v-longclick="() => changeValue(-1)" @click="changeValue(-1)">
+    -
+  </button>
+  {{ counter }}
+
   <div class="main" v-for="cable in allCables" :key="cable.cableid">
-    <div>
+    <form @submit.prevent="updateOrder()">
       <div class="number">
         <div class="name">
           <h4>{{ cable.name }}</h4>
         </div>
 
-        <div class="countfc" :class="setColorIndicator(cable)">
+        <div :class="calculateTotal(cable) === 0 ? 'ready' : 'countfc'">
           <p>
-            <!-- {{ calculateTotal(cable) }} -->
-            {{
-              count - cable.tfc1 ||
-                0 - cable.tfc2 ||
-                0 - cable.tfc3 ||
-                0 - cable.tfc4 ||
-                0 - cable.tfc5 ||
-                0
-            }}
+            {{ calculateTotal(cable) }}
           </p>
         </div>
 
@@ -24,34 +22,39 @@
           name="tfc1"
           v-model="cable.tfc1"
           @click="cable.tfc1 = parseInt(cable.tfc1 || 0) + 1"
+          v-longclick="() => changeValue(cable.tfc1)"
         />
-
+        {{ cable.tfc1 }}
         <input
           name="tfc2"
           v-model="cable.tfc2"
           @click="cable.tfc2 = parseInt(cable.tfc2 || 0) + 1"
+          v-longclick="() => changeValue(-1)"
         />
 
         <input
-          id="tfc3"
+          class="tfc3"
           name="tfc3"
           v-model="cable.tfc3"
           @click="cable.tfc3 = parseInt(cable.tfc3 || 0) + 1"
+          v-longclick="() => changeValue(-1)"
         />
 
         <input
           name="tfc4"
           v-model="cable.tfc4"
           @click="cable.tfc4 = parseInt(cable.tfc4 || 0) + 1"
+          v-longclick="() => changeValue(-1)"
         />
 
         <input
           name="tfc5"
           v-model="cable.tfc5"
           @click="cable.tfc5 = parseInt(cable.tfc5 || 0) + 1"
+          v-longclick="() => changeValue(-1)"
         />
       </div>
-    </div>
+    </form>
   </div>
 </template>
 <script>
@@ -71,23 +74,107 @@ export default {
     },
     affaireSelected: {
       type: Array
+    },
+    typechoose: {
+      type: String
+    }
+  },
+  emits: ["updateorder"],
+  directives: {
+    longclick: {
+      beforeMount(el, binding, vNode) {
+        let delay = 400;
+        let interval = 200;
+        if (typeof binding.value !== "function") {
+          const compName = vNode.context.name;
+          let warn = `[longclick:] provided expression '${binding.expression}' is not a function, but has to be`;
+          if (compName) {
+            warn += `Found in component '${compName}' `;
+          }
+          console.warn(warn); // eslint-disable-line
+        }
+        let pressTimer = null;
+        let pressInterval = null;
+        const start = e => {
+          if (e.type === "click" && e.button !== 0) {
+            return;
+          }
+          if (pressTimer === null) {
+            pressTimer = setTimeout(() => {
+              if (interval && interval > 0) {
+                pressInterval = setInterval(() => {
+                  handler();
+                }, interval);
+              }
+              handler();
+            }, delay);
+          }
+        };
+        // Cancel Timeout
+        const cancel = () => {
+          if (pressTimer !== null) {
+            clearTimeout(pressTimer);
+            pressTimer = null;
+          }
+          if (pressInterval) {
+            clearInterval(pressInterval);
+            pressInterval = null;
+          }
+        };
+        // Run Function
+        const handler = e => {
+          binding.value(e);
+        };
+        ["mousedown", "touchstart"].forEach(e => el.addEventListener(e, start));
+        ["click", "mouseout", "touchend", "touchcancel"].forEach(e =>
+          el.addEventListener(e, cancel)
+        );
+      }
     }
   },
 
-  setup(props) {
+  setup(props, context) {
     let allCables = ref([]);
     let count = ref("");
+    let counter = ref(0);
+    let cable = ref([]);
+
+    allCables = computed(() => {
+      return props.cables.filter(
+        cable =>
+          cable.count -
+            cable.tfc1 +
+            cable.tfc2 +
+            cable.tfc3 +
+            cable.tfc4 +
+            cable.tfc5 >
+          0
+      );
+      // return props.cables;
+    });
+    function updateOrder() {
+      console.log("updateOrder / allCables", allCables);
+      context.emit("updateorder", allCables);
+    }
+
+    function changeValue(amount) {
+      console.log(`Change amount by ${amount}`); // eslint-disable-line
+      cable.value.tfc1 = cable.value.tfc1 + amount;
+    }
 
     function calculateTotal(cable) {
+      console.log("calculateTotal | cable", cable);
+      updateOrder();
       return (
-        parseInt(cable.count) -
-        parseInt(cable.tfc1 || 0) -
-        parseInt(cable.tfc2 || 0) -
-        parseInt(cable.tfc3 || 0) -
-        parseInt(cable.tfc4 || 0) -
-        parseInt(cable.tfc5 || 0)
+        cable.count -
+        cable.tfc1 -
+        cable.tfc2 -
+        cable.tfc3 -
+        cable.tfc4 -
+        cable.tfc5
       );
     }
+
     function setColorIndicator(cable) {
       if (cable.total > 10) {
         return "available-info";
@@ -98,19 +185,14 @@ export default {
       }
     }
 
-    allCables = computed(() => {
-      console.log("allCables::", allCables);
-      if (props.showMyList) {
-        return props.cables.filter(c => calculateTotal(c) > 0);
-      }
-      return props.cables;
-    });
-
     return {
       calculateTotal,
       allCables,
       count,
-      setColorIndicator
+      setColorIndicator,
+      updateOrder,
+      changeValue,
+      counter
     };
   }
 };
@@ -193,8 +275,23 @@ form {
   flex-direction: column;
   align-items: center;
 }
-#tfc3 {
+.tfc3 {
   background-color: rgb(248, 245, 245);
   border: 1px solid rgb(12, 12, 2);
+}
+.ready {
+  color: white;
+  background-color: #4dcc59;
+  line-height: 6px;
+  padding-top: 5px;
+  border: 1px solid green;
+  width: 23px;
+  height: 20px;
+  margin-top: 5px;
+  margin-left: 4px;
+  margin-right: 9px;
+}
+.ready p {
+  margin-top: 5px;
 }
 </style>

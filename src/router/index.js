@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from "vue-router";
 import Cablemaster from "../views/Cablemaster.vue";
-// import Affairmaster from "../views/Affairmaster.vue";
+import MasterAffaire from "../views/MasterAffaire.vue";
 import Cabletech from "../views/Cabletech.vue";
 import CaisseType from "../views/CaisseType.vue";
 
@@ -10,11 +10,11 @@ const routes = [
     name: "Cablemaster",
     component: Cablemaster
   },
-  // {
-  //   path: "/affairmaster",
-  //   name: "Affairmaster",
-  //   component: Affairmaster
-  // },
+  {
+    path: "/masteraffaire",
+    name: "MasterAffaire",
+    component: MasterAffaire
+  },
   {
     path: "/cabletech",
     name: "Cabletech",

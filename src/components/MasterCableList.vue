@@ -18,7 +18,7 @@
           </select>
         </div>
         <button>
-          <a id="id" :href="cable.link">link</a>
+          <a :href="cable.link">link</a>
         </button>
 
         <div>
@@ -29,7 +29,7 @@
 
         <div>
           <div>
-            <button @click="suppcable(cable.cableid)">delete</button>
+            <button @click="suppcable(cable)">delete</button>
           </div>
         </div>
       </div>

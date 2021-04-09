@@ -115,7 +115,7 @@
       <div>
         <div v-if="typechoose !== ''">
           <MasterCableList
-            @supp="delete_cable"
+            @supp="suppcable"
             @update="update_cable"
             :cables="filteredCableByType"
             :cable-type="typechoose"
