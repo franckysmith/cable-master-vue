@@ -1,10 +1,4 @@
 <template>
-  <button v-longclick="() => changeValue(1)" @click="changeValue(1)">+</button>
-  <button v-longclick="() => changeValue(-1)" @click="changeValue(-1)">
-    -
-  </button>
-  {{ counter }}
-
   <div class="main" v-for="cable in allCables" :key="cable.cableid">
     <form @submit.prevent="updateOrder()">
       <div class="number">
@@ -22,36 +16,35 @@
           name="tfc1"
           v-model="cable.tfc1"
           @click="cable.tfc1 = parseInt(cable.tfc1 || 0) + 1"
-          v-longclick="() => changeValue(cable.tfc1)"
+          v-longclick="() => changeValue({ cable, prop: 'tfc1' })"
         />
-        {{ cable.tfc1 }}
+
         <input
           name="tfc2"
           v-model="cable.tfc2"
           @click="cable.tfc2 = parseInt(cable.tfc2 || 0) + 1"
-          v-longclick="() => changeValue(-1)"
+          v-longclick="() => changeValue({ cable, prop: 'tfc2' })"
         />
 
         <input
-          class="tfc3"
           name="tfc3"
           v-model="cable.tfc3"
           @click="cable.tfc3 = parseInt(cable.tfc3 || 0) + 1"
-          v-longclick="() => changeValue(-1)"
+          v-longclick="() => changeValue({ cable, prop: 'tfc3' })"
         />
 
         <input
           name="tfc4"
           v-model="cable.tfc4"
           @click="cable.tfc4 = parseInt(cable.tfc4 || 0) + 1"
-          v-longclick="() => changeValue(-1)"
+          v-longclick="() => changeValue({ cable, prop: 'tfc4' })"
         />
 
         <input
           name="tfc5"
           v-model="cable.tfc5"
           @click="cable.tfc5 = parseInt(cable.tfc5 || 0) + 1"
-          v-longclick="() => changeValue(-1)"
+          v-longclick="() => changeValue({ cable, prop: 'tfc5' })"
         />
       </div>
     </form>
@@ -137,7 +130,6 @@ export default {
     let allCables = ref([]);
     let count = ref("");
     let counter = ref(0);
-    let cable = ref([]);
 
     allCables = computed(() => {
       return props.cables.filter(
@@ -157,9 +149,10 @@ export default {
       context.emit("updateorder", allCables);
     }
 
-    function changeValue(amount) {
-      console.log(`Change amount by ${amount}`); // eslint-disable-line
-      cable.value.tfc1 = cable.value.tfc1 + amount;
+    // data is now an object with two properties: { cable, prop: 'tfc1' } or { cable, prop: 'tfc2' } ...
+    function changeValue(data) {
+      // data.cable['tfc1'] or data.cable['tfc2'] ...
+      data.cable[data.prop] -= 1;
     }
 
     function calculateTotal(cable) {

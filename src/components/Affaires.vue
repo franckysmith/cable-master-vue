@@ -343,8 +343,6 @@ export default {
           console.log("affair_get:", response);
         });
     }
-    //lz1 ...lz2 lfc1 ...lfc2 Label zone et flightcase
-    // context.emit("lesson-affaire", affaire);
 
     // emit vers views/Cabletech
     function selectedaff(data) {

@@ -1,5 +1,6 @@
 <template>
-  <div v-for="cable in cableMfcJoinedData" :key="cable.cableid" class="content">
+  hello
+  <div v-for="cable in cables" :key="cable.cableid" class="content">
     <div>
       <h4>
         {{ cable.name }}
@@ -24,6 +25,11 @@ export default {
   setup() {
     // call cable_get
     let cables = ref([]);
+    let cableMfcJoinedData = ref([]);
+    let cableIdsInMfc = ref([]);
+    let cablemfc = ref([]);
+    let caisseSelected = ref([]);
+
     api
       .call("cable_get")
       .then(response => {
@@ -35,11 +41,13 @@ export default {
       });
 
     // call cablemfc_get and aggregateData with cables mfcid=3 is valid
-    function caisseToList() {
-      let cablemfc = ref([]);
-      let searchcaisse = { mfcid: 3 };
+    function caisseToList(data) {
+      // let cablemfc = ref([]);
+      // let searchcaisse = { mfcid: 3 };
+      caisseSelected.value = data;
+
       api
-        .call("cablemfc_get", searchcaisse)
+        .call("cablemfc_get", { mfcid: data.mfcid })
         .then(response => {
           console.log("cablemfc_get:", response);
           cablemfc.value = response;
@@ -54,9 +62,6 @@ export default {
       //  console.log("affairid | Cabletech", data);
     }
     // aggregateData table 'cables' et 'cablemfc'
-    let cableMfcJoinedData = ref([]);
-    let cableIdsInMfc = ref([]);
-    let cablemfc = ref([]);
 
     function aggregateData(cablemfc, cables) {
       cablemfc.forEach(o => {

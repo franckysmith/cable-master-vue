@@ -116,7 +116,7 @@
         </label>
       </div>
 
-      <form @submit.prevent="set_order(truc)">
+      <form @submit.prevent="set_order(cables)">
         <div class="total-flightcase">
           <button class="button2" type="submit">
             Update
@@ -291,7 +291,7 @@
 import { Api } from "../js/api.js";
 var url = "https://cinod.fr/cables/api.php";
 var api = new Api(url);
-// import cablageServices from "@/services/cablage.js";
+import cablageServices from "@/services/cablage.js";
 
 import ModalDelete from "@/components/ModalDelete.vue";
 import Affaires from "@/components/Affaires.vue";
@@ -331,6 +331,8 @@ export default {
     let showMyList = ref(false);
     let affairefrom = ref([]);
     let isOpentfc = ref(false);
+    let searchbyAffairId = ref({});
+    const NO_ORDER = "";
 
     function modalOpentfc(data) {
       countfc.value = data.tfc;
@@ -365,15 +367,14 @@ export default {
     function affaireIdToList(data) {
       cableIdsInOrders.value = [];
       cableTechJoinedData.value = [];
-      // let searchbyaff = { affairid: data.affairid };
-      let affaireSelected = data;
-      console.log("affaireSelected", affaireSelected);
+      affaireSelected.value = data;
 
       api
         .call("order_get", { affairid: data.affairid })
         .then(response => {
-          console.log("order_get:", response);
+          console.log("order_get with affairid:", response);
           orders.value = response;
+
           // create a view-model joining order items and cables
           aggregateData(response, cables.value);
         })
@@ -381,105 +382,76 @@ export default {
           console.log("order_get:", response);
         });
     }
-    // aggregateData table 'cables' et 'orders'
+
     function aggregateData(orders, cables) {
-      orders.forEach(o => {
-        cableIdsInOrders.value.push(o.cableid);
-      });
-      cables.forEach(cable => {
-        let line = {
-          affairid: affaireSelected.value.affairid,
-          tech_id: affaireSelected.value.tech_id,
-          isChecked: false,
-          name: cable.name,
-          count: "",
-          spare_count: "",
-          total: cable.total,
-          link: cable.link,
-          info: cable.info,
-          type: cable.type,
-          cableid: cable.cableid,
-          orderid: "",
-          tfc1: "",
-          tfc2: "",
-          tfc3: "",
-          tfc4: "",
-          tfc5: "",
-          z1: "",
-          z2: "",
-          z3: "",
-          z4: "",
-          z5: ""
-        };
-        if (cableIdsInOrders.value.includes(cable.cableid)) {
-          const orderItem = orders.find(o => o.cableid === cable.cableid);
-          line = {
-            affairid: orderItem.affairid,
-            tech_id: orderItem.tech_id,
-            isChecked: true,
-            name: cable.name,
-            count: orderItem.count,
-            spare_count: orderItem.spare_count,
-            total: cable.total,
-            link: cable.link,
-            info: cable.info,
-            type: cable.type,
-            cableid: cable.cableid,
-            tfc1: orderItem.tfc1,
-            tfc2: orderItem.tfc2,
-            tfc3: orderItem.tfc3,
-            tfc4: orderItem.tfc4,
-            tfc5: orderItem.tfc5,
-            z1: orderItem.z1,
-            z2: orderItem.z2,
-            z3: orderItem.z3,
-            z4: orderItem.z4,
-            z5: orderItem.z5,
-            orderid: orderItem.orderid
-          };
+      return Promise.all([orders, cables]).then(([orders, cables]) => {
+        let data = [];
+
+        orders = new Map(orders.map(o => [o.cableid, o])); // turn Array into Map of [ cableid, { order } ] items
+
+        for (const { cableid, name, type, total, link, info } of cables) {
+          // prepare cable
+          let cable = { name, type, total, link, info };
+          // prepare order
+          let order = orders.get(cableid);
+          if (order) {
+            let {
+              count,
+              spare_count,
+              tfc1,
+              tfc2,
+              tfc3,
+              tfc4,
+              tfc5,
+              z1,
+              z2,
+              z3,
+              z4,
+              z5
+            } = order;
+            order = {
+              isChecked: true,
+              count,
+              spare_count,
+              tfc1,
+              tfc2,
+              tfc3,
+              tfc4,
+              tfc5,
+              z1,
+              z2,
+              z3,
+              z4,
+              z5
+            }; // avoid unneeded fields in order
+          } else order = NO_ORDER;
+
+          let line = { ...order, ...cable };
+          data.push(line);
         }
-        cableTechJoinedData.value = [...cableTechJoinedData.value, line];
+
+        return data;
       });
-      console.log("cableTechJoinedData.value", cableTechJoinedData.value);
     }
+
+    aggregateData(orders({ affairid: searchbyAffairId.value }), cables())
+      .then(function(data) {
+        cableTechJoinedData.value = data;
+        console.log("aggregatDatamoi", data);
+      })
+      .catch(function(error) {
+        console.log(error);
+      });
+
     // save/set_order
-    const truc = [
-      {
-        cableid: "4",
-        affairid: "3",
-        tech_id: "135",
-        count: "50",
-        spare_count: "25",
-        done: true,
-        tfc1: "3",
-        tfc2: "3",
-        tfc3: "2"
-      },
-      {
-        cableid: "6",
-        affairid: "3",
-        tech_id: "135",
-        count: "10",
-        spare_count: "5"
-      }
-    ];
-    function set_order(truc) {
-      console.log("cabletech | orderset:::", truc);
-      api
-        .call("order_set", truc)
-        .then(response => {
-          console.log("order_set:!");
-          console.log(response);
-        })
-        .catch(response => {
-          console.log("order_get:");
-          console.log(response);
-        });
+    function set_order(data) {
+      console.log("cabletech | orderset:::", data);
+      cablageServices.orderset([data]);
     }
 
     // ---- recherche dans liste cable par searchKey
     const searchInCableTechJoinData = computed(() => {
-      // console.log("searchInCableTechJoinData:", searchInCableTechJoinData);
+      console.log("searchInCableTechJoinData:", searchInCableTechJoinData);
       return cableTechJoinedData.value.filter(cable => {
         return cable.name.toLowerCase().includes(searchKey.value.toLowerCase());
       });
@@ -545,7 +517,7 @@ export default {
       affairefrom,
       affaireSelected,
       calculcable,
-      orders,
+      // orders,
       set_order,
       reserved,
       selectype,
@@ -568,11 +540,11 @@ export default {
       newAffairOpen,
       order,
       modalOpentfc,
+
       searchInCableTechJoinData,
       searchKey,
       showMyList,
-      toAffairOpen,
-      truc
+      toAffairOpen
     };
   }
 };

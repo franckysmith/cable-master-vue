@@ -41,8 +41,7 @@
       <button @click="selectype('digital')">numériques</button>
 
       <div>
-        <!-- celectype('microphone'+'digital'+'other' ..... ) -->
-        <button @click="filtreMaliste">All</button>
+        <button @click="selectype('')">All</button>
         <input
           type="text"
           v-model="searchKey"
@@ -71,7 +70,7 @@
       </button>
 
       <div class="content-number">
-        <div v-for="cable in allCable" :key="cable.cableid">
+        <div v-for="cable in cableMfcTechJoinedData" :key="cable.cableid">
           <div v-if="cable.type == typechoose">
             <div class="number">
               <div class="name">
@@ -132,28 +131,9 @@ export default {
     let cablemfc = ref([]);
     let calculateTotal = ref("");
     let showMyList = ref(false);
+    let searchKey = ref("");
+
     // let searchbycaisse = ref([]);
-
-    // --- filtrer liste ----------------------------
-    function filtreMaliste() {
-      showMyList.value = !showMyList.value;
-      console.log("cables", cablesNonZero);
-    }
-    allCables = computed(() => {
-      if (showMyList.value) {
-        return cableMfcTechJoinedData.value.filter(c => calculateTotal(c) > 0);
-      }
-      return cableMfcTechJoinedData.value;
-    });
-
-    // --------------  cableNonZero ---------------
-    const cablesNonZero = computed(() => {
-      console.log(
-        "cablesNonZero | searchInCableTechJoinData.value",
-        searchInCableTechJoinData.value
-      );
-      return searchInCableTechJoinData.value.filter(c => c.count > 0);
-    });
 
     // ----------- get caisses -------//
 
@@ -183,6 +163,30 @@ export default {
         console.log("err_cable_get:", response);
       });
     //-------------------------------
+    // choose display cable_type (buttons)
+    function selectype(data) {
+      console.log("typechoose", data);
+      typechoose.value = data;
+    }
+    const filteredCableByType = computed(() => {
+      return cables.value.filter(c => c.type === typechoose.value);
+    });
+
+    // ---- recherche dans liste cable par searchKey
+
+    const searchCables = computed(() => {
+      console.log("searCables:", searchCables);
+      return cables.value.filter(cable => {
+        return cable.name.toLowerCase().includes(searchKey.value.toLowerCase());
+      });
+    });
+
+    // allCables = computed(() => {
+    //   if (showMyList.value) {
+    //     return cables.value.filter(c => calculateTotal(c) > 0);
+    //   }
+    //   return cables;
+    // });
 
     // cablemfc get with selected mfc
 
@@ -191,11 +195,12 @@ export default {
       //   cableTechJoinedData.value = [];
 
       api
-        .call("cablemfc_get", data)
+        .call("cablemfc_get", { mfcid: data.mfcid })
         .then(response => {
-          console.log("cablemfc_get::", response);
-          cablemfc.value = response;
+          console.log("cablemfc_get-response::", response);
 
+          cablemfc.value = response;
+          console.log("cablemfc_get-cablemfc::", cablemfc);
           // create a view-model joining order items and cables
 
           aggregateData(response, cables.value);
@@ -214,6 +219,8 @@ export default {
 
       cables.forEach(cable => {
         let line = {
+          mfcid: 0,
+          cableid: cable.cableid,
           name: cable.name,
           count: 0,
           total: cable.total,
@@ -226,6 +233,8 @@ export default {
           const cablemfcItem = cablemfc.find(o => o.cableid === cable.cableid);
 
           line = {
+            mfcid: cablemfcItem.mfcid,
+            cableid: cable.cableid,
             name: cable.name,
             count: cablemfcItem.count,
             total: cable.total,
@@ -241,11 +250,19 @@ export default {
       console.log("cableMfcTechJoinedData.value", cableMfcTechJoinedData.value);
     }
 
-    // choose display cable_type (buttons)
-    function selectype(data) {
-      console.log("typechoose", data);
-      typechoose.value = data;
+    // --- filtrer liste ----------------------------
+    function filtreMaliste() {
+      showMyList.value = !showMyList.value;
+      console.log("cablesNonZero", cablesNonZero);
     }
+    // --------------  cableNonZero ---------------
+    const cablesNonZero = computed(() => {
+      if (showMyList.value) {
+        console.log("cableMfcTechJoinedData", cableMfcTechJoinedData);
+        return cableMfcTechJoinedData.value.filter(c => c.count > 0);
+      }
+      return cableMfcTechJoinedData;
+    });
 
     // --------- mfc --------//
     // save/update updatemfc
@@ -274,16 +291,6 @@ export default {
       mfc_get();
     }
 
-    // ---- recherche dans liste cable par searchKey
-    let searchKey = ref("");
-
-    const searchInCableTechJoinData = computed(() => {
-      console.log("searchInCableTechJoinData:", searchInCableTechJoinData);
-      return cableMfcTechJoinedData.value.filter(cable => {
-        return cable.name.toLowerCase().includes(searchKey.value.toLowerCase());
-      });
-    });
-
     return {
       allCables,
       cables,
@@ -305,6 +312,9 @@ export default {
       caissetype,
       calculateTotal,
       filtreMaliste,
+      filteredCableByType,
+      searchCables,
+      cablesNonZero,
       mfc
     };
   }

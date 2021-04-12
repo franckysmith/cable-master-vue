@@ -129,6 +129,7 @@ function affairereadtech(searchby) {
     .then(function(response) {
       console.log("affair_get:");
       console.log(response);
+      return affaires;
     })
     .catch(function(response) {
       console.log("affair_get:");

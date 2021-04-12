@@ -1,6 +1,6 @@
 <template>
-  <div v-for="cable in allCables" :key="cable.cableid">
-    <div>
+  <div v-for="cable in cables" :key="cable.cableid">
+    <form>
       <div class="number">
         <div>
           <input type="checkbox" :checked="cable.isChecked" />
@@ -67,7 +67,7 @@
           </button>
         </div>
       </div>
-    </div>
+    </form>
   </div>
 </template>
 
@@ -95,9 +95,6 @@ export default {
   setup(props) {
     let allCables = ref([]);
     let cable = ref([]);
-
-    // const longClickInstance = longClickDirective({ delay: 400, interval: 50 });
-    // Vue.directive("longclick", longClickInstance);
 
     cable.value.count = ref(calculateTotal(cable));
     console.log("totalcable", cable.value.count);
