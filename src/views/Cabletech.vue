@@ -116,7 +116,7 @@
         </label>
       </div>
 
-      <form @submit.prevent="set_order(truc)">
+      <form @submit.prevent="set_order(cableTechJoinedData)">
         <div class="total-flightcase">
           <button class="button2" type="submit">
             Update
@@ -366,7 +366,7 @@ export default {
       cableIdsInOrders.value = [];
       cableTechJoinedData.value = [];
       // let searchbyaff = { affairid: data.affairid };
-      let affaireSelected = data;
+      // let affaireSelected = data;
       console.log("affaireSelected", affaireSelected);
 
       api
@@ -392,7 +392,7 @@ export default {
           tech_id: affaireSelected.value.tech_id,
           isChecked: false,
           name: cable.name,
-          count: "",
+          count: 0,
           spare_count: "",
           total: cable.total,
           link: cable.link,
@@ -443,30 +443,32 @@ export default {
       console.log("cableTechJoinedData.value", cableTechJoinedData.value);
     }
     // save/set_order
-    const truc = [
-      {
-        cableid: "4",
-        affairid: "3",
-        tech_id: "135",
-        count: "50",
-        spare_count: "25",
-        done: true,
-        tfc1: "3",
-        tfc2: "3",
-        tfc3: "2"
-      },
-      {
-        cableid: "6",
-        affairid: "3",
-        tech_id: "135",
-        count: "10",
-        spare_count: "5"
-      }
-    ];
-    function set_order(truc) {
-      console.log("cabletech | orderset:::", truc);
+    // const truc = [
+    //   {
+    //     cableid: "56",
+    //     affairid: "3",
+    //     tech_id: "135",
+    //     count: "20",
+    //     spare_count: "9",
+    //     done: true,
+    //     tfc1: "3",
+    //     tfc2: "3",
+    //     tfc3: "2"
+    //   },
+    //   {
+    //     cableid: "98",
+    //     affairid: "3",
+    //     tech_id: "135",
+    //     count: "20",
+    //     spare_count: "9",
+    //     done: true
+    //   }
+    // ];
+
+    function set_order(data) {
+      console.log("cabletech | orderset:::", data);
       api
-        .call("order_set", truc)
+        .call("order_set", data)
         .then(response => {
           console.log("order_set:!");
           console.log(response);
@@ -571,8 +573,7 @@ export default {
       searchInCableTechJoinData,
       searchKey,
       showMyList,
-      toAffairOpen,
-      truc
+      toAffairOpen
     };
   }
 };

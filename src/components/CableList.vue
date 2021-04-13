@@ -8,7 +8,7 @@
         <div class="name">
           <h4 :class="setColorIndicator(cable)">{{ cable.name }}</h4>
         </div>
-
+        <p>{{ cable.cableid }}</p>
         <div>
           <input
             name="spare_count"
@@ -166,8 +166,7 @@ input {
   color: grey;
   /* line-height: 10; */
 }
-.main {
-}
+
 .name {
   height: 10px;
   width: 100px;
@@ -189,7 +188,7 @@ input {
 }
 
 .number input {
-  width: 15px;
+  width: 18px;
   margin: 5px;
 }
 .post {

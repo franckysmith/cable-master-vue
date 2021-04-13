@@ -64,7 +64,7 @@
         </label>
       </div>
     </div>
-    <form @submit.prevent="mfcupdate(caissetype)">
+    <form @submit.prevent="mfcupdate(cable)">
       <button class="button2" type="submit">
         Update
       </button>
@@ -76,7 +76,7 @@
               <div class="name">
                 <h4>{{ cable.name }}</h4>
               </div>
-
+              {{ cable.mfcid }}
               <div>
                 <input name="count" v-model="cable.count" />
               </div>
@@ -175,7 +175,7 @@ export default {
     // ---- recherche dans liste cable par searchKey
 
     const searchCables = computed(() => {
-      console.log("searCables:", searchCables);
+      console.log("searchCables:", searchCables);
       return cables.value.filter(cable => {
         return cable.name.toLowerCase().includes(searchKey.value.toLowerCase());
       });
@@ -191,16 +191,14 @@ export default {
     // cablemfc get with selected mfc
 
     function caisseToList(data) {
-      //   cableIdsInOrders.value = [];
-      //   cableTechJoinedData.value = [];
-
+      cableIdsInMfc.value = [];
+      cableMfcTechJoinedData.value = [];
+      caisseSelected.value = data;
       api
         .call("cablemfc_get", { mfcid: data.mfcid })
         .then(response => {
           console.log("cablemfc_get-response::", response);
-
           cablemfc.value = response;
-          console.log("cablemfc_get-cablemfc::", cablemfc);
           // create a view-model joining order items and cables
 
           aggregateData(response, cables.value);
@@ -214,15 +212,15 @@ export default {
     function aggregateData(cablemfc, cables) {
       cablemfc.forEach(o => {
         cableIdsInMfc.value.push(o.cableid);
-        console.log("cableIdsInMfc!!", cableIdsInMfc);
+        // console.log("cableIdsInMfc!!", cableIdsInMfc);
       });
 
       cables.forEach(cable => {
         let line = {
-          mfcid: 0,
+          mfcid: caisseSelected.value.mfcid,
           cableid: cable.cableid,
           name: cable.name,
-          count: 0,
+          count: "",
           total: cable.total,
           link: cable.link,
           info: cable.info,
@@ -270,11 +268,12 @@ export default {
       api
         .call("mfc_update", data)
         .then(function(response) {
-          console.log("mfc_update:");
+          // console.log("mfc_update:");
+          console.log("updte mfc data", data);
           console.log(response);
         })
         .catch(function(response) {
-          console.log("mfc_update:");
+          console.log("err_mfc_update:");
           console.log(response);
         });
     }
@@ -295,6 +294,7 @@ export default {
       allCables,
       cables,
       caisseToList,
+      caisseSelected,
       mfcupdate,
       deletemfc,
       searchKey,
@@ -308,7 +308,7 @@ export default {
       cablemfc,
       cableLayoutData,
       cableTechBase,
-      caisseSelected,
+
       caissetype,
       calculateTotal,
       filtreMaliste,

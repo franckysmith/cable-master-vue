@@ -5,10 +5,20 @@
   </h2>
   <table class="tab-affaires">
     <tbody>
+      <tr>
+        <td>valid</td>
+        <td>Nom de l'affaire</td>
+        <td>Nom technicien</td>
+        <td></td>
+        <td>Prépa</td>
+        <td>Sortie</td>
+      </tr>
+
       <tr
         v-for="affaire in affaires"
         :key="affaire.affairid"
-        :class="['clickable ', affaire.done ? '1' : '']"
+        :class="[affaire.done ? 'done' : '1', 'clickable']"
+        @click="affaire.done = 1"
       >
         <td><input type="checkbox" /></td>
         <td>
@@ -132,7 +142,14 @@ export default {
   border: 1px solid black;
   padding: 2px;
 }
+.clickable {
+  cursor: pointer;
+}
+
 .tab-affaires tr.done {
   background-color: rgb(235, 229, 229);
+}
+.tab-affaires tr.done {
+  background-color: red;
 }
 </style>
