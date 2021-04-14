@@ -17,6 +17,7 @@
           v-model="cable.tfc1"
           @click="cable.tfc1 = parseInt(cable.tfc1 || 0) + 1"
           v-longclick="() => changeValue({ cable, prop: 'tfc1' })"
+          autocomplete="off"
         />
 
         <input
@@ -24,6 +25,7 @@
           v-model="cable.tfc2"
           @click="cable.tfc2 = parseInt(cable.tfc2 || 0) + 1"
           v-longclick="() => changeValue({ cable, prop: 'tfc2' })"
+          autocomplete="off"
         />
 
         <input
@@ -31,6 +33,7 @@
           v-model="cable.tfc3"
           @click="cable.tfc3 = parseInt(cable.tfc3 || 0) + 1"
           v-longclick="() => changeValue({ cable, prop: 'tfc3' })"
+          autocomplete="off"
         />
 
         <input
@@ -38,6 +41,7 @@
           v-model="cable.tfc4"
           @click="cable.tfc4 = parseInt(cable.tfc4 || 0) + 1"
           v-longclick="() => changeValue({ cable, prop: 'tfc4' })"
+          autocomplete="off"
         />
 
         <input
@@ -45,6 +49,7 @@
           v-model="cable.tfc5"
           @click="cable.tfc5 = parseInt(cable.tfc5 || 0) + 1"
           v-longclick="() => changeValue({ cable, prop: 'tfc5' })"
+          autocomplete="off"
         />
       </div>
     </form>

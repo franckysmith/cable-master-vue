@@ -20,8 +20,8 @@
           </button>
           <!-- <option selected disabled>Sélectionner :</option> -->
           <select
-            v-model="affaireSelectedId"
-            @change="selectedaff(affaireSelectedId)"
+            v-model="affaireSelectedObject"
+            @change="selectedaff(affaireSelectedObject)"
             id="selectaff"
             ><option value="" selected disabled>Choose</option>
             <option
@@ -68,7 +68,7 @@
         <button @click="description = false" v-if="description" class="button3">
           description
         </button>
-        <button @click="delete_affair(affaire)" class="button">
+        <button @click="delete_affair(affaire)" class="button" type="button">
           Supprimer l'affaire
         </button>
       </div>
@@ -294,9 +294,14 @@ const api = new Api(url);
 import cablageServices from "@/services/cablage.js";
 
 export default {
-  name: "Formaffaire",
+  name: "Affaires",
   props: ["cables"],
-  emit: ["lesson-open-newaff", "lesson-affaire", "lessonaffairelabel"],
+  emits: [
+    "listenopennewaff",
+    "lesson-affaire",
+    "listenaffairelabel",
+    "listenaffaire",
+  ],
   setup(props, context) {
     let affaire = ref([]);
     let affaires = ref([]);
@@ -307,7 +312,7 @@ export default {
     let searchby = ref([]);
 
     let affaireSelect = ref([]);
-    let affaireSelectedId = ref([]);
+    let affaireSelectedObject = ref({});
     let affaireSelectedTech = ref([]);
     let affaireSelected = ref([]);
     let selectAffaire = ref([]);
@@ -328,27 +333,26 @@ export default {
     function newAffairOpen() {
       newAffairIsOpen.value = true;
       console.log("newAffairIsOpen", newAffairIsOpen.value);
-      context.emit("lesson-open-newaff", newAffairIsOpen.value);
+      context.emit("listenopennewaff", newAffairIsOpen.value);
     }
 
-    console.log("emit | newAffairopen ", newAffairIsOpen.value);
     // get affair by techid
     function techSelected(param) {
       api
         .call("affair_get", { tech_id: param })
-        .then(response => {
+        .then((response) => {
           affaireSelectedTech.value = response;
         })
-        .catch(response => {
+        .catch((response) => {
           console.log("affair_get:", response);
         });
     }
 
     // emit vers views/Cabletech
-    function selectedaff(data) {
-      context.emit("lessonaffaire", data);
-      context.emit("lessonaffairelabel", data);
-      // console.log("selectedaff", data);
+    function selectedaff(affair) {
+      context.emit("listenaffaire", affair);
+      context.emit("listenaffairelabel", affair);
+      // console.log("selectedaff", affair);
     }
     // delete une affair
     function delete_affair(data) {
@@ -378,7 +382,7 @@ export default {
       let firstadd = {
         tech_id: tech_id.value,
         tech_name: tech_name.value,
-        name: name.value
+        name: name.value,
       };
       console.log("Formaffaire |add_affair", firstadd);
       cablageServices.affaireadd(firstadd);
@@ -386,8 +390,8 @@ export default {
 
     // select affairid par technicien v-for in search
     let search = computed(() => {
-      return affaireSelectedTech.value.filter(t => {
-        return t.affairid.includes(affaireSelectedId.value.affairid);
+      return affaireSelectedTech.value.filter((t) => {
+        return t.affairid.includes(affaireSelectedObject.value.affairid);
       });
     });
 
@@ -399,7 +403,7 @@ export default {
       update_affair,
       add_affair,
       format,
-      affaireSelectedId,
+      affaireSelectedObject,
       affaireSelected,
       affaireSelectedTech,
       affaires,
@@ -411,9 +415,9 @@ export default {
       newAffairOpen,
       notemaster,
       note,
-      message
+      message,
     };
-  }
+  },
 };
 </script>
 

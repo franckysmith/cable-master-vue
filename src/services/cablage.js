@@ -4,9 +4,9 @@ let orders = [];
 // let mfc = [];
 let cablemfc = [];
 
-import { Api } from "../js/api.js";
+import { Api } from '../js/api.js';
 
-const url = "https://cinod.fr/cables/api.php";
+const url = 'https://cinod.fr/cables/api.php';
 const api = new Api(url);
 
 export default {
@@ -27,19 +27,19 @@ export default {
   mfcread,
   mfcupdate,
   mfcdelete,
-  cablemfcread
+  cablemfcread,
 };
 
 //---- 'cable_get' ----
 function cableread() {
   api
-    .call("cable_get")
+    .call('cable_get')
     .then(function(response) {
-      console.log("cablage |cable_get :response:", response);
+      console.log('cablage |cable_get :response:', response);
       return cables;
     })
-    .catch(response => {
-      console.log("cable_get:", response);
+    .catch((response) => {
+      console.log('cable_get:', response);
     });
 }
 
@@ -67,10 +67,10 @@ async function cableadd(data) {
   //     console.log("cable_add:", response);
   //   });
   try {
-    const response = await api.call("cable_add", data);
+    const response = await api.call('cable_add', data);
     return { status: 201, msg: `Cable créé avec l'id ${response}` };
   } catch (err) {
-    console.log("CATCH cable_add:", err);
+    console.log('CATCH cable_add:', err);
     return { status: 500, msg: `Echec de création du cable` };
   }
 }
@@ -93,12 +93,12 @@ function cableupdate(data) {
   //   ];
 
   api
-    .call("cable_update", data)
-    .then(response => {
-      console.log("cable_update:", response);
+    .call('cable_update', data)
+    .then((response) => {
+      console.log('cable_update:', response);
     })
-    .catch(response => {
-      console.log("cable_update:", response);
+    .catch((response) => {
+      console.log('cable_update:', response);
     });
 }
 
@@ -107,12 +107,12 @@ function cabledelete(data) {
   /*// [ 13, 14 ] put here actual cable ids, see them in 'cable' table in phpmyadmin*/
 
   api
-    .call("cable_delete", data)
-    .then(response => {
-      console.log("cable_delete:", response);
+    .call('cable_delete', data)
+    .then((response) => {
+      console.log('cable_delete:', response);
     })
     .catch(function(response) {
-      console.log("cable_delete:");
+      console.log('cable_delete:');
       console.log(response);
     });
 }
@@ -125,14 +125,14 @@ function affairereadtech(searchby) {
   // };
 
   api
-    .call("affair_get", searchby)
+    .call('affair_get', searchby)
     .then(function(response) {
-      console.log("affair_get:");
+      console.log('affair_get:');
       console.log(response);
       return affaires;
     })
     .catch(function(response) {
-      console.log("affair_get:");
+      console.log('affair_get:');
       console.log(response);
     });
 }
@@ -145,19 +145,19 @@ function affairereadname(searchby) {
   // };
 
   api
-    .call("affair_get", searchby)
+    .call('affair_get', searchby)
     .then(function(response) {
-      console.log("affair_get:");
+      console.log('affair_get:');
       console.log(response);
     })
     .catch(function(response) {
-      console.log("affair_get:");
+      console.log('affair_get:');
       console.log(response);
     });
 }
 
 /*//---- 'affair_add' ----*/
-function affairadd(data) {
+async function affairadd(data) {
   //   var data = {
   //     tech_id: 32,
   //     tech_name: "John Smith",
@@ -169,16 +169,12 @@ function affairadd(data) {
   //     monitor: true,
   //     stage: true
   //   };
-
-  api
-    .call("affair_add", data)
-    .then(function(response) {
-      console.log("affair_add:", response);
-      return affaires;
-    })
-    .catch(function(response) {
-      console.log("affair_add:", response);
-    });
+  try {
+    const res = await api.call('affair_add', data);
+    return { status: 201, affairid: res.affairid, affaires };
+  } catch (err) {
+    return { status: 500, err: err.message };
+  }
 }
 
 /*//---- 'affair_update' ----*/
@@ -200,28 +196,32 @@ async function affaireupdate(data) {
   //     console.log(response);
   //   });
   try {
-    await api.call("affair_update", data);
-    return { status: 200, msg: "Affaire mise à jour" };
-  } catch (error) {
-    console.log("affair_update error", error);
-    return { status: 500, msg: `La mise à jour de l'affaire a échoué` };
+    await api.call('affair_update', data);
+    return { status: 200, msg: 'Affaire mise à jour' };
+  } catch (err) {
+    console.log('affair_update error', err);
+    return {
+      status: 500,
+      msg: `La mise à jour de l'affaire a échoué. ${err.error}`,
+    };
   }
 }
 
 /*//---- 'affair_delete' ----*/
-function affairedelete(data) {
+async function affairedelete(data) {
   //   var data = {
   //     affairid: 5 // put here actual affairid you want to delete
   //   };
 
-  api
-    .call("affair_delete", data)
-    .then(function(response) {
-      console.log("affair_delete:", response);
-    })
-    .catch(function(response) {
-      console.log("affair_delete:", response);
-    });
+  try {
+    const res = await api.call('affair_delete', data);
+    return { status: 200, res, msg: `Affaire ${data.affairid} supprimée` };
+  } catch (err) {
+    return {
+      status: 500,
+      msg: `Affaire ${data.affairid} NON supprimée. ${err.error}`,
+    };
+  }
 }
 
 /*//---- 'order_get' ----*/
@@ -235,13 +235,13 @@ function orderread() {
   //      },
 
   api
-    .call("order_get")
+    .call('order_get')
     .then(function(response) {
-      console.log("order_get:");
+      console.log('order_get:');
       console.log(response);
     })
     .catch(function(response) {
-      console.log("order_get:");
+      console.log('order_get:');
       console.log(response);
     });
 }
@@ -256,13 +256,13 @@ function orderset(data) {
   //      },
 
   api
-    .call("order_set", data)
+    .call('order_set', data)
     .then(function(response) {
-      console.log("order_set:", response);
+      console.log('order_set:', response);
       return orders;
     })
     .catch(function(response) {
-      console.log("order_set:", response);
+      console.log('order_set:', response);
     });
 }
 
@@ -283,24 +283,24 @@ function orderset(data) {
 /*//---- 'order_delete' ----*/
 function orderdelete(data) {
   api
-    .call("order_delete", data)
+    .call('order_delete', data)
     .then(function(response) {
-      console.log("order_delete:", response);
+      console.log('order_delete:', response);
     })
     .catch(function(response) {
-      console.log("order_delete:", response);
+      console.log('order_delete:', response);
     });
 }
 //---- 'mfc_get' ----
 function mfcread() {
   api
-    .call("mfc_get")
-    .then(response => {
-      console.log("cablage |mfc_get response:", response);
+    .call('mfc_get')
+    .then((response) => {
+      console.log('cablage |mfc_get response:', response);
       return response;
     })
-    .catch(response => {
-      console.log("mfc_get:", response);
+    .catch((response) => {
+      console.log('mfc_get:', response);
     });
 }
 // --------'mfcadd-New-------*/
@@ -323,12 +323,12 @@ function mfcadd(data) {
   //    }
 
   api
-    .call("mfc_add", data)
+    .call('mfc_add', data)
     .then(function(response) {
-      console.log("mfc_add:", response);
+      console.log('mfc_add:', response);
     })
-    .catch(response => {
-      console.log("mfc_add:", response);
+    .catch((response) => {
+      console.log('mfc_add:', response);
     });
 }
 // -----------mfc_update ----------*/
@@ -340,36 +340,36 @@ function mfcupdate(data) {
   //   };
 
   api
-    .call("mfc_update", data)
-    .then(response => {
-      console.log("mfc_update:");
+    .call('mfc_update', data)
+    .then((response) => {
+      console.log('mfc_update:');
       console.log(response);
     })
     .catch(function(response) {
-      console.log("mfc_update:");
+      console.log('mfc_update:');
       console.log(response);
     });
 }
 /*//---- mfc_delete' ----*/
 function mfcdelete(data) {
   api
-    .call("mfc_delete", data)
+    .call('mfc_delete', data)
     .then(function(response) {
-      console.log("mfc_delete:", response);
+      console.log('mfc_delete:', response);
     })
     .catch(function(response) {
-      console.log("mfc_delete:", response);
+      console.log('mfc_delete:', response);
     });
 }
 //---- 'cablemfc_get' ----
 function cablemfcread() {
   api
-    .call("cablemfc_get")
+    .call('cablemfc_get')
     .then(function(response) {
-      console.log("cablage |cablemfc_get :response:", response);
+      console.log('cablage |cablemfc_get :response:', response);
       return cablemfc;
     })
-    .catch(response => {
-      console.log("cablemfc_get:", response);
+    .catch((response) => {
+      console.log('cablemfc_get:', response);
     });
 }

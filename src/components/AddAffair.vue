@@ -47,7 +47,7 @@ import { ref } from "vue";
 import cablageServices from "@/services/cablage.js";
 export default {
   name: "AddAffair",
-  emit: ["lesson-fermer-newAff"],
+  emits: ["listenclosenewaff", "showcreatedaff", "listenopennewaff"],
   setup(_, context) {
     let name = ref("");
     let tech_name = ref("");
@@ -59,20 +59,22 @@ export default {
 
     function newAffairClose() {
       newAffairIsClose.value = false;
-      context.emit("lesson-fermer-newAff", newAffairIsClose.value);
+      context.emit("listenclosenewaff", newAffairIsClose.value);
       console.log("newAffairIsClose", newAffairIsClose.value);
     }
 
-    function createAffair() {
+    async function createAffair() {
       const data = {
         name: name.value,
         tech_name: tech_name.value,
         tech_id: tech_id.value,
         receipt_date: receipt_date.value,
-        return_date: return_date.value
+        return_date: return_date.value,
       };
-      cablageServices.affairadd(data);
-      context.emit("lesson-fermer-newAff", false);
+      const res = await cablageServices.affairadd(data);
+      console.log("createAffair() | res", res);
+      context.emit("listenclosenewaff", false);
+      context.emit("showcreatedaff", res);
     }
     return {
       name,
@@ -81,10 +83,10 @@ export default {
       createAffair,
       receipt_date,
       return_date,
-      newAffairClose
+      newAffairClose,
       // newAffairOpen
     };
-  }
+  },
 };
 </script>
 

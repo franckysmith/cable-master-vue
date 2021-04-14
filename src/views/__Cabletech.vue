@@ -1,9 +1,9 @@
 <template>
   <div class="main">
-    <AddAffair v-if="affairIsOpen" @lesson-fermer-newAff="toAffairOpen" />
+    <AddAffair v-if="affairIsOpen" @listenclosenewaff="toAffairOpen" />
     <Affaires
-      @lessonaffaire="affaireIdToList"
-      @lessonaffairelabel="getAffaireToLabel"
+      @listenaffaire="affaireIdToList"
+      @listenaffairelabel="getAffaireToLabel"
       @lesson-open-newaff="toAffairOpen"
       v-if="!affairIsOpen"
     />
@@ -248,7 +248,7 @@
           <div class="content-number">
             <div v-if="typechoose !== ''">
               <CableList
-                @lessontotalcable="calculcable"
+                @listentotalcable="calculcable"
                 :cables="filteredCableByType"
                 :cable-type="typechoose"
                 :show-my-list="showMyList"
@@ -256,7 +256,7 @@
             </div>
             <div v-else>
               <CableList
-                @lessontotalcable="calculcable"
+                @listentotalcable="calculcable"
                 :cables="searchInCableTechJoinData"
                 cable-type=""
                 :show-my-list="showMyList"
@@ -355,11 +355,11 @@ export default {
     // cable list  -----------------------
     api
       .call("cable_get")
-      .then(response => {
+      .then((response) => {
         console.log("cable_get:", response);
         cables.value = response;
       })
-      .catch(response => {
+      .catch((response) => {
         console.log("err_cable_get:", response);
       });
 
@@ -371,14 +371,14 @@ export default {
 
       api
         .call("order_get", { affairid: data.affairid })
-        .then(response => {
+        .then((response) => {
           console.log("order_get with affairid:", response);
           orders.value = response;
 
           // create a view-model joining order items and cables
           aggregateData(response, cables.value);
         })
-        .catch(function(response) {
+        .catch(function (response) {
           console.log("order_get:", response);
         });
     }
@@ -387,7 +387,7 @@ export default {
       return Promise.all([orders, cables]).then(([orders, cables]) => {
         let data = [];
 
-        orders = new Map(orders.map(o => [o.cableid, o])); // turn Array into Map of [ cableid, { order } ] items
+        orders = new Map(orders.map((o) => [o.cableid, o])); // turn Array into Map of [ cableid, { order } ] items
 
         for (const { cableid, name, type, total, link, info } of cables) {
           // prepare cable
@@ -407,7 +407,7 @@ export default {
               z2,
               z3,
               z4,
-              z5
+              z5,
             } = order;
             order = {
               isChecked: true,
@@ -422,7 +422,7 @@ export default {
               z2,
               z3,
               z4,
-              z5
+              z5,
             }; // avoid unneeded fields in order
           } else order = NO_ORDER;
 
@@ -435,11 +435,11 @@ export default {
     }
 
     aggregateData(orders({ affairid: searchbyAffairId.value }), cables())
-      .then(function(data) {
+      .then(function (data) {
         cableTechJoinedData.value = data;
         console.log("aggregatDatamoi", data);
       })
-      .catch(function(error) {
+      .catch(function (error) {
         console.log(error);
       });
 
@@ -452,7 +452,7 @@ export default {
     // ---- recherche dans liste cable par searchKey
     const searchInCableTechJoinData = computed(() => {
       console.log("searchInCableTechJoinData:", searchInCableTechJoinData);
-      return cableTechJoinedData.value.filter(cable => {
+      return cableTechJoinedData.value.filter((cable) => {
         return cable.name.toLowerCase().includes(searchKey.value.toLowerCase());
       });
     });
@@ -463,7 +463,7 @@ export default {
         "cablesNonZero | searchInCableTechJoinData.value",
         searchInCableTechJoinData.value
       );
-      return searchInCableTechJoinData.value.filter(c => c.count > 0);
+      return searchInCableTechJoinData.value.filter((c) => c.count > 0);
     });
 
     // --- filtrer liste
@@ -479,7 +479,7 @@ export default {
     }
     const filteredCableByType = computed(() => {
       return searchInCableTechJoinData.value.filter(
-        c => c.type === typechoose.value
+        (c) => c.type === typechoose.value
       );
     });
 
@@ -544,9 +544,9 @@ export default {
       searchInCableTechJoinData,
       searchKey,
       showMyList,
-      toAffairOpen
+      toAffairOpen,
     };
-  }
+  },
 };
 </script>
 <style scoped>

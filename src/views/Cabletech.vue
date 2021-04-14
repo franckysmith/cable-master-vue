@@ -1,11 +1,12 @@
 <template>
   <div class="main">
-    <AddAffair v-if="affairIsOpen" @lesson-fermer-newAff="toAffairOpen" />
+    <AddAffair v-if="affairIsOpen === true" @listenopennewaff="toAffairOpen" @listenclosenewaff="toAffairOpen" @showcreatedaff="openNewAffair" />
     <Affaires
-      @lessonaffaire="affaireIdToList"
-      @lessonaffairelabel="getAffaireToLabel"
-      @lesson-open-newaff="toAffairOpen"
-      v-if="!affairIsOpen"
+      @listenaffaire="affaireIdToList"
+      @listenaffairelabel="getAffaireToLabel"
+      @listenopennewaff="toAffairOpen"
+      v-if="affairIsOpen === false"
+      ref="affairesRef"
     />
     <ModalDelete @close="isOpentfc = false" v-if="isOpentfc">
       <template v-slot:main>
@@ -248,7 +249,7 @@
           <div class="content-number">
             <div v-if="typechoose !== ''">
               <CableList
-                @lessontotalcable="calculcable"
+                @listentotalcable="calculcable"
                 :cables="filteredCableByType"
                 :cable-type="typechoose"
                 :show-my-list="showMyList"
@@ -256,7 +257,7 @@
             </div>
             <div v-else>
               <CableList
-                @lessontotalcable="calculcable"
+                @listentotalcable="calculcable"
                 :cables="searchInCableTechJoinData"
                 cable-type=""
                 :show-my-list="showMyList"
@@ -309,7 +310,7 @@ export default {
     let cables = ref([]);
     let affaire = ref([]);
     let affairid = ref("");
-    let affairIsOpen = ref("");
+    let affairIsOpen = ref(false);
     let affaireSelected = ref([]);
     let orders = ref([]);
     let order = ref({});
@@ -331,6 +332,7 @@ export default {
     let showMyList = ref(false);
     let affairefrom = ref([]);
     let isOpentfc = ref(false);
+    let affairesRef = ref();
 
     function modalOpentfc(data) {
       countfc.value = data.tfc;
@@ -343,6 +345,7 @@ export default {
 
     //from emit to v-if
     function toAffairOpen(data) {
+      console.log("toAffairOpen(data) | data", data);
       affairIsOpen.value = data;
     }
 
@@ -353,16 +356,16 @@ export default {
     // cable list  -----------------------
     api
       .call("cable_get")
-      .then(response => {
+      .then((response) => {
         console.log("cable_get:", response);
         cables.value = response;
       })
-      .catch(response => {
+      .catch((response) => {
         console.log("err_cable_get:", response);
       });
 
     // order get with affairid
-    function affaireIdToList(data) {
+    function affaireIdToList(affair) {
       cableIdsInOrders.value = [];
       cableTechJoinedData.value = [];
       // let searchbyaff = { affairid: data.affairid };
@@ -370,23 +373,23 @@ export default {
       console.log("affaireSelected", affaireSelected);
 
       api
-        .call("order_get", { affairid: data.affairid })
-        .then(response => {
+        .call("order_get", { affairid: affair.affairid })
+        .then((response) => {
           console.log("order_get:", response);
           orders.value = response;
           // create a view-model joining order items and cables
           aggregateData(response, cables.value);
         })
-        .catch(function(response) {
+        .catch(function (response) {
           console.log("order_get:", response);
         });
     }
     // aggregateData table 'cables' et 'orders'
     function aggregateData(orders, cables) {
-      orders.forEach(o => {
+      orders.forEach((o) => {
         cableIdsInOrders.value.push(o.cableid);
       });
-      cables.forEach(cable => {
+      cables.forEach((cable) => {
         let line = {
           affairid: affaireSelected.value.affairid,
           tech_id: affaireSelected.value.tech_id,
@@ -409,10 +412,10 @@ export default {
           z2: "",
           z3: "",
           z4: "",
-          z5: ""
+          z5: "",
         };
         if (cableIdsInOrders.value.includes(cable.cableid)) {
-          const orderItem = orders.find(o => o.cableid === cable.cableid);
+          const orderItem = orders.find((o) => o.cableid === cable.cableid);
           line = {
             affairid: orderItem.affairid,
             tech_id: orderItem.tech_id,
@@ -435,45 +438,23 @@ export default {
             z3: orderItem.z3,
             z4: orderItem.z4,
             z5: orderItem.z5,
-            orderid: orderItem.orderid
+            orderid: orderItem.orderid,
           };
         }
         cableTechJoinedData.value = [...cableTechJoinedData.value, line];
       });
       console.log("cableTechJoinedData.value", cableTechJoinedData.value);
     }
-    // save/set_order
-    // const truc = [
-    //   {
-    //     cableid: "56",
-    //     affairid: "3",
-    //     tech_id: "135",
-    //     count: "20",
-    //     spare_count: "9",
-    //     done: true,
-    //     tfc1: "3",
-    //     tfc2: "3",
-    //     tfc3: "2"
-    //   },
-    //   {
-    //     cableid: "98",
-    //     affairid: "3",
-    //     tech_id: "135",
-    //     count: "20",
-    //     spare_count: "9",
-    //     done: true
-    //   }
-    // ];
 
     function set_order(data) {
       console.log("cabletech | orderset:::", data);
       api
         .call("order_set", data)
-        .then(response => {
+        .then((response) => {
           console.log("order_set:!");
           console.log(response);
         })
-        .catch(response => {
+        .catch((response) => {
           console.log("order_get:");
           console.log(response);
         });
@@ -482,7 +463,7 @@ export default {
     // ---- recherche dans liste cable par searchKey
     const searchInCableTechJoinData = computed(() => {
       // console.log("searchInCableTechJoinData:", searchInCableTechJoinData);
-      return cableTechJoinedData.value.filter(cable => {
+      return cableTechJoinedData.value.filter((cable) => {
         return cable.name.toLowerCase().includes(searchKey.value.toLowerCase());
       });
     });
@@ -493,7 +474,7 @@ export default {
         "cablesNonZero | searchInCableTechJoinData.value",
         searchInCableTechJoinData.value
       );
-      return searchInCableTechJoinData.value.filter(c => c.count > 0);
+      return searchInCableTechJoinData.value.filter((c) => c.count > 0);
     });
 
     // --- filtrer liste
@@ -509,32 +490,31 @@ export default {
     }
     const filteredCableByType = computed(() => {
       return searchInCableTechJoinData.value.filter(
-        c => c.type === typechoose.value
+        (c) => c.type === typechoose.value
       );
     });
-
-    // function set_order(data) {
-    //   if (!data) {
-    //     return;
-    //   }
-    //   console.log("data as payload", data);
-    //   const cablesWithAffaireData = data.value.map(d => {
-    //     d.affairid = affaireSelected.value.affairid;
-    //     // d.tech_id = affaire.value.tech_id;
-    //     return d;
-    //   });
-    //   console.log("cablesWithAffaireData", cablesWithAffaireData);
-    //   console.log(
-    //     "JSON.stringify(cablesWithAffaireData)",
-    //     JSON.stringify(cablesWithAffaireData)
-    //   );
-    //   cablageServices.orderset(JSON.stringify(cablesWithAffaireData));
-    // }
 
     //cableTechLayout button organisation fightcase et
     function cableTechLayout(data) {
       console.log("data cableTechLayout", data);
       cableLayoutData.value = data;
+    }
+
+    function openNewAffair(data) {
+      debugger;
+      console.log("openNewAffair data", data);
+      api
+        .call("order_get", { affairid: data.affairid })
+        .then((response) => {
+          console.log("order_get:", response);
+          orders.value = response;
+          // create a view-model joining order items and cables
+          aggregateData(response, cables.value);
+          affairesRef.value.selectedaff(response)
+        })
+        .catch(function (response) {
+          console.log("order_get:", response);
+        });
     }
 
     return {
@@ -573,9 +553,11 @@ export default {
       searchInCableTechJoinData,
       searchKey,
       showMyList,
-      toAffairOpen
+      toAffairOpen,
+      openNewAffair,
+      affairesRef
     };
-  }
+  },
 };
 </script>
 <style scoped>

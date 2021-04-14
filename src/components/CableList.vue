@@ -76,20 +76,20 @@ import { computed, ref } from "vue";
 import { longClickDirective } from "vue-long-click";
 
 export default {
-  emits: ["lessontotalcable"],
+  emits: ["listentotalcable"],
   props: {
     cables: {
-      type: Array
+      type: Array,
     },
     cableType: {
-      type: String
+      type: String,
     },
     showMyList: {
-      type: Boolean
+      type: Boolean,
     },
     affaireSelected: {
-      type: Array
-    }
+      type: Array,
+    },
   },
 
   setup(props) {
@@ -112,7 +112,7 @@ export default {
 
     allCables = computed(() => {
       if (props.showMyList) {
-        return props.cables.filter(c => calculateTotal(c) > 0);
+        return props.cables.filter((c) => calculateTotal(c) > 0);
       }
       return props.cables;
     });
@@ -131,9 +131,9 @@ export default {
       allCables,
       setColorIndicator,
       longClickDirective,
-      cable
+      cable,
     };
-  }
+  },
 };
 </script>
 
