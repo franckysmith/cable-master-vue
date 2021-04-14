@@ -267,7 +267,6 @@
         <div class="content-number" v-if="cableLayoutData == 'flightcase'">
           <div v-if="typechoose !== ''">
             <FcaseManagement
-              :calculcable="calculcable"
               :cables="filteredCableByType"
               :cable-type="typechoose"
               :show-my-list="showMyList"
@@ -275,7 +274,6 @@
           </div>
           <div v-else>
             <FcaseManagement
-              :calculcable="calculcable"
               :cables="searchInCableTechJoinData"
               cable-type=""
               :show-my-list="showMyList"
@@ -390,7 +388,7 @@ export default {
         let line = {
           affairid: affaireSelected.value.affairid,
           tech_id: affaireSelected.value.tech_id,
-          isChecked: false,
+          done: false,
           name: cable.name,
           count: 0,
           spare_count: "",
@@ -416,7 +414,7 @@ export default {
           line = {
             affairid: orderItem.affairid,
             tech_id: orderItem.tech_id,
-            isChecked: true,
+            done: orderItem.done,
             name: cable.name,
             count: orderItem.count,
             spare_count: orderItem.spare_count,
@@ -489,10 +487,10 @@ export default {
 
     // --------------- ma liste ----- count>0 -------------
     const cablesNonZero = computed(() => {
-      console.log(
-        "cablesNonZero | searchInCableTechJoinData.value",
-        searchInCableTechJoinData.value
-      );
+      // console.log(
+      //   "cablesNonZero | searchInCableTechJoinData.value",
+      //   searchInCableTechJoinData.value
+      // );
       return searchInCableTechJoinData.value.filter(c => c.count > 0);
     });
 
@@ -504,7 +502,7 @@ export default {
 
     // choose display cable_type (buttons)
     function selectype(data) {
-      console.log("typechoose", data);
+      // console.log("typechoose", data);
       typechoose.value = data;
     }
     const filteredCableByType = computed(() => {
@@ -686,7 +684,7 @@ button.link {
   width: 375px;
   height: 20px;
   text-align: left;
-  padding-left: 205px;
+  padding-left: 235px;
 }
 .head-zone {
   display: flex;
@@ -694,7 +692,7 @@ button.link {
   width: 375px;
   height: 20px;
   text-align: left;
-  padding-left: 270px;
+  padding-left: 240px;
 }
 .head-zone input {
   width: 28px;
@@ -781,7 +779,7 @@ input {
   margin: 10px 0px;
   font-weight: 500;
   text-align: left;
-  width: 110px;
+  width: 10px;
   padding: 1px 1px 1px 3px;
   /* margin-left: 5px; */
   background-color: #c1c7c33a;
@@ -795,7 +793,7 @@ input {
 
 .number input {
   width: 18px;
-  margin: 6px;
+  margin: 2px;
 }
 .number button {
   line-height: 10px;

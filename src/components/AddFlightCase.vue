@@ -6,7 +6,16 @@
         <input type="textarea" v-model="info" placeholder="détails" />
       </div>
 
-      <div><button type="submit" @click="createFc">New</button></div>
+      <div>
+        <label
+          >Renseigner le nom de la caisse puis :<button
+            type="submit"
+            @click="createFc"
+          >
+            Ajouter
+          </button></label
+        >
+      </div>
     </form>
   </div>
 </template>

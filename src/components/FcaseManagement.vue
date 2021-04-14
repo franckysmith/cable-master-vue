@@ -2,6 +2,9 @@
   <div class="main" v-for="cable in allCables" :key="cable.cableid">
     <form @submit.prevent="updateOrder()">
       <div class="number">
+        <div>
+          <input type="checkbox" v-model="cable.done" />
+        </div>
         <div class="name">
           <h4>{{ cable.name }}</h4>
         </div>
@@ -169,12 +172,12 @@ export default {
     }
 
     function setColorIndicator(cable) {
-      if (cable.total > 10) {
-        return "available-info";
-      } else if (cable.total > 5) {
+      if (cable.total <= cable.reserved) {
+        return "available-alert";
+      } else if (cable.reserved < cable.total < 2 * cable.reserved) {
         return "available-warning";
       } else {
-        return "available-alert";
+        return "available-info";
       }
     }
 
@@ -205,6 +208,7 @@ export default {
 }
 input {
   padding: 5px;
+  cursor: pointer;
 }
 .info-content {
   height: 14px;
@@ -237,7 +241,7 @@ input {
 }
 
 .name h4 {
-  /* margin: 10px 0px; */
+  cursor: pointer;
   font-weight: 500;
   text-align: left;
   width: 100px;
@@ -245,18 +249,20 @@ input {
   /* margin-left: 5px; */
   background-color: #c1c7c33a;
   border-left: 5px solid #4dcc59;
+  margin: 0px;
 }
 .number {
   display: flex;
-  border-width: 0px 0px 1px 0px;
+  height: 35px !important;
+  /* border-width: 0px 0px 1px 0px; */
   /* align-content: flex-start; */
   align-items: center;
-  padding: 0px;
+  /* padding: 0px !important; */
 }
 
 .number input {
   width: 15px;
-  margin: 5px;
+  margin: 4px;
 }
 .post {
   display: flex;

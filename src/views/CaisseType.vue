@@ -1,6 +1,20 @@
 <template>
   <div class="addflfightcase"><AddFlightCase /></div>
-
+  <ModalDelete @close="isOpen = false" v-if="isOpen">
+    <template v-slot:main>
+      <div>
+        <h1>{{ mfcToDelete.name }}</h1>
+        <button class="modal-default-button" @click="deletemfc(mfcToDelete)">
+          supprimer
+        </button>
+      </div>
+    </template>
+    <template #footer>
+      <button class="buttonv" @click="isOpenClose">
+        non
+      </button>
+    </template>
+  </ModalDelete>
   <div class="ct-content">
     <div>
       <select v-model="caisseSelected" @change="caisseToList(caisseSelected)">
@@ -65,13 +79,39 @@
       </div>
     </div>
     <form @submit.prevent="mfcupdate(cable)">
-      <button class="button2" type="submit">
-        Update
-      </button>
+      <div class="content-buttons">
+        <button class="button2" type="submit">
+          Update
+        </button>
+        <button class="button2" type="button" @click="suppmfc(caisseSelected)">
+          Supprimer
+        </button>
+      </div>
 
       <div class="content-number">
-        <div v-for="cable in cableMfcTechJoinedData" :key="cable.cableid">
-          <div v-if="cable.type == typechoose">
+        <div v-if="typechoose != ''">
+          <div v-for="cable in filteredCableByType" :key="cable.cableid">
+            <div class="number">
+              <div class="name">
+                <h4>{{ cable.name }}</h4>
+              </div>
+              {{ cable.mfcid }}
+              <div>
+                <input name="count" v-model="cable.count" />
+              </div>
+            </div>
+            <div class="info-content">
+              <div class="info">
+                <p>{{ cable.info }}</p>
+                <button type="button" class="link">
+                  <a href="cable.link">link</a>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div v-else>
+          <div v-for="cable in searchInCableTechJoinData" :key="cable.cableid">
             <div class="number">
               <div class="name">
                 <h4>{{ cable.name }}</h4>
@@ -106,12 +146,13 @@ var url = "https://cinod.fr/cables/api.php";
 var api = new Api(url);
 import cablageServices from "@/services/cablage.js";
 import AddFlightCase from "@/components/AddFlightCase.vue";
+import ModalDelete from "@/components/ModalDelete.vue";
 
 import { ref, computed, onMounted } from "vue";
 
 export default {
   name: "CaisseType",
-  components: { AddFlightCase },
+  components: { AddFlightCase, ModalDelete },
 
   setup() {
     let allCables = ref([]);
@@ -132,6 +173,8 @@ export default {
     let calculateTotal = ref("");
     let showMyList = ref(false);
     let searchKey = ref("");
+    let isOpen = ref("");
+    let mfcToDelete = ref([]);
 
     // let searchbycaisse = ref([]);
 
@@ -141,7 +184,12 @@ export default {
     //   cablageServices.mfcread();
     //   console.log("mfc_get | ", mfc);
     // });
-
+    //suppresion cable => modalDelete --------------
+    const suppmfc = function(data) {
+      mfcToDelete.value = data;
+      console.log("suppMfc::", data);
+      isOpen.value = true;
+    };
     let mfc_get = onMounted(() => {
       api
         .call("mfc_get")
@@ -163,33 +211,8 @@ export default {
         console.log("err_cable_get:", response);
       });
     //-------------------------------
-    // choose display cable_type (buttons)
-    function selectype(data) {
-      console.log("typechoose", data);
-      typechoose.value = data;
-    }
-    const filteredCableByType = computed(() => {
-      return cables.value.filter(c => c.type === typechoose.value);
-    });
-
-    // ---- recherche dans liste cable par searchKey
-
-    const searchCables = computed(() => {
-      console.log("searchCables:", searchCables);
-      return cables.value.filter(cable => {
-        return cable.name.toLowerCase().includes(searchKey.value.toLowerCase());
-      });
-    });
-
-    // allCables = computed(() => {
-    //   if (showMyList.value) {
-    //     return cables.value.filter(c => calculateTotal(c) > 0);
-    //   }
-    //   return cables;
-    // });
 
     // cablemfc get with selected mfc
-
     function caisseToList(data) {
       cableIdsInMfc.value = [];
       cableMfcTechJoinedData.value = [];
@@ -247,19 +270,40 @@ export default {
 
       console.log("cableMfcTechJoinedData.value", cableMfcTechJoinedData.value);
     }
+    // ---- recherche dans liste cable par searchKey
+
+    const searchInCableTechJoinData = computed(() => {
+      // console.log("searchCables:", searchInCableTechJoinData);
+      return cableMfcTechJoinedData.value.filter(cable => {
+        return cable.name.toLowerCase().includes(searchKey.value.toLowerCase());
+      });
+    });
 
     // --- filtrer liste ----------------------------
     function filtreMaliste() {
       showMyList.value = !showMyList.value;
-      console.log("cablesNonZero", cablesNonZero);
+      console.log("showMyList.value", showMyList.value);
     }
-    // --------------  cableNonZero ---------------
-    const cablesNonZero = computed(() => {
+    const maliste = computed(() => {
       if (showMyList.value) {
-        console.log("cableMfcTechJoinedData", cableMfcTechJoinedData);
-        return cableMfcTechJoinedData.value.filter(c => c.count > 0);
+        return cableMfcTechJoinedData.value.filter(c => calculateTotal(c) > 0);
       }
       return cableMfcTechJoinedData;
+    });
+    // // --------------  cableNonZero ---filtre ma liste------------
+    // const cablesNonZero = computed(() => {
+    //   // console.log("cableMfcTechJoinedData", cableMfcTechJoinedData);
+    //   return searchInCableTechJoinData.value.filter(c => c.count > 0);
+    // });
+
+    // choose display cable_type (buttons)
+    function selectype(data) {
+      typechoose.value = data;
+    }
+    const filteredCableByType = computed(() => {
+      return searchInCableTechJoinData.value.filter(
+        c => c.type === typechoose.value
+      );
     });
 
     // --------- mfc --------//
@@ -277,16 +321,10 @@ export default {
           console.log(response);
         });
     }
-    // function updatemfc(param) {
-    //   console.log("caisse | updatemfc:", param);
-    //   cablageServices.mfcupdate([param]);
-    // }
-
-    // delete mfc
 
     function deletemfc(param) {
       console.log("caisse | deletemfc", param);
-      cablageServices.mfcdelete({ mfcid: param });
+      cablageServices.mfcdelete({ mfcid: param.mfcid });
       mfc_get();
     }
 
@@ -296,6 +334,8 @@ export default {
       caisseToList,
       caisseSelected,
       mfcupdate,
+      mfcToDelete,
+      maliste,
       deletemfc,
       searchKey,
       caisses,
@@ -308,13 +348,14 @@ export default {
       cablemfc,
       cableLayoutData,
       cableTechBase,
-
+      suppmfc,
       caissetype,
       calculateTotal,
       filtreMaliste,
       filteredCableByType,
-      searchCables,
-      cablesNonZero,
+      searchInCableTechJoinData,
+      isOpen,
+      // cablesNonZero,
       mfc
     };
   }
@@ -344,6 +385,12 @@ button {
   box-shadow: 5px 7px 5px 0px rgba(143, 141, 141, 0.75);
   -webkit-box-shadow: 5px 7px 5px 0px rgba(143, 141, 141, 0.75);
   -moz-box-shadow: 5px 7px 5px 0px rgba(143, 141, 141, 0.75);
+}
+.content-buttons {
+  display: flex;
+}
+.content-buttons button {
+  margin-left: 50px;
 }
 
 .content-liste {

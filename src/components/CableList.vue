@@ -1,16 +1,18 @@
 <template>
-  <div v-for="cable in cables" :key="cable.cableid">
+  <div v-for="cable in allCables" :key="cable.cableid">
     <form>
       <div class="number">
-        <div>
-          <input type="checkbox" :checked="cable.isChecked" />
-        </div>
+        <!-- <div>
+          <input type="checkbox" v-model="cable.done" />
+          {{ cable.done }}
+        </div> -->
         <div class="name">
           <h4 :class="setColorIndicator(cable)">{{ cable.name }}</h4>
         </div>
-        <p>{{ cable.cableid }}</p>
+        <p style="font-size:10px">{{ cable.count }}</p>
         <div>
           <input
+            type="button"
             name="spare_count"
             v-model="cable.spare_count"
             @click="cable.spare_count = parseInt(cable.spare_count || 0) + 1"
@@ -19,6 +21,7 @@
 
         <div>
           <input
+            type="button"
             name=""
             v-model="cable.z1"
             @click="cable.z1 = parseInt(cable.z1 || 0) + 1"
@@ -28,7 +31,7 @@
         <div>
           <input
             name=""
-            class="z2"
+            class="zoro"
             v-model="cable.z2"
             @click="cable.z2 = parseInt(cable.z2 || 0) + 1"
           />
@@ -36,6 +39,7 @@
         <div>
           <input
             name=""
+            class="zoro"
             v-model="cable.z3"
             @click="cable.z3 = parseInt(cable.z3 || 0) + 1"
           />
@@ -43,6 +47,7 @@
         <div>
           <input
             name=""
+            class="zoro"
             v-model="cable.z4"
             @click="cable.z4 = parseInt(cable.z4 || 0) + 1"
           />
@@ -50,6 +55,7 @@
         <div>
           <input
             name=""
+            class="zoro"
             v-model="cable.z5"
             @click="cable.z5 = parseInt(cable.z5 || 0) + 1"
           />
@@ -62,7 +68,7 @@
       <div class="info-content">
         <div class="info">
           <p>{{ cable.info }}</p>
-          <button type="button" class="link">
+          <button type="button" class="link" v-if="cable.link">
             <a href="cable.link" target="_blank">link</a>
           </button>
         </div>
@@ -96,8 +102,10 @@ export default {
     let allCables = ref([]);
     let cable = ref([]);
 
-    cable.value.count = ref(calculateTotal(cable));
-    console.log("totalcable", cable.value.count);
+    // function validecount() {
+    //   cable.value.count = calculateTotal(cable);
+    //   console.log("totalcable", cable.value.count);
+    // }
 
     function calculateTotal(cable) {
       return (
@@ -132,6 +140,7 @@ export default {
       setColorIndicator,
       longClickDirective,
       cable
+      // validecount
     };
   }
 };
@@ -154,7 +163,7 @@ input {
   justify-content: space-between;
   text-align: left;
   /* padding: 0px; */
-  margin: 0px 0px 5px 30px;
+  margin: 0px 0px 5px 0px;
   font-style: italic;
   border-bottom: 1px solid;
 }
@@ -170,6 +179,7 @@ input {
 .name {
   height: 10px;
   width: 100px;
+  cursor: pointer;
 }
 .name h4 {
   margin: 10px 0px;
@@ -188,8 +198,15 @@ input {
 }
 
 .number input {
-  width: 18px;
+  width: 28px;
   margin: 5px;
+}
+
+.zoro {
+  width: 18px !important;
+  cursor: pointer;
+  margin: 5px;
+  color: red;
 }
 .post {
   display: flex;
