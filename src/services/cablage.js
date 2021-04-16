@@ -173,7 +173,7 @@ async function affairadd(data) {
     const res = await api.call('affair_add', data);
     return { status: 201, affairid: res.affairid, affaires };
   } catch (err) {
-    return { status: 500, err: err.message };
+    return { status: 500, err: err.error };
   }
 }
 

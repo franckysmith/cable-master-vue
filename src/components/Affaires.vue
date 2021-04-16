@@ -391,7 +391,7 @@ export default {
     // select affairid par technicien v-for in search
     let search = computed(() => {
       return affaireSelectedTech.value.filter((t) => {
-        return t.affairid.includes(affaireSelectedObject.value.affairid);
+        return (t.affairid === affaireSelectedObject.value.affairid);
       });
     });
 
