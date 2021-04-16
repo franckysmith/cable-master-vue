@@ -6,7 +6,7 @@ import CaisseType from "../views/CaisseType.vue";
 
 const routes = [
   {
-    path: "/",
+    path: "/cablemaster",
     name: "Cablemaster",
     component: Cablemaster
   },
@@ -16,7 +16,7 @@ const routes = [
     component: MasterAffaire
   },
   {
-    path: "/cabletech",
+    path: "/",
     name: "Cabletech",
     component: Cabletech
   },

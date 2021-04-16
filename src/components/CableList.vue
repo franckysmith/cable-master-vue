@@ -7,31 +7,29 @@
           {{ cable.done }}
         </div> -->
         <div class="name">
-          <h4 :class="setColorIndicator(cable)">{{ cable.name }}</h4>
+          <h4 :class="setColorIndicator">{{ cable.name }}</h4>
         </div>
-        <p style="font-size:10px">{{ cable.count }}</p>
+        <p style="font-size:10px;line-height:1px">
+          {{ calculateTotal(cable) }}
+        </p>
         <div>
           <input
-            type="button"
             name="spare_count"
-            v-model="cable.spare_count"
+            v-model.number="cable.spare_count"
             @click="cable.spare_count = parseInt(cable.spare_count || 0) + 1"
           />
         </div>
 
         <div>
           <input
-            type="button"
             name=""
             v-model="cable.z1"
             @click="cable.z1 = parseInt(cable.z1 || 0) + 1"
-            @dblclick="cable.z1 = 0"
           />
         </div>
         <div>
           <input
-            name=""
-            class="zoro"
+            class="z2"
             v-model="cable.z2"
             @click="cable.z2 = parseInt(cable.z2 || 0) + 1"
           />
@@ -39,7 +37,6 @@
         <div>
           <input
             name=""
-            class="zoro"
             v-model="cable.z3"
             @click="cable.z3 = parseInt(cable.z3 || 0) + 1"
           />
@@ -47,7 +44,6 @@
         <div>
           <input
             name=""
-            class="zoro"
             v-model="cable.z4"
             @click="cable.z4 = parseInt(cable.z4 || 0) + 1"
           />
@@ -55,10 +51,12 @@
         <div>
           <input
             name=""
-            class="zoro"
             v-model="cable.z5"
             @click="cable.z5 = parseInt(cable.z5 || 0) + 1"
           />
+        </div>
+        <div>
+          <input name="" class="zoro" v-model="cable.count" />
         </div>
 
         <!-- <div>
@@ -101,6 +99,7 @@ export default {
   setup(props) {
     let allCables = ref([]);
     let cable = ref([]);
+    // let calculateTotal = ref([]);
 
     // function validecount() {
     //   cable.value.count = calculateTotal(cable);
@@ -109,12 +108,12 @@ export default {
 
     function calculateTotal(cable) {
       return (
-        parseInt(cable.spare_count) +
         parseInt(cable.z1 || 0) +
         parseInt(cable.z2 || 0) +
         parseInt(cable.z3 || 0) +
         parseInt(cable.z4 || 0) +
-        parseInt(cable.z5 || 0)
+        parseInt(cable.z5 || 0) +
+        parseInt(cable.spare_count || 0)
       );
     }
 
@@ -124,15 +123,27 @@ export default {
       }
       return props.cables;
     });
-    function setColorIndicator(cable) {
-      if (cable.total > 10) {
-        return "available-info";
-      } else if (cable.total > 5) {
-        return "available-warning";
+
+    let setColorIndicator = computed(() => {
+      if (cable.value.z5 < 10) {
+        return { rouge: true };
+      } else if (cable.value.total < 5) {
+        return { borderOrange: true };
       } else {
-        return "available-alert";
+        return { borderVert: true };
       }
-    }
+    });
+    console.log("allCable.value.z5", cable.value.z5);
+
+    // function setColorIndicator(cable) {
+    //   if (cable.total > 10) {
+    //     return "available-info";
+    //   } else if (cable.total > 5) {
+    //     return "available-warning";
+    //   } else {
+    //     return "available-alert";
+    //   }
+    // }
 
     return {
       calculateTotal,
@@ -182,14 +193,23 @@ input {
   cursor: pointer;
 }
 .name h4 {
-  margin: 10px 0px;
+  margin: 10px 30px 10px 0px;
   font-weight: 500;
   text-align: left;
   width: 110px;
   padding: 1px 1px 1px 3px;
   /* margin-left: 5px; */
-  background-color: #c1c7c33a;
   border-left: 5px solid #4dcc59;
+  background-color: #c1c7c33a;
+}
+.border-vert {
+  border-left: 5px solid #4dcc59;
+}
+.rouge {
+  border-left: 5px solid red;
+}
+.border-orange {
+  border-left: 5px solid #eb7405;
 }
 .number {
   display: flex;
@@ -198,7 +218,7 @@ input {
 }
 
 .number input {
-  width: 28px;
+  width: 18px;
   margin: 5px;
 }
 

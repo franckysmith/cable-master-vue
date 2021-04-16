@@ -141,7 +141,7 @@
         <div class="flightcases-button" v-if="cableLayoutData == 'flightcase'">
           <button
             type="button"
-            @click="modalOpentfc({ tfc1: 'tfc1', lfc1: 'lfc1' })"
+            @click="modalOpentfc({ tfc: 'tfc1', lfc: 'lfc1' })"
           ></button>
           <button
             type="button"
@@ -160,6 +160,7 @@
             @click="modalOpentfc({ tfc: 'tfc5', lfc: 'lfc5' })"
           ></button>
         </div>
+        <!-- {{ cableTechJoinedData[6] }} -->
         <div v-if="cableLayoutData == 'flightcase'">
           <div class="head-fc">
             <div>
@@ -386,32 +387,22 @@ export default {
       });
       cables.forEach(cable => {
         let line = {
+          cableid: cable.cableid,
           affairid: affaireSelected.value.affairid,
           tech_id: affaireSelected.value.tech_id,
           done: false,
           name: cable.name,
-          count: 0,
-          spare_count: "",
+          count: "0",
+          spare_count: "0",
           total: cable.total,
           link: cable.link,
           info: cable.info,
-          type: cable.type,
-          cableid: cable.cableid,
-          orderid: "",
-          tfc1: "",
-          tfc2: "",
-          tfc3: "",
-          tfc4: "",
-          tfc5: "",
-          z1: "",
-          z2: "",
-          z3: "",
-          z4: "",
-          z5: ""
+          type: cable.type
         };
         if (cableIdsInOrders.value.includes(cable.cableid)) {
           const orderItem = orders.find(o => o.cableid === cable.cableid);
           line = {
+            cableid: cable.cableid,
             affairid: orderItem.affairid,
             tech_id: orderItem.tech_id,
             done: orderItem.done,
@@ -422,7 +413,6 @@ export default {
             link: cable.link,
             info: cable.info,
             type: cable.type,
-            cableid: cable.cableid,
             tfc1: orderItem.tfc1,
             tfc2: orderItem.tfc2,
             tfc3: orderItem.tfc3,
@@ -432,8 +422,7 @@ export default {
             z2: orderItem.z2,
             z3: orderItem.z3,
             z4: orderItem.z4,
-            z5: orderItem.z5,
-            orderid: orderItem.orderid
+            z5: orderItem.z5
           };
         }
         cableTechJoinedData.value = [...cableTechJoinedData.value, line];
@@ -441,38 +430,46 @@ export default {
       console.log("cableTechJoinedData.value", cableTechJoinedData.value);
     }
     // save/set_order
-    // const truc = [
-    //   {
-    //     cableid: "56",
-    //     affairid: "3",
-    //     tech_id: "135",
-    //     count: "20",
-    //     spare_count: "9",
-    //     done: true,
-    //     tfc1: "3",
-    //     tfc2: "3",
-    //     tfc3: "2"
-    //   },
-    //   {
-    //     cableid: "98",
-    //     affairid: "3",
-    //     tech_id: "135",
-    //     count: "20",
-    //     spare_count: "9",
-    //     done: true
-    //   }
-    // ];
+    const truc = [
+      {
+        cableid: "45",
+        affairid: "4",
+        tech_id: "3",
+        count: "20",
+        spare_count: "0",
+        done: true
+      }
+      // {
+      //   cableid: "45",
+      //   affairid: "4",
+      //   tech_id: "3",
+      //   count: "0",
+      //   spare_count: "9",
+      //   done: true,
+      //   tfc1: "3",
+      //   tfc2: "3",
+      //   tfc3: "2"
+      // }
+      // {
+      //   cableid: "52",
+      //   affairid: "4",
+      //   tech_id: "3",
+      //   count: "20",
+      //   spare_count: "9",
+      //   done: true
+      // }
+    ];
 
     function set_order(data) {
       console.log("cabletech | orderset:::", data);
       api
         .call("order_set", data)
         .then(response => {
-          console.log("order_set:!");
+          console.log("order_set:");
           console.log(response);
         })
         .catch(response => {
-          console.log("order_get:");
+          console.log("err_order_get:");
           console.log(response);
         });
     }
@@ -571,7 +568,8 @@ export default {
       searchInCableTechJoinData,
       searchKey,
       showMyList,
-      toAffairOpen
+      toAffairOpen,
+      truc
     };
   }
 };
@@ -692,7 +690,7 @@ button.link {
   width: 375px;
   height: 20px;
   text-align: left;
-  padding-left: 240px;
+  padding-left: 210px;
 }
 .head-zone input {
   width: 28px;
@@ -908,6 +906,7 @@ th {
   bottom: 0;
   /* background-color: rgb(216, 211, 207); */
   background-color: rgb(224, 119, 20);
+  opacity: 0.3;
   -webkit-transition: 0.4s;
   transition: 0.4s;
   border: 2px solid rgb(13, 216, 47);

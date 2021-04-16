@@ -17,7 +17,7 @@
       <tr
         v-for="affaire in affaires"
         :key="affaire.affairid"
-        :class="[affaire.done ? 'done' : '1', 'clickable']"
+        :class="[affaire.done ? 'done' : '', '']"
         @click="affaire.done = 1"
       >
         <td><input type="checkbox" /></td>

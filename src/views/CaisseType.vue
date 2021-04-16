@@ -412,7 +412,7 @@ button {
   display: flex;
 
   margin: auto;
-  width: 400px;
+  width: 375px;
   flex-wrap: wrap;
   /* margin: auto; */
 }
@@ -429,7 +429,7 @@ button {
   font-weight: 500;
 }
 .ct-info {
-  width: 370px;
+  width: 350px;
 }
 input {
   padding: 5px;

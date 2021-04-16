@@ -208,7 +208,6 @@
               Atelier
             </button>
             <button
-              id="save-affair"
               @click="update_affair(affaire)"
               class="button"
               type="submit"

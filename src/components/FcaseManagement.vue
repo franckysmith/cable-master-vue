@@ -8,7 +8,7 @@
         <div class="name">
           <h4>{{ cable.name }}</h4>
         </div>
-
+        <p style="font-size:10px">{{ calculateTotal(cable) }}</p>
         <div :class="calculateTotal(cable) === 0 ? 'ready' : 'countfc'">
           <p>
             {{ calculateTotal(cable) }}
@@ -134,19 +134,34 @@ export default {
     let count = ref("");
     let counter = ref(0);
 
-    allCables = computed(() => {
-      return props.cables.filter(
-        cable =>
-          cable.count -
-            cable.tfc1 +
-            cable.tfc2 +
-            cable.tfc3 +
-            cable.tfc4 +
-            cable.tfc5 >
-          0
+    function calculateTotal(cable) {
+      return (
+        parseInt(cable.z1 || 0) +
+        parseInt(cable.z2 || 0) +
+        parseInt(cable.z3 || 0) +
+        parseInt(cable.z4 || 0) +
+        parseInt(cable.z5 || 0) +
+        parseInt(cable.spare_count || 0)
       );
-      // return props.cables;
+    }
+
+    allCables = computed(() => {
+      return props.cables.filter(c => calculateTotal(c) > 0);
     });
+
+    // allCables = computed(() => {
+    //   return props.cables.filter(
+    //     cable =>
+    //       cable.count -
+    //         cable.tfc1 +
+    //         cable.tfc2 +
+    //         cable.tfc3 +
+    //         cable.tfc4 +
+    //         cable.tfc5 >
+    //       0
+    //   );
+    // return props.cables;
+
     function updateOrder() {
       console.log("updateOrder / allCables", allCables);
       context.emit("updateorder", allCables);
@@ -158,18 +173,18 @@ export default {
       data.cable[data.prop] -= 1;
     }
 
-    function calculateTotal(cable) {
-      console.log("calculateTotal | cable", cable);
-      updateOrder();
-      return (
-        cable.count -
-        cable.tfc1 -
-        cable.tfc2 -
-        cable.tfc3 -
-        cable.tfc4 -
-        cable.tfc5
-      );
-    }
+    // function calculateTotal(cable) {
+    //   console.log("calculateTotal | cable", cable);
+    //   updateOrder();
+    //   return (
+    //     cable.count -
+    //     cable.tfc1 -
+    //     cable.tfc2 -
+    //     cable.tfc3 -
+    //     cable.tfc4 -
+    //     cable.tfc5
+    //   );
+    // }
 
     function setColorIndicator(cable) {
       if (cable.total <= cable.reserved) {
