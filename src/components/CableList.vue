@@ -10,7 +10,7 @@
           <h4 :class="setColorIndicator">{{ cable.name }}</h4>
         </div>
         <p style="font-size:10px;line-height:1px">
-          {{ calculateTotal(cable) }}
+          Total:{{ calculateTotal(cable) }}
         </p>
         <div>
           <input
@@ -24,35 +24,40 @@
           <input
             name=""
             v-model="cable.z1"
-            @click="cable.z1 = parseInt(cable.z1 || 0) + 1"
+            @mousedown="cable.z1 = parseInt(cable.z1 || 0) + 1"
+            v-longclick="() => changeValue({ cable, prop: 'z1' })"
           />
         </div>
         <div>
           <input
             class="z2"
             v-model="cable.z2"
-            @click="cable.z2 = parseInt(cable.z2 || 0) + 1"
+            @mousedown="cable.z2 = parseInt(cable.z2 || 0) + 1"
+            v-longclick="() => changeValue({ cable, prop: 'z2' })"
           />
         </div>
         <div>
           <input
             name=""
             v-model="cable.z3"
-            @click="cable.z3 = parseInt(cable.z3 || 0) + 1"
+            @mousedown="cable.z3 = parseInt(cable.z3 || 0) + 1"
+            v-longclick="() => changeValue({ cable, prop: 'z3' })"
           />
         </div>
         <div>
           <input
             name=""
             v-model="cable.z4"
-            @click="cable.z4 = parseInt(cable.z4 || 0) + 1"
+            @mousedown="cable.z4 = parseInt(cable.z4 || 0) + 1"
+            v-longclick="() => changeValue({ cable, prop: 'z4' })"
           />
         </div>
         <div>
           <input
             name=""
             v-model="cable.z5"
-            @click="cable.z5 = parseInt(cable.z5 || 0) + 1"
+            @mousedown="cable.z5 = parseInt(cable.z5 || 0) + 1"
+            v-longclick="() => changeValue({ cable, prop: 'z5' })"
           />
         </div>
         <div>
@@ -95,17 +100,71 @@ export default {
       type: Array
     }
   },
+  directives: {
+    longclick: {
+      beforeMount(el, binding, vNode) {
+        let delay = 400;
+        let interval = 100;
+        if (typeof binding.value !== "function") {
+          const compName = vNode.context.name;
+          let warn = `[longclick:] provided expression '${binding.expression}' is not a function, but has to be`;
+          if (compName) {
+            warn += `Found in component '${compName}' `;
+          }
+          console.warn(warn); // eslint-disable-line
+        }
+        let pressTimer = null;
+        let pressInterval = null;
+        const start = e => {
+          if (e.type === "click" && e.button !== 0) {
+            return;
+          }
+          if (pressTimer === null) {
+            pressTimer = setTimeout(() => {
+              if (interval && interval > 0) {
+                pressInterval = setInterval(() => {
+                  handler();
+                }, interval);
+              }
+              handler();
+            }, delay);
+          }
+        };
+        // Cancel Timeout
+        const cancel = () => {
+          if (pressTimer !== null) {
+            clearTimeout(pressTimer);
+            pressTimer = null;
+          }
+          if (pressInterval) {
+            clearInterval(pressInterval);
+            pressInterval = null;
+          }
+        };
+        // Run Function
+        const handler = e => {
+          binding.value(e);
+        };
+        ["mousedown", "touchstart"].forEach(e => el.addEventListener(e, start));
+        ["click", "mouseout", "touchend", "touchcancel"].forEach(e =>
+          el.addEventListener(e, cancel)
+        );
+      }
+    }
+  },
 
   setup(props) {
     let allCables = ref([]);
     let cable = ref([]);
     // let calculateTotal = ref([]);
 
-    // function validecount() {
-    //   cable.value.count = calculateTotal(cable);
-    //   console.log("totalcable", cable.value.count);
-    // }
-
+    // data is now an object with two properties: { cable, prop: 'tfc1' } or { cable, prop: 'tfc2' } ...
+    function changeValue(data) {
+      data.cable[data.prop] -= 1;
+      if (data.cable[data.prop] < 0) {
+        data.cable[data.prop] = 0;
+      }
+    }
     function calculateTotal(cable) {
       return (
         parseInt(cable.z1 || 0) +
@@ -124,16 +183,18 @@ export default {
       return props.cables;
     });
 
+    let totalcount = ref("20");
+
     let setColorIndicator = computed(() => {
-      if (cable.value.z5 < 10) {
-        return { rouge: true };
-      } else if (cable.value.total < 5) {
-        return { borderOrange: true };
+      if (totalcount.value < 0) {
+        return "read";
+      } else if (totalcount.value < 5) {
+        return "orange";
       } else {
-        return { borderVert: true };
+        return "green";
       }
     });
-    console.log("allCable.value.z5", cable.value.z5);
+    console.log("allCable.value.z5", totalcount.value);
 
     // function setColorIndicator(cable) {
     //   if (cable.total > 10) {
@@ -150,8 +211,9 @@ export default {
       allCables,
       setColorIndicator,
       longClickDirective,
-      cable
-      // validecount
+      cable,
+      totalcount,
+      changeValue
     };
   }
 };
@@ -199,16 +261,16 @@ input {
   width: 110px;
   padding: 1px 1px 1px 3px;
   /* margin-left: 5px; */
-  border-left: 5px solid #4dcc59;
+  /* border-left: 5px solid #4dcc59; */
   background-color: #c1c7c33a;
 }
-.border-vert {
+.green {
   border-left: 5px solid #4dcc59;
 }
-.rouge {
+.read {
   border-left: 5px solid red;
 }
-.border-orange {
+.orange {
   border-left: 5px solid #eb7405;
 }
 .number {

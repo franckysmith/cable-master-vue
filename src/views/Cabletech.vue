@@ -309,13 +309,13 @@ export default {
     let affaire = ref([]);
     let affairid = ref("");
     let affairIsOpen = ref("");
-    let affaireSelected = ref([]);
+    const affaireSelected = ref([]);
     let orders = ref([]);
     let order = ref({});
     let reserved = ref("");
-    let typechoose = ref("speaker");
+    const typechoose = ref("speaker");
     let cable = ref("");
-    let count = ref("");
+    const count = ref("");
     let countfc = ref([]);
     let countlfc = ref([]);
     let cableid = ref("");
@@ -325,11 +325,11 @@ export default {
     let cableTechBase = ref("");
     let calculcable = ref("");
     let filterCable = ref(false);
-    let newAffairOpen = ref(Boolean);
-    let searchKey = ref("");
-    let showMyList = ref(false);
-    let affairefrom = ref([]);
-    let isOpentfc = ref(false);
+    const newAffairOpen = ref(Boolean);
+    const searchKey = ref("");
+    const showMyList = ref(false);
+    const affairefrom = ref([]);
+    const isOpentfc = ref(false);
 
     function modalOpentfc(data) {
       countfc.value = data.tfc;
@@ -390,7 +390,7 @@ export default {
           cableid: cable.cableid,
           affairid: affaireSelected.value.affairid,
           tech_id: affaireSelected.value.tech_id,
-          done: false,
+          done: true,
           name: cable.name,
           count: "0",
           spare_count: "0",
@@ -429,37 +429,8 @@ export default {
       });
       console.log("cableTechJoinedData.value", cableTechJoinedData.value);
     }
-    // save/set_order
-    const truc = [
-      {
-        cableid: "45",
-        affairid: "4",
-        tech_id: "3",
-        count: "20",
-        spare_count: "0",
-        done: true
-      }
-      // {
-      //   cableid: "45",
-      //   affairid: "4",
-      //   tech_id: "3",
-      //   count: "0",
-      //   spare_count: "9",
-      //   done: true,
-      //   tfc1: "3",
-      //   tfc2: "3",
-      //   tfc3: "2"
-      // }
-      // {
-      //   cableid: "52",
-      //   affairid: "4",
-      //   tech_id: "3",
-      //   count: "20",
-      //   spare_count: "9",
-      //   done: true
-      // }
-    ];
 
+    // save/set_order
     function set_order(data) {
       console.log("cabletech | orderset:::", data);
       api
@@ -484,10 +455,6 @@ export default {
 
     // --------------- ma liste ----- count>0 -------------
     const cablesNonZero = computed(() => {
-      // console.log(
-      //   "cablesNonZero | searchInCableTechJoinData.value",
-      //   searchInCableTechJoinData.value
-      // );
       return searchInCableTechJoinData.value.filter(c => c.count > 0);
     });
 
@@ -507,24 +474,6 @@ export default {
         c => c.type === typechoose.value
       );
     });
-
-    // function set_order(data) {
-    //   if (!data) {
-    //     return;
-    //   }
-    //   console.log("data as payload", data);
-    //   const cablesWithAffaireData = data.value.map(d => {
-    //     d.affairid = affaireSelected.value.affairid;
-    //     // d.tech_id = affaire.value.tech_id;
-    //     return d;
-    //   });
-    //   console.log("cablesWithAffaireData", cablesWithAffaireData);
-    //   console.log(
-    //     "JSON.stringify(cablesWithAffaireData)",
-    //     JSON.stringify(cablesWithAffaireData)
-    //   );
-    //   cablageServices.orderset(JSON.stringify(cablesWithAffaireData));
-    // }
 
     //cableTechLayout button organisation fightcase et
     function cableTechLayout(data) {
@@ -560,6 +509,7 @@ export default {
       cableTechLayout,
       cableLayoutData,
       cableTechBase,
+
       isOpentfc,
       filtreMaliste,
       newAffairOpen,
@@ -568,8 +518,7 @@ export default {
       searchInCableTechJoinData,
       searchKey,
       showMyList,
-      toAffairOpen,
-      truc
+      toAffairOpen
     };
   }
 };

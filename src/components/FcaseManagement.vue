@@ -9,47 +9,47 @@
           <h4>{{ cable.name }}</h4>
         </div>
         <p style="font-size:10px">{{ calculateTotal(cable) }}</p>
-        <div :class="calculateTotal(cable) === 0 ? 'ready' : 'countfc'">
+        <div :class="calculateTotalFc(cable) === 0 ? 'ready' : 'countfc'">
           <p>
-            {{ calculateTotal(cable) }}
+            {{ calculateTotalFc(cable) }}
           </p>
         </div>
-
         <input
           name="tfc1"
           v-model="cable.tfc1"
-          @click="cable.tfc1 = parseInt(cable.tfc1 || 0) + 1"
+          @mousedown="cable.tfc1 = parseInt(cable.tfc1 || 0) + 1"
           v-longclick="() => changeValue({ cable, prop: 'tfc1' })"
         />
 
         <input
           name="tfc2"
           v-model="cable.tfc2"
-          @click="cable.tfc2 = parseInt(cable.tfc2 || 0) + 1"
+          @mousedown="cable.tfc2 = parseInt(cable.tfc2 || 0) + 1"
           v-longclick="() => changeValue({ cable, prop: 'tfc2' })"
         />
 
         <input
           name="tfc3"
           v-model="cable.tfc3"
-          @click="cable.tfc3 = parseInt(cable.tfc3 || 0) + 1"
+          @mousedown="cable.tfc3 = parseInt(cable.tfc3 || 0) + 1"
           v-longclick="() => changeValue({ cable, prop: 'tfc3' })"
         />
 
         <input
           name="tfc4"
           v-model="cable.tfc4"
-          @click="cable.tfc4 = parseInt(cable.tfc4 || 0) + 1"
+          @mousedown="cable.tfc4 = parseInt(cable.tfc4 || 0) + 1"
           v-longclick="() => changeValue({ cable, prop: 'tfc4' })"
         />
 
         <input
           name="tfc5"
           v-model="cable.tfc5"
-          @click="cable.tfc5 = parseInt(cable.tfc5 || 0) + 1"
+          @mousedown="cable.tfc5 = parseInt(cable.tfc5 || 0) + 1"
           v-longclick="() => changeValue({ cable, prop: 'tfc5' })"
         />
       </div>
+      <input type="text" v-model="cable.count" />
     </form>
   </div>
 </template>
@@ -80,7 +80,7 @@ export default {
     longclick: {
       beforeMount(el, binding, vNode) {
         let delay = 400;
-        let interval = 200;
+        let interval = 100;
         if (typeof binding.value !== "function") {
           const compName = vNode.context.name;
           let warn = `[longclick:] provided expression '${binding.expression}' is not a function, but has to be`;
@@ -149,18 +149,16 @@ export default {
       return props.cables.filter(c => calculateTotal(c) > 0);
     });
 
-    // allCables = computed(() => {
-    //   return props.cables.filter(
-    //     cable =>
-    //       cable.count -
-    //         cable.tfc1 +
-    //         cable.tfc2 +
-    //         cable.tfc3 +
-    //         cable.tfc4 +
-    //         cable.tfc5 >
-    //       0
-    //   );
-    // return props.cables;
+    function calculateTotalFc(cable) {
+      return (
+        parseInt(calculateTotal(cable)) -
+        parseInt(cable.tfc1 || 0) -
+        parseInt(cable.tfc2 || 0) -
+        parseInt(cable.tfc3 || 0) -
+        parseInt(cable.tfc4 || 0) -
+        parseInt(cable.tfc5 || 0)
+      );
+    }
 
     function updateOrder() {
       console.log("updateOrder / allCables", allCables);
@@ -171,20 +169,10 @@ export default {
     function changeValue(data) {
       // data.cable['tfc1'] or data.cable['tfc2'] ...
       data.cable[data.prop] -= 1;
+      if (data.cable[data.prop] < 0) {
+        data.cable[data.prop] = 0;
+      }
     }
-
-    // function calculateTotal(cable) {
-    //   console.log("calculateTotal | cable", cable);
-    //   updateOrder();
-    //   return (
-    //     cable.count -
-    //     cable.tfc1 -
-    //     cable.tfc2 -
-    //     cable.tfc3 -
-    //     cable.tfc4 -
-    //     cable.tfc5
-    //   );
-    // }
 
     function setColorIndicator(cable) {
       if (cable.total <= cable.reserved) {
@@ -198,6 +186,7 @@ export default {
 
     return {
       calculateTotal,
+      calculateTotalFc,
       allCables,
       count,
       setColorIndicator,

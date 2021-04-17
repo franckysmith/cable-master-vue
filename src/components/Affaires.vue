@@ -68,7 +68,7 @@
         <button @click="description = false" v-if="description" class="button3">
           description
         </button>
-        <button @click="delete_affair(affaire)" class="button">
+        <button type="button" @click="delete_affair(affaire)" class="button">
           Supprimer l'affaire
         </button>
       </div>
@@ -351,10 +351,9 @@ export default {
     }
     // delete une affair
     function delete_affair(data) {
-      let del = { affairid: data.affairid };
-      console.log("Formaffaire | delete_affair()", del);
-      cablageServices.affairedelete(del);
-      affaire.value = [""];
+      // console.log("Formaffaire | delete_affair()", del);
+      cablageServices.affairedelete({ affairid: data.affairid });
+      affaireSelectedTech.value = [""];
     }
 
     // update affair
@@ -386,7 +385,7 @@ export default {
     // select affairid par technicien v-for in search
     let search = computed(() => {
       return affaireSelectedTech.value.filter(t => {
-        return t.affairid.includes(affaireSelectedId.value.affairid);
+        return t.affairid === affaireSelectedId.value.affairid;
       });
     });
 
