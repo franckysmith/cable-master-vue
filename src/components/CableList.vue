@@ -46,7 +46,7 @@
         </div>
         <div>
           <input
-            name=""
+            class="z2"
             v-model="cable.z4"
             @mousedown="cable.z4 = parseInt(cable.z4 || 0) + 1"
             v-longclick="() => changeValue({ cable, prop: 'z4' })"
@@ -61,7 +61,7 @@
           />
         </div>
         <div>
-          <input name="" class="zoro" v-model="cable.count" />
+          <p style="font-size:10px;line-height:1px">{{ cable.count }}</p>
         </div>
 
         <!-- <div>
@@ -281,7 +281,7 @@ input {
 
 .number input {
   width: 18px;
-  margin: 5px;
+  margin: 3px;
 }
 
 .zoro {

@@ -19,7 +19,7 @@
         </div>
       </template>
       <template #footer>
-        <button class="buttonv" @click="isOpenClose">
+        <button>
           fermer
         </button>
       </template>
@@ -237,12 +237,15 @@
                 v-model="affaireSelected.lz4"
               />
             </div>
-            <div style="padding-left:4px">
+            <div style="padding-left:2px">
               <input
                 type="text"
                 placeholder="Zone5"
                 v-model="affaireSelected.lz5"
               />
+            </div>
+            <div style="padding-left:0px">
+              <input type="text" placeholder="count" />
             </div>
           </div>
 
@@ -337,7 +340,7 @@ export default {
       // if ((countfc.value == "tfc1", (countlfc = "lfc1")));
 
       isOpentfc.value = true;
-      console.log("countfc.value | data", data);
+      console.log("countfc.value | data:", data);
     }
 
     //from emit to v-if
@@ -639,7 +642,7 @@ button.link {
   width: 375px;
   height: 20px;
   text-align: left;
-  padding-left: 210px;
+  padding-left: 270px;
 }
 .head-zone input {
   width: 28px;

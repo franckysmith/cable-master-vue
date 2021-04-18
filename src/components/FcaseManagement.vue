@@ -48,8 +48,11 @@
           @mousedown="cable.tfc5 = parseInt(cable.tfc5 || 0) + 1"
           v-longclick="() => changeValue({ cable, prop: 'tfc5' })"
         />
+        <div>
+          <p style="font-size:10px;line-height:1px">{{ cable.count }}</p>
+        </div>
       </div>
-      <input type="text" v-model="cable.count" />
+      >
     </form>
   </div>
 </template>
