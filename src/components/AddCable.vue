@@ -3,19 +3,34 @@
     <div>
       <div>
         <div class="head">
-          <input class="name" v-model="name" placeholder="Nouvel élément" />
+          <input
+            class="name"
+            v-model="name"
+            :class="[name.length >= 3 ? 'valid' : 'validno']"
+            placeholder="Nouvel élément"
+          />
 
           <label for=""
-            >Disponibles:<input class="dispo" v-model.number="total"
+            >Disponibles:<input
+              class="dispo"
+              v-model="total"
+              :class="[total.length >= 1 ? 'valid' : 'validno']"
           /></label>
           <label for=""
-            >Alerte: <input class="seuil" v-model.number="reserved"
+            >Alerte:
+            <input
+              class="seuil"
+              v-model="reserved"
+              :class="[reserved.length >= 1 ? 'valid' : 'validno']"
           /></label>
         </div>
 
         <div class="type">
           <label for="">Choisir une catégorie :</label>
-          <select v-model="type">
+          <select
+            v-model="type"
+            :class="[type.length >= 1 ? 'valid' : 'validno']"
+          >
             <option value="choisir" placeholder="choisir"></option>
             <option
               v-for="choix in listeType"
@@ -134,12 +149,15 @@ export default {
 };
 </script>
 <style scoped>
+.ajouter {
+  margin: 10px;
+  background: red;
+  padding: 5px;
+}
 .contener {
   background: rgb(224, 223, 222);
   padding: 1rem;
-  /* display: flex;
-  flex-direction: column;
-  align-items: center; */
+  max-width: 400px;
   margin: auto;
 }
 .dispo {
@@ -149,15 +167,7 @@ export default {
   display: flex;
   justify-content: space-between;
 }
-.type {
-  margin-top: 10px;
-}
-.form1 {
-  /* display: flex; */
-}
 
-.form {
-}
 .info .link {
   width: 40px;
   margin: 10px;
@@ -171,12 +181,16 @@ export default {
   width: 110px;
 }
 
-.ajouter {
-  margin: 10px;
-  background: red;
-  padding: 5px;
-}
 .seuil {
   width: 20px;
+}
+.type {
+  margin-top: 10px;
+}
+.valid {
+  background-color: lightgreen;
+}
+.validno {
+  border: 2px solid red;
 }
 </style>

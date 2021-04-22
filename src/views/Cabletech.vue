@@ -252,7 +252,7 @@
           <div class="content-number">
             <div v-if="typechoose !== ''">
               <CableList
-                @lessontotalcable="calculcable"
+                @listentotalcable="calculcables"
                 :cables="filteredCableByType"
                 :cable-type="typechoose"
                 :show-my-list="showMyList"
@@ -260,7 +260,7 @@
             </div>
             <div v-else>
               <CableList
-                @lessontotalcable="calculcable"
+                @lessontotalcable="calculcables"
                 :cables="searchInCableTechJoinData"
                 cable-type=""
                 :show-my-list="showMyList"
@@ -326,7 +326,7 @@ export default {
     let cableIdsInOrders = ref([]);
     let cableTechJoinedData = ref([]);
     let cableTechBase = ref("");
-    let calculcable = ref("");
+    // let calculcable = ref("");
     let filterCable = ref(false);
     const newAffairOpen = ref(Boolean);
     const searchKey = ref("");
@@ -337,7 +337,6 @@ export default {
     function modalOpentfc(data) {
       countfc.value = data.tfc;
       countlfc.value = data.lfc;
-      // if ((countfc.value == "tfc1", (countlfc = "lfc1")));
 
       isOpentfc.value = true;
       console.log("countfc.value | data:", data);
@@ -432,9 +431,33 @@ export default {
       });
       console.log("cableTechJoinedData.value", cableTechJoinedData.value);
     }
+    // ------from emit cableList --------------
+    const resultCalcul = [];
+    function calculcables(data) {
+      resultCalcul.value = data;
+    }
+
+    function calculateTotal(cable) {
+      return (
+        parseInt(cable.z1 || 0) +
+        parseInt(cable.z2 || 0) +
+        parseInt(cable.z3 || 0) +
+        parseInt(cable.z4 || 0) +
+        parseInt(cable.z5 || 0) +
+        parseInt(cable.spare_count || 0)
+      );
+    }
 
     // save/set_order
     function set_order(data) {
+      // let orderAndCount = data;
+      // for (let i = 0; i < orderAndCount.length; i++) {
+      //   cable.value[i].count = calculateTotal(cable[i]);
+      //   {
+      //     orderAndCount.value.push(cable.value[i].count);
+      //   }
+      // }
+
       console.log("cabletech | orderset:::", data);
       api
         .call("order_set", data)
@@ -493,7 +516,7 @@ export default {
       affairid,
       affairefrom,
       affaireSelected,
-      calculcable,
+      calculcables,
       orders,
       set_order,
       reserved,
@@ -512,7 +535,7 @@ export default {
       cableTechLayout,
       cableLayoutData,
       cableTechBase,
-
+      calculateTotal,
       isOpentfc,
       filtreMaliste,
       newAffairOpen,
@@ -634,7 +657,7 @@ button.link {
   width: 375px;
   height: 20px;
   text-align: left;
-  padding-left: 235px;
+  padding-left: 270px;
 }
 .head-zone {
   display: flex;
@@ -817,6 +840,7 @@ th {
 }
 .total-flightcase {
   display: flex;
+  justify-content: center;
 }
 /* ------------------------------------------------------------------- */
 /* The switch - the box around the slider */

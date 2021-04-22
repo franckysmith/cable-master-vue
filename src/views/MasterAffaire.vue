@@ -19,68 +19,394 @@
 
     <h1>Gestion des affaires</h1>
     <p>Date: {{ getFormat() }}</p>
+    <p>Aujourd'hui: {{ today() }}</p>
+    <p>Demain : {{ tomorrow() }}</p>
 
     <div>
       <input type="text" placeholder="Qui l'utilise ?" />
     </div>
+    <h1 @click="isOpenToday = !isOpenToday" class="titre-day">Aujourd'hui</h1>
+    <div class="list-aff" v-for="affaire in affaires" :key="affaire.affairid">
+      <div v-if="isOpenToday">
+        <div v-if="affaire.prep_date === today()">
+          <h3>Prépa</h3>
+          <ul class="head-today">
+            <li>Affaire</li>
+            <li style="padding-left:30px">Technicien</li>
+            <li style="padding-left:5px">=></li>
+            <li style="padding-left:0px">Taille</li>
+            <li style="padding-left:9px">Desc</li>
+            <li style="padding-left:8px">Tech</li>
+            <li style="padding-left:8px">Atel</li>
+          </ul>
+          <ul class="content">
+            <!-- <li>
+              <input type="checkbox" />
+            </li> -->
+            <li>
+              <h4>{{ affaire.name }}</h4>
+            </li>
+            <li>
+              <h5>{{ affaire.tech_name }}</h5>
+            </li>
+            <li class="date-s">
+              {{ (affaire.prep_time = morning ? "Matin" : "Ap-midi") }}
+            </li>
+            <!-- <li class="date-s">
+              {{ format(new Date(affaire.receipt_date), "dd MM ") }}
+            </li> -->
+            <li>
+              <h5 class="taille">{{ affaire.tech_id }}</h5>
+            </li>
 
-    <h2></h2>
+            <li>
+              <button
+                type="button"
+                @click="modalOpen(affaire.description)"
+                :class="affaire.description ? 'buttonv' : 'button'"
+              ></button>
+            </li>
+            <li>
+              <button
+                type="button"
+                @click="modalOpen(affaire.master_note)"
+                :class="affaire.master_note ? 'buttonv' : 'button'"
+              ></button>
+            </li>
+            <li>
+              <button
+                type="button"
+                @click="modalOpen(affaire.tech_note)"
+                :class="affaire.tech_note ? 'buttonv' : 'button'"
+              ></button>
+            </li>
+          </ul>
+        </div>
+        <div v-if="affaire.receipt_date === today()">
+          <h3>Sortie</h3>
+          {{ affaire.receipt_date }}
+          <ul class="head-today">
+            <li>Affaire</li>
+            <li style="padding-left:30px">Technicien</li>
+            <li style="padding-left:5px">=></li>
+            <li style="padding-left:0px">Taille</li>
+            <li style="padding-left:9px">Desc</li>
+            <li style="padding-left:8px">Tech</li>
+            <li style="padding-left:8px">Atel</li>
+          </ul>
+          <ul class="content">
+            <!-- <li>
+              <input type="checkbox" />
+            </li> -->
+            <li>
+              <h4>{{ affaire.name }}</h4>
+            </li>
+            <li>
+              <h5>{{ affaire.tech_name }}</h5>
+            </li>
+            <li class="date-s">
+              {{ (affaire.receipt_time = morning ? "Matin" : "Ap-midi") }}
+            </li>
+            <li>
+              <h5 class="taille">{{ affaire.tech_id }}</h5>
+            </li>
 
-    <div class="list-aff">
-      <h1>Aujourd'hui</h1>
-      <ul class="head-today">
-        <li>Nom de l'affaire</li>
-        <li style="padding-left:75px">Technicien</li>
-        <li style="padding-left:25px">Sortie</li>
-        <li style="padding-left:0px">Taille</li>
-        <li style="padding-left:0px">Desc</li>
-        <li style="padding-left:0px">Tech</li>
-        <li style="padding-left:0px">Atel</li>
-      </ul>
-      <ul v-for="affaire in affaires" :key="affaire.affairid" class="list-aff">
-        <li>
-          <input type="checkbox" />
-        </li>
-        <li>
-          <h4>{{ affaire.name }}</h4>
-        </li>
-        <li>
-          <h5>{{ affaire.tech_name }}</h5>
-        </li>
-        <li class="date-s">
-          {{ format(new Date(affaire.receipt_date), "dd/ MM ") }}
-        </li>
-        <li>
-          <h5 class="taille">{{ affaire.tech_id }}</h5>
-        </li>
+            <li>
+              <button
+                type="button"
+                @click="modalOpen(affaire.description)"
+                :class="affaire.description ? 'buttonv' : 'button'"
+              ></button>
+            </li>
+            <li>
+              <button
+                type="button"
+                @click="modalOpen(affaire.master_note)"
+                :class="affaire.master_note ? 'buttonv' : 'button'"
+              ></button>
+            </li>
+            <li>
+              <button
+                type="button"
+                @click="modalOpen(affaire.tech_note)"
+                :class="affaire.tech_note ? 'buttonv' : 'button'"
+              ></button>
+            </li>
+          </ul>
+        </div>
+        <div v-if="affaire.return_date === today()">
+          <h3>Retour</h3>
+          <ul class="head-today">
+            <li>Affaire</li>
+            <li style="padding-left:30px">Technicien</li>
+            <li style="padding-left:5px">=></li>
+            <li style="padding-left:0px">Taille</li>
+            <li style="padding-left:9px">Desc</li>
+            <li style="padding-left:8px">Tech</li>
+            <li style="padding-left:8px">Atel</li>
+          </ul>
+          <ul class="content">
+            <!-- <li>
+              <input type="checkbox" />
+            </li> -->
+            <li>
+              <h4>{{ affaire.name }}</h4>
+            </li>
+            <li>
+              <h5>{{ affaire.tech_name }}</h5>
+            </li>
+            <li class="date-s">
+              {{ (affaire.return_time = morning ? "Matin" : "Ap-midi") }}
+            </li>
+            <li>
+              <h5 class="taille">{{ affaire.tech_id }}</h5>
+            </li>
 
-        <li>
-          <button
-            type="button"
-            @click="modalOpen(affaire.description)"
-            :class="affaire.description ? 'buttonv' : 'button'"
-          ></button>
-        </li>
-        <li>
-          <button
-            type="button"
-            @click="modalOpen(affaire.master_note)"
-            :class="affaire.master_note ? 'buttonv' : 'button'"
-          ></button>
-        </li>
-        <li>
-          <button
-            type="button"
-            @click="modalOpen(affaire.tech_note)"
-            :class="affaire.tech_note ? 'buttonv' : 'button'"
-          ></button>
-        </li>
-      </ul>
+            <li>
+              <button
+                type="button"
+                @click="modalOpen(affaire.description)"
+                :class="affaire.description ? 'buttonv' : 'button'"
+              ></button>
+            </li>
+            <li>
+              <button
+                type="button"
+                @click="modalOpen(affaire.master_note)"
+                :class="affaire.master_note ? 'buttonv' : 'button'"
+              ></button>
+            </li>
+            <li>
+              <button
+                type="button"
+                @click="modalOpen(affaire.tech_note)"
+                :class="affaire.tech_note ? 'buttonv' : 'button'"
+              ></button>
+            </li>
+          </ul>
+        </div>
+      </div>
     </div>
-
+    <!-- --------------------------------------------------------- -->
+    <h1 @click="isOpenTomorrow = !isOpenTomorrow" class="titre-day">Demain</h1>
     <div>
-      <div class="main"></div>
+      <div v-if="affaire.prep_date === tomorrow()">
+        <h3>Prépa</h3>
+        <ul class="head-today">
+          <li>Affaire</li>
+          <li style="padding-left:30px">Technicien</li>
+          <li style="padding-left:5px">=></li>
+          <li style="padding-left:0px">Taille</li>
+          <li style="padding-left:9px">Desc</li>
+          <li style="padding-left:8px">Tech</li>
+          <li style="padding-left:8px">Atel</li>
+        </ul>
+        <ul class="content">
+          <!-- <li>
+              <input type="checkbox" />
+            </li> -->
+          <li>
+            <h4>{{ affaire.name }}</h4>
+          </li>
+          <li>
+            <h5>{{ affaire.tech_name }}</h5>
+          </li>
+          <li class="date-s">
+            {{ (affaire.prep_time = morning ? "Matin" : "Ap-midi") }}
+          </li>
+          <!-- <li class="date-s">
+              {{ format(new Date(affaire.receipt_date), "dd MM ") }}
+            </li> -->
+          <li>
+            <h5 class="taille">{{ affaire.tech_id }}</h5>
+          </li>
+
+          <li>
+            <button
+              type="button"
+              @click="modalOpen(affaire.description)"
+              :class="affaire.description ? 'buttonv' : 'button'"
+            ></button>
+          </li>
+          <li>
+            <button
+              type="button"
+              @click="modalOpen(affaire.master_note)"
+              :class="affaire.master_note ? 'buttonv' : 'button'"
+            ></button>
+          </li>
+          <li>
+            <button
+              type="button"
+              @click="modalOpen(affaire.tech_note)"
+              :class="affaire.tech_note ? 'buttonv' : 'button'"
+            ></button>
+          </li>
+        </ul>
+      </div>
+
+      <div v-if="affaire.receipt_date === tomorrow()">
+        <h3>Sortie</h3>
+        {{ affaire.receipt_date }}
+        <ul class="head-today">
+          <li>Affaire</li>
+          <li style="padding-left:30px">Technicien</li>
+          <li style="padding-left:5px">=></li>
+          <li style="padding-left:0px">Taille</li>
+          <li style="padding-left:9px">Desc</li>
+          <li style="padding-left:8px">Tech</li>
+          <li style="padding-left:8px">Atel</li>
+        </ul>
+        <ul class="content">
+          <!-- <li>
+              <input type="checkbox" />
+            </li> -->
+          <li>
+            <h4>{{ affaire.name }}</h4>
+          </li>
+          <li>
+            <h5>{{ affaire.tech_name }}</h5>
+          </li>
+          <li class="date-s">
+            {{ (affaire.receipt_time = morning ? "Matin" : "Ap-midi") }}
+          </li>
+          <li>
+            <h5 class="taille">{{ affaire.tech_id }}</h5>
+          </li>
+
+          <li>
+            <button
+              type="button"
+              @click="modalOpen(affaire.description)"
+              :class="affaire.description ? 'buttonv' : 'button'"
+            ></button>
+          </li>
+          <li>
+            <button
+              type="button"
+              @click="modalOpen(affaire.master_note)"
+              :class="affaire.master_note ? 'buttonv' : 'button'"
+            ></button>
+          </li>
+          <li>
+            <button
+              type="button"
+              @click="modalOpen(affaire.tech_note)"
+              :class="affaire.tech_note ? 'buttonv' : 'button'"
+            ></button>
+          </li>
+        </ul>
+      </div>
+      <div v-if="affaire.return_date === tomorrow()">
+        <h3>Retour</h3>
+        <ul class="head-today">
+          <li>Affaire</li>
+          <li style="padding-left:30px">Technicien</li>
+          <li style="padding-left:5px">=></li>
+          <li style="padding-left:0px">Taille</li>
+          <li style="padding-left:9px">Desc</li>
+          <li style="padding-left:8px">Tech</li>
+          <li style="padding-left:8px">Atel</li>
+        </ul>
+        <ul class="content">
+          <!-- <li>
+              <input type="checkbox" />
+            </li> -->
+          <li>
+            <h4>{{ affaire.name }}</h4>
+          </li>
+          <li>
+            <h5>{{ affaire.tech_name }}</h5>
+          </li>
+          <li class="date-s">
+            {{ (affaire.return_time = morning ? "Matin" : "Ap-midi") }}
+          </li>
+          <li>
+            <h5 class="taille">{{ affaire.tech_id }}</h5>
+          </li>
+
+          <li>
+            <button
+              type="button"
+              @click="modalOpen(affaire.description)"
+              :class="affaire.description ? 'buttonv' : 'button'"
+            ></button>
+          </li>
+          <li>
+            <button
+              type="button"
+              @click="modalOpen(affaire.master_note)"
+              :class="affaire.master_note ? 'buttonv' : 'button'"
+            ></button>
+          </li>
+          <li>
+            <button
+              type="button"
+              @click="modalOpen(affaire.tech_note)"
+              :class="affaire.tech_note ? 'buttonv' : 'button'"
+            ></button>
+          </li>
+        </ul>
+      </div>
     </div>
+  </div>
+  <!-- --------------------------------------------------------- -->
+  <h1 @click="isOpen5Days = !isOpen5Days" class="titre-day">
+    les 5 jours suivants
+  </h1>
+  <div class="list-aff" v-if="isOpen5Days">
+    <ul class="head-today">
+      <li>Affaire</li>
+      <li style="padding-left:30px">Technicien</li>
+      <li style="padding-left:5px">=></li>
+      <li style="padding-left:0px">Taille</li>
+      <li style="padding-left:9px">Desc</li>
+      <li style="padding-left:8px">Tech</li>
+      <li style="padding-left:8px">Atel</li>
+    </ul>
+    <ul v-for="affaire in affaires" :key="affaire.affairid" class="content">
+      <!-- <li>
+          <input type="checkbox" />
+        </li> -->
+      <li>
+        <h4>{{ affaire.name }}</h4>
+      </li>
+      <li>
+        <h5>{{ affaire.tech_name }}</h5>
+      </li>
+      <li class="date-s">
+        {{ format(new Date(affaire.receipt_date), "dd MM ") }}
+      </li>
+      <li>
+        <h5 class="taille">{{ affaire.tech_id }}</h5>
+      </li>
+
+      <li>
+        <button
+          type="button"
+          @click="modalOpen(affaire.description)"
+          :class="affaire.description ? 'buttonv' : 'button'"
+        ></button>
+      </li>
+      <li>
+        <button
+          type="button"
+          @click="modalOpen(affaire.master_note)"
+          :class="affaire.master_note ? 'buttonv' : 'button'"
+        ></button>
+      </li>
+      <li>
+        <button
+          type="button"
+          @click="modalOpen(affaire.tech_note)"
+          :class="affaire.tech_note ? 'buttonv' : 'button'"
+        ></button>
+      </li>
+    </ul>
+  </div>
+
+  <div>
+    <div class="main"></div>
   </div>
 </template>
 
@@ -90,8 +416,8 @@ import { Api } from "../js/api.js";
 var url = "https://cinod.fr/cables/api.php";
 var api = new Api(url);
 // import cablageServices from "@/services/cablage.js";
-import { format } from "date-fns";
-import { fr } from "date-fns/esm/locale";
+import { format, subDays, formatRelative, startOfTomorrow } from "date-fns";
+import { fr } from "date-fns/locale";
 import { ref, onMounted } from "vue";
 
 export default {
@@ -103,6 +429,9 @@ export default {
     let affaire = ref([]);
     const isOpenNote = ref(false);
     const displayNote = ref("");
+    const isOpenToday = ref(true);
+    const isOpenTomorrow = ref(false);
+    const isOpen5Days = ref(false);
 
     function modalOpen(data) {
       displayNote.value = data;
@@ -123,6 +452,11 @@ export default {
         });
     });
 
+    // const affairToday = computed(() => {
+    //   return affaires.value.filter(c => c.prep_date === today());
+    // });
+    // console.log("affairToday", affairToday);
+
     let cable_get = onMounted(() => {
       api
         .call("cable_get")
@@ -134,6 +468,19 @@ export default {
           console.log("err_cable_get:", response);
         });
     });
+    function getFormat() {
+      // return this.format(new Date(), "'Today is a' eeee");
+      return this.formatRelative(subDays(new Date(), 6), new Date(), {
+        locale: fr
+      });
+    }
+    function today() {
+      return format(new Date(), "yyyy-MM-dd", { locale: fr });
+    }
+    function tomorrow() {
+      return format(new Date(), "yyyy-MM-dd", { locale: fr });
+    }
+    // const tomorrow = startOfTomorrow();
 
     // let sortedAffaires = computed(() => {
     //   return affaires.value.sort((e1, e2) => {
@@ -147,29 +494,28 @@ export default {
 
     return {
       affaires,
+      // affairToday,
       affaire,
       cable_get,
       cables,
       affair_get,
       isOpenNote,
+      isOpenToday,
+      isOpenTomorrow,
+      isOpen5Days,
       modalOpen,
       displayNote,
-
-      fr
+      format,
+      formatRelative,
+      subDays,
+      today,
+      tomorrow,
+      startOfTomorrow,
+      fr,
+      getFormat
       // unarchivedAffaires,
       // sortedAffaires
     };
-  },
-  data() {
-    return {
-      format
-    };
-  },
-
-  methods: {
-    getFormat() {
-      return this.format(new Date(), "dd MM", { locale: fr });
-    }
   }
 };
 </script>
@@ -197,10 +543,22 @@ export default {
   border-radius: 4px;
 }
 .date-s {
-  width: 60px;
+  width: 40px;
+  margin: 0px 5px;
 }
 .head-today {
-  padding-left: 90px;
+  padding-left: 0px;
+}
+
+.checkbox {
+  border: 1px solid black;
+  padding: 2px;
+}
+.clickable {
+  cursor: pointer;
+}
+.content {
+  border-bottom: 1px solid black;
 }
 .list {
   display: flex;
@@ -209,13 +567,12 @@ export default {
 }
 .list-aff ul {
   display: flex;
-
   align-items: center;
-  height: 20px;
+  height: 40px;
 }
 li {
   list-style: none;
-  margin: 10px;
+  /* margin: 10px; */
   padding: 0px;
 }
 li button {
@@ -224,12 +581,15 @@ li button {
   width: 20px;
 }
 li h4 {
-  width: 200px;
-  text-align: left;
-}
-li h5 {
   width: 100px;
   text-align: left;
+  font-size: 14px;
+  padding-bottom: 10px;
+}
+li h5 {
+  width: 40px;
+  text-align: center;
+  overflow: hidden;
 }
 
 .tab-affaires {
@@ -244,6 +604,7 @@ li h5 {
 }
 .taille {
   width: 20px;
+  padding: 10px;
 }
 tr {
   height: 25px;
@@ -251,12 +612,8 @@ tr {
 .tab-affaires tr {
   height: 40px;
 }
-.checkbox {
-  border: 1px solid black;
-  padding: 2px;
-}
-.clickable {
-  cursor: pointer;
+.titre-day {
+  text-align: left;
 }
 
 .tab-affaires tr.done {
@@ -264,5 +621,8 @@ tr {
 }
 .tab-affaires tr.done {
   background-color: rgb(210, 221, 218);
+}
+ul.content {
+  padding: 0px;
 }
 </style>

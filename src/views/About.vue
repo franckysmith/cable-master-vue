@@ -1,9 +1,9 @@
 <template>
   hello
-  <div v-for="cable in cables" :key="cable.cableid" class="content">
+  <div v-for="affaire in affaires" :key="affaire.afairid" class="content">
     <div>
       <h4>
-        {{ cable.name }}
+        {{ affaire.name }}
       </h4>
     </div>
     <div>

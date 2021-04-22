@@ -71,6 +71,7 @@
       <div class="info-content">
         <div class="info">
           <p>{{ cable.info }}</p>
+          <input v-model="cable.count" />
           <button type="button" class="link" v-if="cable.link">
             <a href="cable.link" target="_blank">link</a>
           </button>
@@ -85,7 +86,7 @@ import { computed, ref } from "vue";
 import { longClickDirective } from "vue-long-click";
 
 export default {
-  emits: ["lessontotalcable"],
+  emits: ["listentotalcable"],
   props: {
     cables: {
       type: Array
@@ -153,11 +154,11 @@ export default {
     }
   },
 
-  setup(props) {
+  setup(props, { emit }) {
     let allCables = ref([]);
     let cable = ref([]);
     // let calculateTotal = ref([]);
-
+    emit("listentotalcable", calculateTotal(cable));
     // data is now an object with two properties: { cable, prop: 'tfc1' } or { cable, prop: 'tfc2' } ...
     function changeValue(data) {
       data.cable[data.prop] -= 1;
@@ -183,7 +184,7 @@ export default {
       return props.cables;
     });
 
-    let totalcount = ref("20");
+    let totalcount = ref("5");
 
     let setColorIndicator = computed(() => {
       if (totalcount.value < 0) {
@@ -194,7 +195,6 @@ export default {
         return "green";
       }
     });
-    console.log("allCable.value.z5", totalcount.value);
 
     // function setColorIndicator(cable) {
     //   if (cable.total > 10) {
