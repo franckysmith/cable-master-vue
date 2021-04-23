@@ -1,4 +1,22 @@
 <template>
+  <ModalDelete @close="isOpen = false" v-if="isOpen">
+    <template v-slot:main>
+      <div v-for="affaire in search" :key="affaire.affairid">
+        <h1>{{ affToDelete.name }}</h1>
+        <button
+          class="modal-default-button"
+          @click="delete_affair(affToDelete)"
+        >
+          supprimer
+        </button>
+      </div>
+    </template>
+    <template #footer>
+      <button class="buttonv" @click="isOpenClose">
+        non
+      </button>
+    </template>
+  </ModalDelete>
   <div class="main">
     <div class="search-tech-aff">
       <ul>
@@ -68,7 +86,7 @@
         <button @click="description = false" v-if="description" class="button3">
           description
         </button>
-        <button type="button" @click="delete_affair(affaire)" class="button">
+        <button type="button" @click="deleteAff(affaire)" class="button">
           Supprimer l'affaire
         </button>
       </div>
@@ -290,6 +308,7 @@
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
+import ModalDelete from "@/components/ModalDelete.vue";
 import { ref, computed, onBeforeMount } from "vue";
 import { Api } from "../js/api.js";
 const url = "https://cinod.fr/cables/api.php";
@@ -299,6 +318,7 @@ import cablageServices from "@/services/cablage.js";
 
 export default {
   name: "Affaires",
+  components: { ModalDelete },
   props: ["cables"],
   emits: [
     "listenopennewaff",
@@ -324,6 +344,8 @@ export default {
     let tech_name = ref("");
     let name = ref("");
     let message = ref("");
+    const affToDelete = ref([]);
+    const isOpen = ref(false);
 
     onBeforeMount(() => {
       techSelected();
@@ -355,14 +377,19 @@ export default {
       techSelected(affair);
     }
 
-    // delete une affair
+    // ----------- delete une affair
+    function deleteAff(data) {
+      affToDelete.value = data;
+      isOpen.value = true;
+    }
+
     function delete_affair(data) {
       // console.log("Formaffaire | delete_affair()", del);
       cablageServices.affairedelete({ affairid: data.affairid });
       affaireSelectedTech.value = [""];
     }
 
-    // update affair
+    // --------------- update affair
     async function update_affair(param) {
       // console.log("formaffair | affairupdate", param);
       const res = await cablageServices.affaireupdate(param);
@@ -376,7 +403,7 @@ export default {
       }, 3000);
     }
 
-    // add affair
+    // ------------- add affair
     function add_affair() {
       affaire.value = [""];
       let firstadd = {
@@ -396,28 +423,31 @@ export default {
     });
 
     return {
-      searchby,
-      selectAffaire,
-      techSelected,
-      delete_affair,
-      update_affair,
-      add_affair,
-      format,
       affaireSelectedObject,
       affaireSelected,
       affaireSelectedTech,
       affaires,
       affaire,
-      description,
-      return_time,
-      search,
       affaireSelect,
-      selectedaff,
+      affToDelete,
+      add_affair,
+      delete_affair,
+      deleteAff,
+      format,
+      fr,
+      description,
+      isOpen,
       newAffairOpen,
       notemaster,
       note,
       message,
-      fr
+      return_time,
+      search,
+      selectedaff,
+      searchby,
+      selectAffaire,
+      techSelected,
+      update_affair
     };
   }
 };

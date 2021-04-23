@@ -3,15 +3,13 @@
     <form>
       <div>
         <input type="text" v-model="name" placeholder="Nom de la caisse" />
-        <input type="textarea" v-model="info" placeholder="détails" />
+        <textarea cols="30" rows="2" v-model="info" placeholder="détails" />
       </div>
 
       <div>
         <label
-          >Renseigner le nom de la caisse puis :<button
-            type="submit"
-            @click="createFc"
-          >
+          >Ajouter une nouvelle caisse :
+          <button type="submit" @click="createFc">
             Ajouter
           </button></label
         >
@@ -52,5 +50,9 @@ export default {
   display: flex;
   flex-direction: column;
   align-items: center;
+}
+.content input,
+button {
+  margin: 10px;
 }
 </style>

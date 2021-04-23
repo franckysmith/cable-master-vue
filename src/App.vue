@@ -4,7 +4,7 @@
     <router-link to="/MasterAffaire">MasterAffaire</router-link> |
     <router-link to="/CaisseType">CaisseType</router-link> |
     <router-link to="/about">About</router-link> |
-    <router-link to="/">Cabletech</router-link>
+    <router-link to="/">CableTech</router-link>
   </div>
   <router-view />
 </template>

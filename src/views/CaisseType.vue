@@ -16,26 +16,24 @@
     </template>
   </ModalDelete>
   <div class="ct-content">
+    <select v-model="caisseSelected" @change="caisseToList(caisseSelected)">
+      <option
+        v-for="caissetype in mfc"
+        :key="caissetype.mfcid"
+        :value="caissetype"
+        placeholder="choisir"
+        >{{ caissetype.name }}
+      </option>
+    </select>
     <div>
-      <select v-model="caisseSelected" @change="caisseToList(caisseSelected)">
-        <option
-          v-for="caissetype in mfc"
-          :key="caissetype.mfcid"
-          :value="caissetype"
-          placeholder="choisir"
-          >{{ caissetype.name }}
-        </option>
-      </select>
-      <div>
-        <input
-          class="ct-info"
-          type="textarea"
-          v-model="caisseSelected.info"
-          placeholder="pas d'information"
-          cols="2"
-          rows="3"
-        />
-      </div>
+      <input
+        class="ct-info"
+        type="textarea"
+        v-model="caisseSelected.info"
+        placeholder="pas d'information"
+        cols="2"
+        rows="3"
+      />
     </div>
   </div>
 
@@ -427,11 +425,8 @@ button {
 }
 
 .content-number {
-  width: 70px;
-  height: 45px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  /* flex-direction: column; */
+  /* align-items: center; */
 }
 .ct-content {
   display: flex;
@@ -440,6 +435,9 @@ button {
   width: 375px;
   flex-wrap: wrap;
   /* margin: auto; */
+}
+.ct-content select {
+  margin: 5px;
 }
 .ctct-content {
   display: flex;
@@ -509,6 +507,7 @@ input {
 .list_container {
   width: 400px;
 }
+
 .name {
   height: 10px;
 }
