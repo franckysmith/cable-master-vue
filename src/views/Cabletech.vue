@@ -141,11 +141,18 @@
         <div class="flightcases-button" v-if="cableLayoutData == 'flightcase'">
           <button
             type="button"
+            @click="modalOpentfc({ tfc: 'count', lfc: 'Total' })"
+            style="font-size:7px"
+          >
+            all
+          </button>
+          <button
+            type="button"
             @click="modalOpentfc({ tfc: 'tfc1', lfc: 'lfc1' })"
           ></button>
           <button
             type="button"
-            @click="modalOpentfc({ tfc: 'tfc2', lfc1: 'lfc2' })"
+            @click="modalOpentfc({ tfc: 'tfc2', lfc: 'lfc2' })"
           ></button>
           <button
             type="button"
@@ -153,7 +160,7 @@
           ></button>
           <button
             type="button"
-            @click="modalOpentfc({ tfc: 'tfc4', lfc1: 'lfc4' })"
+            @click="modalOpentfc({ tfc: 'tfc4', lfc: 'lfc4' })"
           ></button>
           <button
             type="button"
@@ -166,7 +173,7 @@
             <div>
               <p>à répartir</p>
             </div>
-            <div style="padding-left:12px">
+            <div style="padding-left:2px">
               <input
                 type="text"
                 placeholder="FC1"
@@ -188,14 +195,14 @@
                 v-model="affaireSelected.lfc3"
               />
             </div>
-            <div style="padding-left:2px">
+            <div style="padding-left:0px">
               <input
                 type="text"
                 placeholder="Fc4"
                 v-model="affaireSelected.lfc4"
               />
             </div>
-            <div style="padding-left:3px">
+            <div style="padding-left:0px">
               <input
                 type="text"
                 placeholder="Fc5"
@@ -243,9 +250,6 @@
                 placeholder="Zone5"
                 v-model="affaireSelected.lz5"
               />
-            </div>
-            <div style="padding-left:0px">
-              <input type="text" placeholder="count" />
             </div>
           </div>
 
@@ -309,7 +313,7 @@ export default {
 
   setup() {
     let cables = ref([]);
-    let affaire = ref([]);
+    let affaire = ref({});
     let affairid = ref("");
     let affairIsOpen = ref("");
     const affaireSelected = ref([]);
@@ -317,7 +321,7 @@ export default {
     let order = ref({});
     let reserved = ref("");
     const typechoose = ref("speaker");
-    let cable = ref("");
+    let cable = ref({});
     const count = ref("");
     let countfc = ref([]);
     let countlfc = ref([]);
@@ -424,7 +428,8 @@ export default {
             z2: orderItem.z2,
             z3: orderItem.z3,
             z4: orderItem.z4,
-            z5: orderItem.z5
+            z5: orderItem.z5,
+            tfc_done: orderItem.tfc_done
           };
         }
         cableTechJoinedData.value = [...cableTechJoinedData.value, line];
@@ -447,16 +452,19 @@ export default {
         parseInt(cable.spare_count || 0)
       );
     }
+    // function calculateTotal(cable) {
+    //   return (
+    //     +cable.z1 +
+    //     +cable.z2 +
+    //     +cable.z3 +
+    //     +cable.z4 +
+    //     +cable.z5 +
+    //     +cable.spare_count
+    //   );
 
     // save/set_order
     function set_order(data) {
-      // let orderAndCount = data;
-      // for (let i = 0; i < orderAndCount.length; i++) {
-      //   cable.value[i].count = calculateTotal(cable[i]);
-      //   {
-      //     orderAndCount.value.push(cable.value[i].count);
-      //   }
-      // }
+      for (const cable of data) cable.count = calculateTotal(cable);
 
       console.log("cabletech | orderset:::", data);
       api
@@ -639,7 +647,7 @@ button.link {
   display: flex;
 
   width: 370px;
-  padding-left: 317px;
+  padding-left: 275px;
 }
 .flightcases-button button {
   margin: 10px;
@@ -657,7 +665,7 @@ button.link {
   width: 375px;
   height: 20px;
   text-align: left;
-  padding-left: 270px;
+  padding-left: 285px;
 }
 .head-zone {
   display: flex;

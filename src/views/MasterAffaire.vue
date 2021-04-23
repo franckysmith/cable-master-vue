@@ -29,12 +29,11 @@
     <div class="list-aff" v-for="affaire in affaires" :key="affaire.affairid">
       <div v-if="isOpenToday">
         <div v-if="affaire.prep_date === today()">
-          <h3>Prépa</h3>
+          <div class="event-type">
+            <h3>Prépa</h3>
+            <!-- {{ affaire.prep_date }} -->
+          </div>
           <ul class="head-today">
-            <li>Affaire</li>
-            <li style="padding-left:30px">Technicien</li>
-            <li style="padding-left:5px">=></li>
-            <li style="padding-left:0px">Taille</li>
             <li style="padding-left:9px">Desc</li>
             <li style="padding-left:8px">Tech</li>
             <li style="padding-left:8px">Atel</li>
@@ -82,14 +81,14 @@
             </li>
           </ul>
         </div>
+        <!-- </div>
+      <div class="list-aff" v-for="affaire in affaires" :key="affaire.affairid"> -->
         <div v-if="affaire.receipt_date === today()">
-          <h3>Sortie</h3>
-          {{ affaire.receipt_date }}
+          <div class="event-type">
+            <h3>Sortie</h3>
+            <!-- {{ affaire.receipt_date }} -->
+          </div>
           <ul class="head-today">
-            <li>Affaire</li>
-            <li style="padding-left:30px">Technicien</li>
-            <li style="padding-left:5px">=></li>
-            <li style="padding-left:0px">Taille</li>
             <li style="padding-left:9px">Desc</li>
             <li style="padding-left:8px">Tech</li>
             <li style="padding-left:8px">Atel</li>
@@ -135,12 +134,11 @@
           </ul>
         </div>
         <div v-if="affaire.return_date === today()">
-          <h3>Retour</h3>
+          <div class="event-type">
+            <h3>Retour</h3>
+            <!-- {{ affaire.return_date }} -->
+          </div>
           <ul class="head-today">
-            <li>Affaire</li>
-            <li style="padding-left:30px">Technicien</li>
-            <li style="padding-left:5px">=></li>
-            <li style="padding-left:0px">Taille</li>
             <li style="padding-left:9px">Desc</li>
             <li style="padding-left:8px">Tech</li>
             <li style="padding-left:8px">Atel</li>
@@ -193,7 +191,6 @@
       <div v-if="affaire.prep_date === tomorrow()">
         <h3>Prépa</h3>
         <ul class="head-today">
-          <li>Affaire</li>
           <li style="padding-left:30px">Technicien</li>
           <li style="padding-left:5px">=></li>
           <li style="padding-left:0px">Taille</li>
@@ -249,7 +246,6 @@
         <h3>Sortie</h3>
         {{ affaire.receipt_date }}
         <ul class="head-today">
-          <li>Affaire</li>
           <li style="padding-left:30px">Technicien</li>
           <li style="padding-left:5px">=></li>
           <li style="padding-left:0px">Taille</li>
@@ -300,7 +296,6 @@
       <div v-if="affaire.return_date === tomorrow()">
         <h3>Retour</h3>
         <ul class="head-today">
-          <li>Affaire</li>
           <li style="padding-left:30px">Technicien</li>
           <li style="padding-left:5px">=></li>
           <li style="padding-left:0px">Taille</li>
@@ -417,7 +412,7 @@ var url = "https://cinod.fr/cables/api.php";
 var api = new Api(url);
 // import cablageServices from "@/services/cablage.js";
 import { format, subDays, formatRelative, startOfTomorrow } from "date-fns";
-import { fr } from "date-fns/locale";
+import { fr, ru } from "date-fns/locale";
 import { ref, onMounted } from "vue";
 
 export default {
@@ -471,7 +466,7 @@ export default {
     function getFormat() {
       // return this.format(new Date(), "'Today is a' eeee");
       return this.formatRelative(subDays(new Date(), 6), new Date(), {
-        locale: fr
+        locale: ru
       });
     }
     function today() {
@@ -512,6 +507,7 @@ export default {
       tomorrow,
       startOfTomorrow,
       fr,
+      ru,
       getFormat
       // unarchivedAffaires,
       // sortedAffaires
@@ -546,8 +542,11 @@ export default {
   width: 40px;
   margin: 0px 5px;
 }
+.event-type {
+  display: flex;
+}
 .head-today {
-  padding-left: 0px;
+  padding-left: 200px;
 }
 
 .checkbox {

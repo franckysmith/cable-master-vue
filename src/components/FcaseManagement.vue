@@ -3,12 +3,14 @@
     <form @submit.prevent="updateOrder()">
       <div class="number">
         <div>
-          <input type="checkbox" v-model="cable.done" />
+          <input type="checkbox" v-model="tfc_done" />
         </div>
         <div class="name">
           <h4>{{ cable.name }}</h4>
         </div>
-        <p style="font-size:10px">{{ calculateTotal(cable) }}</p>
+        <!-- <div style="font-size:10px;line-height:3px;padding-right:3px">
+          {{ calculateTotal(cable) }}
+        </div> -->
         <div :class="calculateTotalFc(cable) === 0 ? 'ready' : 'countfc'">
           <p>
             {{ calculateTotalFc(cable) }}
@@ -48,11 +50,7 @@
           @mousedown="cable.tfc5 = parseInt(cable.tfc5 || 0) + 1"
           v-longclick="() => changeValue({ cable, prop: 'tfc5' })"
         />
-        <div>
-          <p style="font-size:10px;line-height:1px">{{ cable.count }}</p>
-        </div>
       </div>
-      >
     </form>
   </div>
 </template>
@@ -136,6 +134,7 @@ export default {
     let allCables = ref([]);
     let count = ref("");
     let counter = ref(0);
+    let tfc_done = ref("");
 
     function calculateTotal(cable) {
       return (
@@ -195,7 +194,8 @@ export default {
       setColorIndicator,
       updateOrder,
       changeValue,
-      counter
+      counter,
+      tfc_done
     };
   }
 };

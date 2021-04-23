@@ -32,9 +32,7 @@
       /></label>
     </div>
     <div class="buttons-save">
-      <button class="button3" @click="createAffair">
-        Enregistrer
-      </button>
+      <button class="button3" @click="createAffair">Enregistrer</button>
       <button class="button2" @click="newAffairClose">
         fermer
       </button>
@@ -49,12 +47,12 @@ export default {
   name: "AddAffair",
   emit: ["lesson-fermer-newAff"],
   setup(_, context) {
-    let name = ref("");
-    let tech_name = ref("");
-    let tech_id = ref("");
-    let receipt_date = ref("");
-    let return_date = ref("");
-    let newAffairIsClose = ref("");
+    const name = ref("");
+    const tech_name = ref("");
+    const tech_id = ref("");
+    const receipt_date = ref("");
+    const return_date = ref("");
+    const newAffairIsClose = ref("");
     // const newAffairOpen = inject("openAffaire");
 
     function newAffairClose() {
@@ -72,6 +70,10 @@ export default {
         return_date: return_date.value
       };
       cablageServices.affairadd(data);
+      // cablageServices.affairadd({
+      //   tech_id: tech_id.value,
+      //   name: tech_name.value
+      // });
       context.emit("lesson-fermer-newAff", false);
     }
     return {

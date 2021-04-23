@@ -209,12 +209,12 @@
             </button>
             <button
               @click="update_affair(affaire)"
-              class="button"
+              class="button2"
               type="submit"
             >
               Enregistrer
             </button>
-            <span class="message">{{ message }}</span>
+
             <label for="end"
               >en ligne
               <input
@@ -304,7 +304,7 @@ export default {
 
     // let newAffairOpen = ref(false);
     let searchby = ref([]);
-
+    const return_time = ref("afternoon");
     let affaireSelect = ref([]);
     let affaireSelectedId = ref([]);
     let affaireSelectedTech = ref([]);
@@ -347,6 +347,8 @@ export default {
     function selectedaff(data) {
       context.emit("lessonaffaire", data);
       context.emit("lessonaffairelabel", data);
+      techSelected(data);
+
       // console.log("selectedaff", data);
     }
     // delete une affair
@@ -403,6 +405,7 @@ export default {
       affaires,
       affaire,
       description,
+      return_time,
       search,
       affaireSelect,
       selectedaff,

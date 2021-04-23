@@ -9,7 +9,7 @@
         <div class="name">
           <h4 :class="setColorIndicator">{{ cable.name }}</h4>
         </div>
-        <p style="font-size:10px;line-height:1px">
+        <p style="font-size:10px;line-height:0px,padding-righr:3px">
           Total:{{ calculateTotal(cable) }}
         </p>
         <div>
@@ -60,18 +60,11 @@
             v-longclick="() => changeValue({ cable, prop: 'z5' })"
           />
         </div>
-        <div>
-          <p style="font-size:10px;line-height:1px">{{ cable.count }}</p>
-        </div>
-
-        <!-- <div>
-          {{ calculateTotal(cable) }}
-        </div> -->
       </div>
       <div class="info-content">
         <div class="info">
           <p>{{ cable.info }}</p>
-          <input v-model="cable.count" />
+
           <button type="button" class="link" v-if="cable.link">
             <a href="cable.link" target="_blank">link</a>
           </button>
