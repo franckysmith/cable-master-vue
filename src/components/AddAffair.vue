@@ -1,13 +1,13 @@
 <template>
   <slot></slot>
-  <div class="content">
+  <form class="content">
     <div class="content-form">
       <label for=""
         >Nom de votre affaire:
         <input
           class="name"
           type="text"
-          v-model="name"
+          v-model.lazy="name"
           placeholder=" nom de l'affaire "
           autocomplete="off"
       /></label>
@@ -37,7 +37,7 @@
         fermer
       </button>
     </div>
-  </div>
+  </form>
 </template>
 
 <script>
@@ -45,7 +45,7 @@ import { ref } from "vue";
 import cablageServices from "@/services/cablage.js";
 export default {
   name: "AddAffair",
-  emit: ["lesson-fermer-newAff"],
+  emit: ["lesson-fermer-newAff", "showcreatedaff"],
   setup(_, context) {
     const name = ref("");
     const tech_name = ref("");
@@ -58,10 +58,10 @@ export default {
     function newAffairClose() {
       newAffairIsClose.value = false;
       context.emit("lesson-fermer-newAff", newAffairIsClose.value);
-      console.log("newAffairIsClose", newAffairIsClose.value);
+      // console.log("newAffairIsClose", newAffairIsClose.value);
     }
 
-    function createAffair() {
+    async function createAffair() {
       const data = {
         name: name.value,
         tech_name: tech_name.value,
@@ -69,12 +69,10 @@ export default {
         receipt_date: receipt_date.value,
         return_date: return_date.value
       };
-      cablageServices.affairadd(data);
-      // cablageServices.affairadd({
-      //   tech_id: tech_id.value,
-      //   name: tech_name.value
-      // });
-      context.emit("lesson-fermer-newAff", false);
+      const res = await cablageServices.affairadd(data);
+      console.log("createAffair() | res", res);
+      context.emit("listenclosenewaff", false);
+      context.emit("showcreatedaff", res);
     }
     return {
       name,

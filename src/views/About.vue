@@ -7,7 +7,7 @@
       </h4>
     </div>
     <div>
-      <h4>{{ cable.count }}</h4>
+      <h4>{{ affaire.prep }}</h4>
     </div>
   </div>
 </template>

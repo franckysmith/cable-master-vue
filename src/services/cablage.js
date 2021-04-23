@@ -157,7 +157,7 @@ function affairereadname(searchby) {
 }
 
 /*//---- 'affair_add' ----*/
-function affairadd(data) {
+async function affairadd(data) {
   //   var data = {
   //     tech_id: 32,
   //     tech_name: "John Smith",
@@ -170,17 +170,23 @@ function affairadd(data) {
   //     stage: true
   //   };
 
-  api
-    .call("affair_add", data)
-    .then(function(response) {
-      console.log("affair_add:", response);
-      return affaires;
-    })
-    .catch(function(response) {
-      console.log("affair_add:", response);
-    });
+  //   api
+  //     .call("affair_add", data)
+  //     .then(function(response) {
+  //       console.log("affair_add:", response);
+  //       return affaires;
+  //     })
+  //     .catch(function(response) {
+  //       console.log("affair_add:", response);
+  //     });
+  // }
+  try {
+    const res = await api.call("affair_add", data);
+    return { status: 201, affairid: res.affairid, affaires };
+  } catch (err) {
+    return { status: 500, err: err.message };
+  }
 }
-
 /*//---- 'affair_update' ----*/
 async function affaireupdate(data) {
   //   var data = {
@@ -209,19 +215,28 @@ async function affaireupdate(data) {
 }
 
 /*//---- 'affair_delete' ----*/
-function affairedelete(data) {
+async function affairedelete(data) {
   //   var data = {
   //     affairid: 5 // put here actual affairid you want to delete
   //   };
 
-  api
-    .call("affair_delete", data)
-    .then(function(response) {
-      console.log("affair_delete:", response);
-    })
-    .catch(function(response) {
-      console.log("affair_delete:", response);
-    });
+  // api
+  //   .call("affair_delete", data)
+  //   .then(function(response) {
+  //     console.log("affair_delete:", response);
+  //   })
+  //   .catch(function(response) {
+  //     console.log("affair_delete:", response);
+  //   });
+  try {
+    const res = await api.call("affair_delete", data);
+    return { status: 200, res, msg: `Affaire ${data.affairid} supprimée` };
+  } catch (err) {
+    return {
+      status: 500,
+      msg: `Affaire ${data.affairid} NON supprimée. ${err.error}`
+    };
+  }
 }
 
 /*//---- 'order_get' ----*/
@@ -366,7 +381,7 @@ function cablemfcread() {
   api
     .call("cablemfc_get")
     .then(function(response) {
-      console.log("cablage |cablemfc_get :response:", response);
+      console.log("cablage |cablemfc_get :", response);
       return cablemfc;
     })
     .catch(response => {

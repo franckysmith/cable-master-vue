@@ -188,7 +188,7 @@ export default {
     //suppresion cable => modalDelete --------------
     const suppmfc = function(data) {
       mfcToDelete.value = data;
-      console.log("suppMfc::", data);
+      console.log("suppMfc:", data);
       isOpen.value = true;
     };
     let mfc_get = onMounted(() => {
@@ -222,7 +222,7 @@ export default {
       api
         .call("cablemfc_get", { mfcid: data.mfcid })
         .then(response => {
-          console.log("cablemfc_get-response::", response);
+          console.log("cablemfc_get -first call:", response);
           cablemfc.value = response;
           // create a view-model joining order items and cables
 
@@ -333,10 +333,17 @@ export default {
 
     // ---------cablemfc -set-------------------------------------//
     function set_cablemfc(data) {
+      console.log("set_cablemfc", data);
+      let truc = [
+        {
+          mfcid: data.mfcid,
+          count: data.count,
+          cableid: data.cableid
+        }
+      ];
       api
-        .call("cablemfc_set", data.mfcid)
+        .call("cablemfc_set", truc)
         .then(function(response) {
-          console.log("set_cablemfc", data);
           console.log(response);
         })
         .catch(function(response) {

@@ -20,8 +20,8 @@
           </button>
           <!-- <option selected disabled>Sélectionner :</option> -->
           <select
-            v-model="affaireSelectedId"
-            @change="selectedaff(affaireSelectedId)"
+            v-model="affaireSelectedObject"
+            @change="selectedaff(affaireSelectedObject)"
             id="selectaff"
             ><option value="" selected disabled>Choose</option>
             <option
@@ -229,12 +229,11 @@
           <div>
             <div class="date" name="update" style="width:350px">
               <label for="update"
-                >Update le:
+                >Mise à jour le:
                 {{
-                  format(
-                    new Date(affaire.timestamp),
-                    "EEEE do MMM yyyy hh:mm a"
-                  )
+                  format(new Date(affaire.timestamp), "EEEE  MM / hh:mm ", {
+                    locale: fr
+                  })
                 }}
               </label>
             </div>
@@ -248,9 +247,9 @@
         </button>
         <textarea
           cols="50"
-          rows="10"
+          rows="5"
           v-model.lazy="affaire.description"
-          placeholder="Noter ici une liste ds amplis et enceintes ...."
+          placeholder="Noter ici pour mémoire une liste des amplis et enceintes utilisés...."
         ></textarea>
       </div>
       <div v-if="notemaster">
@@ -258,12 +257,17 @@
         <button @click="notemaster = false" v-if="notemaster" class="button3">
           Fermer
         </button>
-        <textarea
+
+        <div class="atelier">
+          <p>{{ affaire.master_note }} Réponse de l'atelier :</p>
+        </div>
+
+        <!-- <textarea
           cols="50"
           rows="10"
           v-model.lazy="affaire.master_note"
           placeholder="Noter ici une liste des amplis et enceintes optionel biensur mais cela peut être un aide mémoire...."
-        ></textarea>
+        ></textarea> -->
       </div>
 
       <div v-if="note">
@@ -284,6 +288,7 @@
 
 <script>
 import { format } from "date-fns";
+import { fr } from "date-fns/locale";
 
 import { ref, computed, onBeforeMount } from "vue";
 import { Api } from "../js/api.js";
@@ -293,20 +298,21 @@ const api = new Api(url);
 import cablageServices from "@/services/cablage.js";
 
 export default {
-  name: "Formaffaire",
+  name: "Affaires",
   props: ["cables"],
-  emit: ["lesson-open-newaff", "lesson-affaire", "lessonaffairelabel"],
+  emits: [
+    "listenopennewaff",
+    "lesson-affaire",
+    "listenaffairelabel",
+    "listenaffaire"
+  ],
   setup(props, context) {
     let affaire = ref([]);
     let affaires = ref([]);
-
-    // function affair techSelected button to change technician => liste d'affaires
-
-    // let newAffairOpen = ref(false);
     let searchby = ref([]);
     const return_time = ref("afternoon");
     let affaireSelect = ref([]);
-    let affaireSelectedId = ref([]);
+    let affaireSelectedObject = ref([]);
     let affaireSelectedTech = ref([]);
     let affaireSelected = ref([]);
     let selectAffaire = ref([]);
@@ -318,7 +324,6 @@ export default {
     let tech_name = ref("");
     let name = ref("");
     let message = ref("");
-    // let del = ref([]);
 
     onBeforeMount(() => {
       techSelected();
@@ -326,8 +331,8 @@ export default {
 
     function newAffairOpen() {
       newAffairIsOpen.value = true;
-      console.log("newAffairIsOpen", newAffairIsOpen.value);
-      context.emit("lesson-open-newaff", newAffairIsOpen.value);
+      // console.log("newAffairIsOpen", newAffairIsOpen.value);
+      context.emit("listenopennewaff", newAffairIsOpen.value);
     }
 
     console.log("emit | newAffairopen ", newAffairIsOpen.value);
@@ -344,13 +349,12 @@ export default {
     }
 
     // emit vers views/Cabletech
-    function selectedaff(data) {
-      context.emit("lessonaffaire", data);
-      context.emit("lessonaffairelabel", data);
-      techSelected(data);
-
-      // console.log("selectedaff", data);
+    function selectedaff(affair) {
+      context.emit("listenaffaire", affair);
+      context.emit("listenaffairelabel", affair);
+      techSelected(affair);
     }
+
     // delete une affair
     function delete_affair(data) {
       // console.log("Formaffaire | delete_affair()", del);
@@ -387,7 +391,7 @@ export default {
     // select affairid par technicien v-for in search
     let search = computed(() => {
       return affaireSelectedTech.value.filter(t => {
-        return t.affairid === affaireSelectedId.value.affairid;
+        return t.affairid === affaireSelectedObject.value.affairid;
       });
     });
 
@@ -399,7 +403,7 @@ export default {
       update_affair,
       add_affair,
       format,
-      affaireSelectedId,
+      affaireSelectedObject,
       affaireSelected,
       affaireSelectedTech,
       affaires,
@@ -412,13 +416,20 @@ export default {
       newAffairOpen,
       notemaster,
       note,
-      message
+      message,
+      fr
     };
   }
 };
 </script>
 
 <style scoped>
+.atelier {
+  height: 170px;
+  width: 370px;
+
+  border: 1px solid black;
+}
 .button {
   margin: 10px;
   padding: 5px;
