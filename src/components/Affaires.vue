@@ -249,7 +249,7 @@
               <label for="update"
                 >Mise à jour le:
                 {{
-                  format(new Date(affaire.timestamp), "EEEE  MM / hh:mm ", {
+                  format(new Date(affaire.timestamp), 1, "EEEE  MM / hh:mm ", {
                     locale: fr
                   })
                 }}

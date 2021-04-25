@@ -91,7 +91,7 @@
           <div v-for="cable in filteredCableByType" :key="cable.cableid">
             <div class="number">
               <div class="name">
-                <h4>{{ cable.name }}</h4>
+                <h4>{{ cable.name }}{{ cable.cableid }}</h4>
               </div>
 
               <div>
@@ -330,15 +330,21 @@ export default {
     }
 
     // ---------cablemfc -set-------------------------------------//
+    const cablemfcupdate = ref([]);
     function set_cablemfc(data) {
       console.log("set_cablemfc", data);
-      let truc = [
-        {
-          mfcid: data.mfcid,
-          count: data.count,
-          cableid: data.cableid
-        }
-      ];
+      [cablemfcupdate.value] = data;
+      let truc = {
+        mfcid: cablemfcupdate.value.mfcid,
+
+        cables: [
+          {
+            count: cablemfcupdate.value.count,
+            cableid: cablemfcupdate.value.cableid
+          }
+        ]
+      };
+      console.log("truc", truc);
       api
         .call("cablemfc_set", truc)
         .then(function(response) {
@@ -353,6 +359,7 @@ export default {
     return {
       allCables,
       cables,
+      cablemfcupdate,
       caisseToList,
       caisseSelected,
       mfcupdate,
@@ -525,6 +532,7 @@ input {
   display: flex;
   border-width: 0px 0px 1px 0px;
   align-content: flex-start;
+  margin: 0px 5px;
 }
 
 .number input {
