@@ -249,7 +249,7 @@
               <label for="update"
                 >Mise à jour le:
                 {{
-                  format(new Date(affaire.timestamp), 1, "EEEE  MM / hh:mm ", {
+                  format(new Date(affaire.timestamp), "EEEE  MM / hh:mm ", {
                     locale: fr
                   })
                 }}
@@ -374,7 +374,7 @@ export default {
     function selectedaff(affair) {
       context.emit("listenaffaire", affair);
       context.emit("listenaffairelabel", affair);
-      techSelected(affair);
+      // techSelected(affair);
     }
 
     // ----------- delete une affair
@@ -384,7 +384,7 @@ export default {
     }
 
     function delete_affair(data) {
-      // console.log("Formaffaire | delete_affair()", del);
+      console.log("Formaffaire | delete_affair()", data);
       cablageServices.affairedelete({ affairid: data.affairid });
       affaireSelectedTech.value = [""];
     }

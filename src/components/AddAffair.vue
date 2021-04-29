@@ -45,7 +45,7 @@ import { ref } from "vue";
 import cablageServices from "@/services/cablage.js";
 export default {
   name: "AddAffair",
-  emit: ["lesson-fermer-newAff", "showcreatedaff"],
+  emit: ["listenclosenewaff", "showcreatedaff", "listenopennewaff"],
   setup(_, context) {
     const name = ref("");
     const tech_name = ref("");
@@ -57,7 +57,7 @@ export default {
 
     function newAffairClose() {
       newAffairIsClose.value = false;
-      context.emit("lesson-fermer-newAff", newAffairIsClose.value);
+      context.emit("listenclosenewaff", newAffairIsClose.value);
       // console.log("newAffairIsClose", newAffairIsClose.value);
     }
 

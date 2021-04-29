@@ -254,6 +254,9 @@
               />
             </div>
           </div>
+          <!-- <div>arrCount{{ arrCount }}</div> -->
+          <!-- <br /> -->
+          <!-- sommeOrderCountAff {{ sommeOrderCountAff }} -->
 
           <div class="content-number">
             <div v-if="typechoose !== ''">
@@ -320,7 +323,7 @@ export default {
     let affairIsOpen = ref(false);
     const affaireSelected = ref([]);
     let orders = ref([]);
-    let order = ref({});
+    let order = ref([]);
     let reserved = ref("");
     const typechoose = ref("speaker");
     let cable = ref({});
@@ -349,7 +352,7 @@ export default {
       console.log("countfc.value | data:", data);
     }
 
-    //from emit to v-if
+    //from emit to v-if ----------------------
     function toAffairOpen(data) {
       console.log("toAffairOpen(data) | data", data);
       affairIsOpen.value = data;
@@ -369,6 +372,36 @@ export default {
       .catch(response => {
         console.log("err_cable_get:", response);
       });
+
+    // ------------ count all -----------------
+
+    api
+      .call("order_get")
+      .then(response => {
+        console.log("ALL order_get:", response);
+        allOrders.value = response;
+        calculOrderCount(allOrders);
+      })
+      .catch(function(response) {
+        console.log("ALL order_get:", response);
+      });
+
+    let arrCount = ref([]);
+    let allOrders = ref([]);
+    let totalCount = ref("");
+    function calculOrderCount(allOrders) {
+      console.log("allOrders.value[2] :", allOrders.value[2]);
+      for (let i = 0; i <= allOrders.value.length; i++) {
+        totalCount.value =
+          parseInt(totalCount.value || 0) +
+          parseInt(allOrders.value[2][i] || 0);
+        arrCount.value.push({
+          count: totalCount.value,
+          cableid: allOrders.value[1][i]
+        });
+      }
+      console.log("totalCount.value :", arrCount.value);
+    }
 
     // order get with affairid
     function affaireIdToList(affair) {
@@ -438,8 +471,9 @@ export default {
         }
         cableTechJoinedData.value = [...cableTechJoinedData.value, line];
       });
-      console.log("cableTechJoinedData.value", cableTechJoinedData.value);
+      // console.log("cableTechJoinedData.value", cableTechJoinedData.value);
     }
+
     // ------from emit cableList --------------
     const resultCalcul = [];
     function calculcables(data) {
@@ -481,6 +515,19 @@ export default {
         return cable.name.toLowerCase().includes(searchKey.value.toLowerCase());
       });
     });
+
+    // --------------  somme cable affaire ----------------------
+    // let sommeOrderCountAff = ref("");
+    // let calculAff = cableTechJoinedData;
+    // function calculOrderCountAff(calculAff) {
+    //   console.log("calculAff.value :", calculAff);
+    //   for (let i = 0; i <= 10; i++) {
+    //     sommeOrderCountAff.value =
+    //       parseInt(sommeOrderCountAff.value || 0) +
+    //       parseInt(calculAff[i].count || 0);
+    //   }
+    //   console.log("sommeOrderCountAff:", sommeOrderCountAff);
+    // }
 
     // --------------- ma liste ----- count>0 -------------
     const cablesNonZero = computed(() => {
@@ -529,13 +576,18 @@ export default {
     return {
       cables,
       cable,
+      allOrders,
       affaire,
       affaireIdToList,
       affairIsOpen,
       affairid,
       affairefrom,
       affaireSelected,
+      arrCount,
+      calculOrderCount,
+      // calculOrderCountAff,
       calculcables,
+      // calculAff,
       orders,
       set_order,
       reserved,
@@ -555,6 +607,7 @@ export default {
       cableLayoutData,
       cableTechBase,
       calculateTotal,
+
       isOpentfc,
       filtreMaliste,
       newAffairOpen,
@@ -562,8 +615,11 @@ export default {
       modalOpentfc,
       searchInCableTechJoinData,
       searchKey,
+      // sommeOrderCountAff,
       showMyList,
+
       toAffairOpen,
+      totalCount,
       openNewAffair,
       affairesRef
     };

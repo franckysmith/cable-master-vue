@@ -83,6 +83,7 @@
 .main {
   text-align: left;
   width: 360px;
+  margin: auto;
 }
 li {
   list-style: none;

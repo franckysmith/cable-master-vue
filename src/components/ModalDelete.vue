@@ -65,6 +65,9 @@ export default {
   margin-top: 0;
   color: #42b983;
 }
+.modal-header button {
+  margin: 15px;
+}
 .modal-body {
   margin: 20px 0;
 }

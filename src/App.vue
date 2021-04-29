@@ -10,6 +10,10 @@
 </template>
 
 <style>
+/* * {
+  margin: 0;
+  padding: 0;
+} */
 #app {
   font-family: Avenir, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -26,6 +30,8 @@ select {
 
 #nav {
   padding: 30px;
+  width: 365px;
+  margin: auto;
 }
 
 #nav a {

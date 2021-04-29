@@ -76,7 +76,7 @@ async function cableadd(data) {
 }
 
 /*//---- 'cable_update' ----*/
-function cableupdate(data) {
+async function cableupdate(data) {
   //   let data = [
   //     {
   //       cableid: 13, // put here real cableid that were added via 'cable_add', see it in 'cable' table in phpmyadmin
@@ -92,14 +92,21 @@ function cableupdate(data) {
   //     }
   //   ];
 
-  api
-    .call("cable_update", data)
-    .then(response => {
-      console.log("cable_update:", response);
-    })
-    .catch(response => {
-      console.log("cable_update:", response);
-    });
+  // api
+  //   .call("cable_update", data)
+  //   .then(response => {
+  //     console.log("cable_update:", response);
+  //   })
+  //   .catch(response => {
+  //     console.log("cable_update:", response);
+  //   });
+  try {
+    const response = await api.call("cable_update", data);
+    return { status: 201, msg: `Cable updated avec l'id ${response}` };
+  } catch (err) {
+    console.log("CATCH cable_update:", err);
+    return { status: 500, msg: `Echec de la mise à jour du cable` };
+  }
 }
 
 /* //---- 'cable_delete' ----*/

@@ -7,6 +7,12 @@
         <div><input v-model="cable.total" name="total" /></div>
         <div><input v-model="cable.weight" name="poids" /></div>
         <div><input v-model="cable.sortno" name="ordre" /></div>
+        <button class="delete" @click="suppcable(cable)">delete</button>
+      </div>
+      <div class="info">
+        <input v-model="cable.info" placeholder="details" />
+      </div>
+      <div class="number2">
         <div class="type">
           <select v-model="cable.type" @change="updatecable(cable)">
             <option
@@ -20,25 +26,13 @@
         <button>
           <a :href="cable.link">link</a>
         </button>
+        <button type="submit" @click="updatecable(cable)" name="save">
+          update
+        </button>
 
-        <div>
-          <button type="submit" @click="updatecable(cable)" name="save">
-            update
-          </button>
-        </div>
-
-        <div>
-          <div>
-            <button @click="suppcable(cable)">delete</button>
-          </div>
-        </div>
-      </div>
-      <div class="number2">
-        <div class="info">
-          <input v-model="cable.info" placeholder="details" />
-        </div>
         <div>
           <input
+            class="link"
             style="color:#c9c9c9"
             v-model="cable.link"
             placeholder="http://www.demo.fr"
@@ -53,6 +47,7 @@
 import { computed, ref } from "vue";
 
 export default {
+  name: "MasterCableList",
   emits: ["update", "supp"],
   props: {
     cables: {
@@ -100,7 +95,7 @@ export default {
       },
       {
         id: 6,
-        name: "other",
+        name: "autre",
         value: "other"
       },
       {
@@ -169,6 +164,11 @@ export default {
 </script>
 
 <style scoped>
+a {
+  color: #1f09e0;
+  text-decoration: none;
+  /* background-color: rgb(19, 19, 18); */
+}
 .ajouter {
   margin: 10px;
 }
@@ -187,14 +187,12 @@ button {
   border-radius: 4px;
 }
 
-a {
-  color: #1f09e0;
-  text-decoration: none;
-  /* background-color: rgb(19, 19, 18); */
+.delete {
+  margin-left: 25px;
 }
 .head {
   display: flex;
-  margin-left: 160px;
+  margin-left: 140px;
   text-align: left;
   font-size: 12px;
 }
@@ -207,44 +205,58 @@ a {
   height: 90vh;
 }
 .info input {
-  width: 400px;
+  width: 352px;
+  text-align: left;
 }
+.info {
+  text-align: left;
+}
+.name {
+  padding: 0px;
+}
+.name input {
+  margin: 0px !important;
+}
+
 .list_container {
   width: 400px;
 }
-.modaldelete {
+.link .modaldelete {
   width: 400px;
   margin: auto;
 }
+.link {
+  width: 120px;
+}
 .number {
-  width: 620px;
-  border-width: 0px 0px 1px 0px;
-  /* border-style: solid; */
+  width: 365px;
+
   margin: 5px;
 }
 .number1 {
   display: flex;
+  align-items: center;
 }
 
 .number2 {
   display: flex;
-  /* flex: auto 2; */
-  margin: 0px 15px 20px;
+  align-items: center;
+  margin: 5px 0px 25px 0px;
 }
-.number2 input {
-  margin-right: 15px;
-  /* width: 100px; */
+.number2 button {
+  margin-left: 10px;
 }
 
 .number1 input {
-  width: 30px;
+  width: 25px;
   margin: 4px;
+  align-items: center;
 }
 .number button {
-  line-height: 10px;
-  padding: 4px;
-  margin-top: 10px;
-  margin-right: 4px;
+  /* line-height: 10px; */
+  /* padding: 4px; */
+  /* margin-top: 10px; */
+  margin-right: 8px;
 }
 
 .post button {
@@ -263,7 +275,7 @@ a {
   font-weight: 600;
   text-align: left;
   width: 110px;
-  margin-left: 15px;
+
   background-color: #c1c7c33a;
 }
 .selectedtype {
@@ -271,8 +283,8 @@ a {
 }
 
 .type {
-  line-height: 30px;
+  /* line-height: 30px; */
 
-  margin: 5px;
+  margin: 3px 0px;
 }
 </style>

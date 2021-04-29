@@ -108,9 +108,9 @@
     <div>
       <div class="head">
         <div style="padding-left:0px">seuil</div>
-        <div style="padding-left:26px">total</div>
-        <div style="padding-left:32px">poids</div>
-        <div style="padding-left:22px">ordre</div>
+        <div style="padding-left:16px">total</div>
+        <div style="padding-left:16px">poids</div>
+        <div style="padding-left:16px">ordre</div>
       </div>
       <div>
         <div v-if="typechoose !== ''">
@@ -258,6 +258,17 @@ export default {
 button {
   cursor: pointer;
 }
+.buttonv {
+  margin: 10px;
+  padding: 5px;
+  min-width: 50px;
+  background: #4dcc59;
+
+  border: 1px solid #000000;
+  box-sizing: border-box;
+  box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+  border-radius: 4px;
+}
 .button3 {
   margin: 10px;
   padding: 5px;
@@ -270,7 +281,7 @@ button {
 }
 .head {
   display: flex;
-  margin-left: 160px;
+  margin-left: 128px;
   text-align: left;
   font-size: 12px;
 }
@@ -283,14 +294,14 @@ button {
   height: 90vh;
 }
 .info input {
-  width: 400px;
+  width: 370px;
 }
 .list_container {
-  width: 400px;
+  width: 370px;
 }
-.modaldelete {
-  width: 400px;
-  margin: auto;
+.modal-default-button {
+  /* width: 400px; */
+  margin: 15px;
 }
 .number {
   width: 620px;
