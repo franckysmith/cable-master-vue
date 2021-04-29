@@ -386,21 +386,32 @@ export default {
         console.log("ALL order_get:", response);
       });
 
-    let arrCount = ref([]);
-    let allOrders = ref([]);
-    let totalCount = ref("");
-    function calculOrderCount(allOrders) {
-      console.log("allOrders.value[2] :", allOrders.value[2]);
-      for (let i = 0; i <= allOrders.value.length; i++) {
-        totalCount.value =
-          parseInt(totalCount.value || 0) +
-          parseInt(allOrders.value[2][i] || 0);
-        arrCount.value.push({
-          count: totalCount.value,
-          cableid: allOrders.value[1][i]
-        });
+    let allOrders   = ref([]);
+    let arrCount    = ref([]);
+    let totalCount  = ref(0);
+    
+        // Calculates arrCount and totalCount.
+    
+    function calculOrderCount(allOrders)
+    {
+      let total = 0;
+      const counts = {}; // counts by cableids
+      
+      for(let { cableid, count } of allOrders.value) {
+        count *= 1; // convert to integer
+        total += count;
+        
+        if(counts[cableid])
+          count += counts[cableid].count;
+        
+        counts[cableid] = { cableid, count };
       }
-      console.log("totalCount.value :", arrCount.value);
+      
+      totalCount.value = total;
+      arrCount.value = Object.values(counts);
+      
+      console.log('totalCount:', totalCount.value);
+      console.log('arrCount:', arrCount.value);
     }
 
     // order get with affairid
