@@ -365,11 +365,11 @@ export default {
     // cable list  -----------------------
     api
       .call("cable_get")
-      .then(response => {
+      .then((response) => {
         console.log("cable_get:", response);
         cables.value = response;
       })
-      .catch(response => {
+      .catch((response) => {
         console.log("err_cable_get:", response);
       });
 
@@ -377,41 +377,39 @@ export default {
 
     api
       .call("order_get")
-      .then(response => {
+      .then((response) => {
         console.log("ALL order_get:", response);
         allOrders.value = response;
         calculOrderCount(allOrders);
       })
-      .catch(function(response) {
+      .catch(function (response) {
         console.log("ALL order_get:", response);
       });
 
-    let allOrders   = ref([]);
-    let arrCount    = ref([]);
-    let totalCount  = ref(0);
-    
-        // Calculates arrCount and totalCount.
-    
-    function calculOrderCount(allOrders)
-    {
+    let allOrders = ref([]);
+    let arrCount = ref([]);
+    let totalCount = ref(0);
+
+    // Calculates arrCount and totalCount.
+
+    function calculOrderCount(allOrders) {
       let total = 0;
       const counts = {}; // counts by cableids
-      
-      for(let { cableid, count } of allOrders.value) {
+
+      for (let { cableid, count } of allOrders.value) {
         count *= 1; // convert to integer
         total += count;
-        
-        if(counts[cableid])
-          count += counts[cableid].count;
-        
+
+        if (counts[cableid]) count += counts[cableid].count;
+
         counts[cableid] = { cableid, count };
       }
-      
+
       totalCount.value = total;
       arrCount.value = Object.values(counts);
-      
-      console.log('totalCount:', totalCount.value);
-      console.log('arrCount:', arrCount.value);
+
+      console.log("totalCount:", totalCount.value);
+      console.log("arrCount:", arrCount.value);
     }
 
     // order get with affairid
@@ -424,22 +422,22 @@ export default {
 
       api
         .call("order_get", { affairid: affair.affairid })
-        .then(response => {
+        .then((response) => {
           console.log("order_get:", response);
           orders.value = response;
           // create a view-model joining order items and cables
           aggregateData(response, cables.value);
         })
-        .catch(function(response) {
+        .catch(function (response) {
           console.log("order_get:", response);
         });
     }
     // aggregateData table 'cables' et 'orders'
     function aggregateData(orders, cables) {
-      orders.forEach(o => {
+      orders.forEach((o) => {
         cableIdsInOrders.value.push(o.cableid);
       });
-      cables.forEach(cable => {
+      cables.forEach((cable) => {
         let line = {
           cableid: cable.cableid,
           affairid: affaireSelected.value.affairid,
@@ -451,10 +449,10 @@ export default {
           total: cable.total,
           link: cable.link,
           info: cable.info,
-          type: cable.type
+          type: cable.type,
         };
         if (cableIdsInOrders.value.includes(cable.cableid)) {
-          const orderItem = orders.find(o => o.cableid === cable.cableid);
+          const orderItem = orders.find((o) => o.cableid === cable.cableid);
           line = {
             cableid: cable.cableid,
             affairid: orderItem.affairid,
@@ -477,7 +475,7 @@ export default {
             z3: orderItem.z3,
             z4: orderItem.z4,
             z5: orderItem.z5,
-            tfc_done: orderItem.tfc_done
+            tfc_done: orderItem.tfc_done,
           };
         }
         cableTechJoinedData.value = [...cableTechJoinedData.value, line];
@@ -509,11 +507,11 @@ export default {
       console.log("cabletech | orderset:::", data);
       api
         .call("order_set", data)
-        .then(response => {
+        .then((response) => {
           console.log("order_set:");
           console.log(response);
         })
-        .catch(response => {
+        .catch((response) => {
           console.log("err_order_get:");
           console.log(response);
         });
@@ -522,7 +520,7 @@ export default {
     // ---- recherche dans liste cable par searchKey
     const searchInCableTechJoinData = computed(() => {
       // console.log("searchInCableTechJoinData:", searchInCableTechJoinData);
-      return cableTechJoinedData.value.filter(cable => {
+      return cableTechJoinedData.value.filter((cable) => {
         return cable.name.toLowerCase().includes(searchKey.value.toLowerCase());
       });
     });
@@ -542,7 +540,7 @@ export default {
 
     // --------------- ma liste ----- count>0 -------------
     const cablesNonZero = computed(() => {
-      return searchInCableTechJoinData.value.filter(c => c.count > 0);
+      return searchInCableTechJoinData.value.filter((c) => c.count > 0);
     });
 
     // --- filtrer liste
@@ -558,7 +556,7 @@ export default {
     }
     const filteredCableByType = computed(() => {
       return searchInCableTechJoinData.value.filter(
-        c => c.type === typechoose.value
+        (c) => c.type === typechoose.value
       );
     });
 
@@ -572,14 +570,14 @@ export default {
       console.log("openNewAffair data", data);
       api
         .call("order_get", { affairid: data.affairid })
-        .then(response => {
+        .then((response) => {
           console.log("order_get:", response);
           orders.value = response;
           // create a view-model joining order items and cables
           aggregateData(response, cables.value);
           affairesRef.value.selectedaff(response);
         })
-        .catch(function(response) {
+        .catch(function (response) {
           console.log("order_get:", response);
         });
     }
@@ -632,9 +630,9 @@ export default {
       toAffairOpen,
       totalCount,
       openNewAffair,
-      affairesRef
+      affairesRef,
     };
-  }
+  },
 };
 </script>
 <style scoped>
