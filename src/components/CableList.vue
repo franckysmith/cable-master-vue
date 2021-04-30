@@ -7,10 +7,10 @@
           {{ cable.done }}
         </div> -->
         <div class="name">
-          <h4 :class="setColorIndicator">{{ cable.name }}</h4>
+          <h4 :class="setColorIndicator(cable)">{{ cable.name }}</h4>
         </div>
         <p style="font-size:10px;line-height:0px,padding-righr:3px">
-          Total:{{ calculateTotal(cable) }}
+          Total:{{ calculateTotal(cable) }}<br />{{ cable.cableid }}
         </p>
         <div>
           <input
@@ -80,6 +80,7 @@ import { longClickDirective } from "vue-long-click";
 
 export default {
   emits: ["listentotalcable"],
+  name: "CableList",
   props: {
     cables: {
       type: Array
@@ -91,6 +92,9 @@ export default {
       type: Boolean
     },
     affaireSelected: {
+      type: Array
+    },
+    arrCount: {
       type: Array
     }
   },
@@ -177,27 +181,25 @@ export default {
       return props.cables;
     });
 
-    let totalcount = ref("5");
+    // let totalcount = ref("5");
 
-    let setColorIndicator = computed(() => {
-      if (totalcount.value < 0) {
-        return "read";
-      } else if (totalcount.value < 5) {
+    function setColorIndicator(cable) {
+      console.log("CableList | setColorIndicator | cable ", cable);
+      if (!cable) {
+        return;
+      }
+      console.log("cable keys", Object.keys(cable));
+      console.log("cable values", Object.values(cable));
+      console.log("cable total", Object.values(cable)[7]);
+      const cableTotal = +Object.values(cable)[7];
+      if (cableTotal > 10) {
+        return "green";
+      } else if (cableTotal > 5) {
         return "orange";
       } else {
-        return "green";
+        return "alert";
       }
-    });
-
-    // function setColorIndicator(cable) {
-    //   if (cable.total > 10) {
-    //     return "available-info";
-    //   } else if (cable.total > 5) {
-    //     return "available-warning";
-    //   } else {
-    //     return "available-alert";
-    //   }
-    // }
+    }
 
     return {
       calculateTotal,
@@ -205,7 +207,7 @@ export default {
       setColorIndicator,
       longClickDirective,
       cable,
-      totalcount,
+      // totalcount,
       changeValue
     };
   }
