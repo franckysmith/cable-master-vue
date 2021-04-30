@@ -145,7 +145,7 @@ class form {
   
         // Prepares field values for storage. Does these things:
         //    * adds default values from field descriptors, if any, into $values, if they are absent in $values
-        //    * trims $values
+        //    * trims string $values (avoid booleans)
         //    * unsets empty values in $values for fields that have 'dropempty' attribute set
         //    * unsets values in $values for fields that are not listed in $fields
         //    * qualifies nonempty 'url' value with url::qualifyUrl() if 'urlprotocol' attribute is set
@@ -173,7 +173,8 @@ class form {
         if(!isset($values2[$name]))
           continue;
         
-        $values2[$name] = trim($values2[$name]);
+        if(is_string($values2[$name]))  // avoid trim(false) -> ''
+          $values2[$name] = trim($values2[$name]);
         
         if(@$field['dropempty'] && $values2[$name] == '' || @$field['checkonly']) {
           unset($values2[$name]);

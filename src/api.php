@@ -521,6 +521,7 @@ class api extends errorhandled {
         //    {
         //      [orderid],
         //      [cableid],
+        //			[name],
         //      [affairid],
         //      [tech_id],
         //      [count],
@@ -534,6 +535,7 @@ class api extends errorhandled {
         //      {
         //        orderid,
         //        cableid,
+        //				name,
         //        affairid,
         //        tech_id,
         //        count,
@@ -556,10 +558,16 @@ class api extends errorhandled {
       
       case 'order_get':
         
-        // silently unset not searchable fields, if any
-        $where = self::$data ? form::prepareValues(self::$FIELDS[$method], self::$data) : '';
+        $where = "o.cableid=c.cableid";
         
-        $result = db::rows('*', '`order`', $where); // `order` needs backticks as 'order' is reserved in MySQL
+        if(self::$data) {
+					// silently unset not searchable fields, if any, so may get empty
+					$where2 = form::prepareValues(self::$FIELDS[$method], self::$data);
+					if($where2)
+						$where .= ' AND '.db::where($where2);
+				}
+        
+        $result = db::rows('o.*, c.name', '`order` o, cable c', $where);
         
         break;
       
@@ -729,6 +737,9 @@ class api extends errorhandled {
       
       case 'order_set':
         
+        /*error_log('order_set');
+        error_log(util::var_dump(self::$data));*/
+        
         db::query('BEGIN');
         
         foreach(self::$data as &$order) {
@@ -737,7 +748,7 @@ class api extends errorhandled {
             $result['field'] = current(array_keys($error));
             break;
           }
-          
+         
           $values = form::prepareValues(self::$FIELDS[$method], $order);
           
           extract($values);
@@ -946,6 +957,7 @@ class api extends errorhandled {
         // Output:
         //    [
         //      {
+        //        mfcid,
         //        cableid,
         //        name,
         //        type,
@@ -967,7 +979,7 @@ class api extends errorhandled {
         
         $mfcid = self::$data['mfcid'];
         
-        $result = db::rows('cablemfc.cableid,name,type,weight,info,link,count', 'cablemfc,cable',
+        $result = db::rows('mfcid,cablemfc.cableid,name,type,weight,info,link,count', 'cablemfc,cable',
                            "mfcid=$mfcid AND cable.cableid=cablemfc.cableid", '', 'sortno,name');
         break;
       
@@ -978,7 +990,7 @@ class api extends errorhandled {
         //    * if new count is zero, the cable is deleted
         // Input:
         //    {
-        //      mfcid:  <if of an MFC to set cable for>,
+        //      mfcid:  <id of an MFC to set cable for>,
         //      cables:
         //      [
         //        {
@@ -1177,6 +1189,7 @@ api::$FIELDS = [
   [
     'orderid'       =>  ANY,
     'cableid'       =>  ANY,
+    'name'          =>  ANY,
     'affairid'      =>  ANY,
     'tech_id'       =>  ANY,
     'count'         =>  ANY,

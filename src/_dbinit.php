@@ -21,7 +21,7 @@ $SCHEMA_SCRIPT =
   (
     cableid       INT UNSIGNED NOT NULL AUTO_INCREMENT,
     name          VARCHAR(25) NOT NULL,
-    type          ENUM("electrical", "speaker", "microphone", "module", "special", "multi", "c_type"),
+    type          ENUM("electrical", "speaker", "microphone", "module", "special", "other", "c_type", "accessory", "digital"),
     sortno        SMALLINT UNSIGNED NOT NULL DEFAULT 65535,
     weight        INT UNSIGNED,
     
@@ -68,6 +68,7 @@ $SCHEMA_SCRIPT =
     
     name          VARCHAR(50) NOT NULL,
     ref           VARCHAR(50),
+    description   TEXT,
     
     prep_date     DATE,
     prep_time     ENUM("morning", "afternoon"),
@@ -82,6 +83,18 @@ $SCHEMA_SCRIPT =
   
     master_note   TEXT,
     tech_note     TEXT,
+    
+    lz1           VARCHAR(5),
+    lz2           VARCHAR(5),
+    lz3           VARCHAR(5),
+    lz4           VARCHAR(5),
+    lz5           VARCHAR(5),
+    
+    lfc1          VARCHAR(5),
+    lfc2          VARCHAR(5),
+    lfc3          VARCHAR(5),
+    lfc4          VARCHAR(5),
+    lfc5          VARCHAR(5),
     
     done          BOOLEAN NOT NULL DEFAULT 0,
     
@@ -111,7 +124,13 @@ $SCHEMA_SCRIPT =
     tfc3          INT UNSIGNED NOT NULL DEFAULT 0,
     tfc4          INT UNSIGNED NOT NULL DEFAULT 0,
     tfc5          INT UNSIGNED NOT NULL DEFAULT 0,
-    tfc_done      BOOLEAN NOT NULL DEFAULT 0, 
+    tfc_done      BOOLEAN NOT NULL DEFAULT 0,
+    
+    z1            INT UNSIGNED NOT NULL DEFAULT 0,
+    z2            INT UNSIGNED NOT NULL DEFAULT 0,
+    z3            INT UNSIGNED NOT NULL DEFAULT 0,
+    z4            INT UNSIGNED NOT NULL DEFAULT 0,
+    z5            INT UNSIGNED NOT NULL DEFAULT 0,
     
     timestamp     TIMESTAMP NOT NULL DEFAULT NOW() ON UPDATE NOW(),
   
