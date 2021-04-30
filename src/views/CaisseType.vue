@@ -431,10 +431,6 @@ button {
   align-items: center;
 }
 
-.content-number {
-  /* flex-direction: column; */
-  /* align-items: center; */
-}
 .ct-content {
   display: flex;
 

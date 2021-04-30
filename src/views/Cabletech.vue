@@ -254,8 +254,8 @@
               />
             </div>
           </div>
-          <!-- <div>arrCount{{ arrCount }}</div> -->
-          <!-- <br /> -->
+          <div>arrCount{{ arrCount }}</div>
+
           <!-- sommeOrderCountAff {{ sommeOrderCountAff }} -->
 
           <div class="content-number">
@@ -373,8 +373,7 @@ export default {
         console.log("err_cable_get:", response);
       });
 
-    // ------------ count all -----------------
-
+    // ------------ count all orders -----------------
     api
       .call("order_get")
       .then(response => {
@@ -386,35 +385,34 @@ export default {
         console.log("ALL order_get:", response);
       });
 
-    let allOrders   = ref([]);
-    let arrCount    = ref([]);
-    let totalCount  = ref(0);
-    
-        // Calculates arrCount and totalCount.
-    
-    function calculOrderCount(allOrders)
-    {
+    let allOrders = ref([]);
+    let arrCount = ref([]);
+    let totalCount = ref(0);
+
+    // Calculates arrCount and totalCount.
+
+    function calculOrderCount(allOrders) {
       let total = 0;
       const counts = {}; // counts by cableids
-      
-      for(let { cableid, count } of allOrders.value) {
+
+      for (let { cableid, count } of allOrders.value) {
         count *= 1; // convert to integer
         total += count;
-        
-        if(counts[cableid])
-          count += counts[cableid].count;
-        
+
+        if (counts[cableid]) count += counts[cableid].count;
+
         counts[cableid] = { cableid, count };
       }
-      
       totalCount.value = total;
       arrCount.value = Object.values(counts);
-      
-      console.log('totalCount:', totalCount.value);
-      console.log('arrCount:', arrCount.value);
+
+      console.log("totalCount:", totalCount.value);
+      console.log("arrCount:", arrCount.value);
+      console.log("affOrders", affOrders.value);
     }
 
     // order get with affairid
+    const affOrders = ref([]);
     function affaireIdToList(affair) {
       cableIdsInOrders.value = [];
       cableTechJoinedData.value = [];
@@ -428,6 +426,7 @@ export default {
           console.log("order_get:", response);
           orders.value = response;
           // create a view-model joining order items and cables
+          affOrders.value = response;
           aggregateData(response, cables.value);
         })
         .catch(function(response) {
@@ -527,19 +526,6 @@ export default {
       });
     });
 
-    // --------------  somme cable affaire ----------------------
-    // let sommeOrderCountAff = ref("");
-    // let calculAff = cableTechJoinedData;
-    // function calculOrderCountAff(calculAff) {
-    //   console.log("calculAff.value :", calculAff);
-    //   for (let i = 0; i <= 10; i++) {
-    //     sommeOrderCountAff.value =
-    //       parseInt(sommeOrderCountAff.value || 0) +
-    //       parseInt(calculAff[i].count || 0);
-    //   }
-    //   console.log("sommeOrderCountAff:", sommeOrderCountAff);
-    // }
-
     // --------------- ma liste ----- count>0 -------------
     const cablesNonZero = computed(() => {
       return searchInCableTechJoinData.value.filter(c => c.count > 0);
@@ -588,6 +574,7 @@ export default {
       cables,
       cable,
       allOrders,
+      affOrders,
       affaire,
       affaireIdToList,
       affairIsOpen,
@@ -828,10 +815,7 @@ input {
 .list_container {
   width: 375px;
 }
-.main {
-  /* width: 100%;
-  margin: 0 auto; */
-}
+
 .name {
   height: 10px;
   width: 100px;
