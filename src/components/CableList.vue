@@ -83,20 +83,20 @@ export default {
   name: "CableList",
   props: {
     cables: {
-      type: Array
+      type: Array,
     },
     cableType: {
-      type: String
+      type: String,
     },
     showMyList: {
-      type: Boolean
+      type: Boolean,
     },
     affaireSelected: {
-      type: Array
+      type: Array,
     },
     arrCount: {
-      type: Array
-    }
+      type: Array,
+    },
   },
   directives: {
     longclick: {
@@ -113,7 +113,7 @@ export default {
         }
         let pressTimer = null;
         let pressInterval = null;
-        const start = e => {
+        const start = (e) => {
           if (e.type === "click" && e.button !== 0) {
             return;
           }
@@ -140,15 +140,17 @@ export default {
           }
         };
         // Run Function
-        const handler = e => {
+        const handler = (e) => {
           binding.value(e);
         };
-        ["mousedown", "touchstart"].forEach(e => el.addEventListener(e, start));
-        ["click", "mouseout", "touchend", "touchcancel"].forEach(e =>
+        ["mousedown", "touchstart"].forEach((e) =>
+          el.addEventListener(e, start)
+        );
+        ["click", "mouseout", "touchend", "touchcancel"].forEach((e) =>
           el.addEventListener(e, cancel)
         );
-      }
-    }
+      },
+    },
   },
 
   setup(props, { emit }) {
@@ -176,7 +178,7 @@ export default {
 
     allCables = computed(() => {
       if (props.showMyList) {
-        return props.cables.filter(c => calculateTotal(c) > 0);
+        return props.cables.filter((c) => calculateTotal(c) > 0);
       }
       return props.cables;
     });
@@ -184,20 +186,27 @@ export default {
     // let totalcount = ref("5");
 
     function setColorIndicator(cable) {
-      console.log("CableList | setColorIndicator | cable ", cable);
       if (!cable) {
         return;
       }
-      console.log("cable keys", Object.keys(cable));
-      console.log("cable values", Object.values(cable));
-      console.log("cable total", Object.values(cable)[7]);
-      const cableTotal = +Object.values(cable)[7];
-      if (cableTotal > 10) {
+      // console.log("cable keys", Object.keys(cable));
+      // console.log("cable values", Object.values(cable));
+      // console.log("cable total", Object.values(cable)[7]);
+      const cableTotal = Number(Object.values(cable)[7]);
+      const cableFromProps = props.arrCount.find(
+        cable => cable.cableid === cable.cableid
+      );
+      if (!cableFromProps) {
+        return;
+      }
+      const cableTotalUpdated = cableTotal - Number(cableFromProps.count);
+      console.log("cableTotalUpdated", cableTotalUpdated);
+      if (cableTotalUpdated > 10) {
         return "green";
-      } else if (cableTotal > 5) {
+      } else if (cableTotalUpdated > 5) {
         return "orange";
       } else {
-        return "alert";
+        return "red";
       }
     }
 
@@ -208,9 +217,9 @@ export default {
       longClickDirective,
       cable,
       // totalcount,
-      changeValue
+      changeValue,
     };
-  }
+  },
 };
 </script>
 
@@ -262,7 +271,7 @@ input {
 .green {
   border-left: 5px solid #4dcc59;
 }
-.read {
+.red {
   border-left: 5px solid red;
 }
 .orange {
