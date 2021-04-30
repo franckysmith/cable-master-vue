@@ -65,8 +65,8 @@
             <div class="content">
               <input type="checkbox" />
               <h4>{{ affaire.name }}</h4>
-              <span @click="setColorIndicator(affaire.tech_id)" class="taille">
-                {{ affaire.tech_id }}
+              <span @click="setColorIndicator(size)" class="taille">
+                {{ size }}
               </span>
               <h5>{{ affaire.tech_name }}</h5>
             </div>
@@ -990,12 +990,37 @@ export default {
         .call("affair_get")
         .then(response => {
           affaires.value = response;
+          ordersAff(affaires);
           console.log("affair_get:", response);
         })
         .catch(response => {
           console.log("err_affair_get:", response);
         });
     });
+
+    // --------------- count orders by Aff -------------
+    let affOrders = ref([]);
+    let arrCountAff = ref([]);
+    let totalCountAff = ref(0);
+
+    function ordersAff(affOrders) {
+      let total = 0;
+      const counts = {}; // counts by cableids
+
+      for (let { cableid, count } of affOrders.value) {
+        count *= 1; // convert to integer
+        total += count;
+
+        if (counts[cableid]) count += counts[cableid].count;
+
+        counts[cableid] = { cableid, count };
+      }
+      totalCountAff.value = total;
+      arrCountAff.value = Object.values(counts);
+
+      console.log("totalCountAff:", totalCountAff.value);
+      console.log("arrCountAff:", arrCountAff.value);
+    }
 
     let cable_get = onMounted(() => {
       api
@@ -1008,13 +1033,13 @@ export default {
           console.log("err_cable_get:", response);
         });
     });
-
+    let size = ref("");
     const setColorIndicator = computed(() => {
-      console.log("affaire.value.tech_id::", affaire.value.tech_id);
-      if (affaire.value.tech_id == "32") {
+      console.log("affaire.value.tech_id::", size.value);
+      if (size.value < "30") {
         return "grey";
-      } else if (affaire.value.tech_id > "30") {
-        return "orange";
+        // } else if (size >= "30" && size < "70") {
+        //   return "orange";
       } else {
         return "red";
       }
@@ -1071,7 +1096,7 @@ export default {
       addDays,
       add,
       affaires,
-
+      affOrders,
       after2,
       after5,
       // affairToday,
@@ -1094,7 +1119,9 @@ export default {
       displayNote,
       format,
       formatRelative,
+      ordersAff,
       subDays,
+      size,
       // showIcon,
       setColorIndicator,
       today,

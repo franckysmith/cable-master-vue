@@ -265,7 +265,7 @@
                 :cables="filteredCableByType"
                 :cable-type="typechoose"
                 :show-my-list="showMyList"
-                :arrCount="arrCount"
+                :arr-count="arrCount"
               />
             </div>
             <div v-else>
@@ -274,7 +274,7 @@
                 :cables="searchInCableTechJoinData"
                 cable-type=""
                 :show-my-list="showMyList"
-                :arrCount="arrCount"
+                :arr-count="arrCount"
               />
             </div>
           </div>
@@ -382,7 +382,7 @@ export default {
       cableTechJoinedData.value = [];
       // let searchbyaff = { affairid: data.affairid };
       // let affaireSelected = data;
-      console.log("affaireSelected", affaireSelected);
+      // console.log("affaireSelected", affaireSelected);
 
       api
         .call("order_get", { affairid: affair.affairid })
@@ -449,7 +449,7 @@ export default {
       // console.log("cableTechJoinedData.value", cableTechJoinedData.value);
     }
 
-    // ------------ count ordersAff -----------------
+    // ------------ count AllOrders -----------------
     api
       .call("order_get")
       .then(response => {
@@ -469,44 +469,44 @@ export default {
 
     function calculOrderCount(allOrders) {
       let total = 0;
-      const counts = {}; // counts by cableids
+      const counts = {}; //name and counts by cableids
 
-      for (let { cableid, count } of allOrders.value) {
+      for (let { cableid, count, name } of allOrders.value) {
         count *= 1; // convert to integer
         total += count;
 
         if (counts[cableid]) count += counts[cableid].count;
 
-        counts[cableid] = { cableid, count };
+        counts[cableid] = { cableid, count, name };
       }
       totalCount.value = total;
       arrCount.value = Object.values(counts);
 
-      console.log("totalCount:", totalCount.value);
-      console.log("arrCount:", arrCount.value);
+      // console.log("totalCount:", totalCount.value);
+      console.log("arrCount!:", arrCount.value);
     }
-    // --------------- count all orders -------------
+    // --------------- count orders by Aff -------------
     let affOrders = ref([]);
     let arrCountAff = ref([]);
     let totalCountAff = ref(0);
 
     function ordersAff(affOrders) {
       let total = 0;
-      const counts = {}; // counts by cableids
+      const counts = {}; // name and counts by cableids
 
-      for (let { cableid, count } of affOrders.value) {
+      for (let { cableid, count, name } of affOrders.value) {
         count *= 1; // convert to integer
         total += count;
 
         if (counts[cableid]) count += counts[cableid].count;
 
-        counts[cableid] = { cableid, count };
+        counts[cableid] = { cableid, count, name };
       }
-      totalCount.value = total;
-      arrCount.value = Object.values(counts);
+      totalCountAff.value = total;
+      arrCountAff.value = Object.values(counts);
 
-      console.log("totalCountAff:", totalCount.value);
-      console.log("arrCountAff:", arrCount.value);
+      // console.log("totalCountAff:", totalCountAff.value);
+      // console.log("arrCountAff:", arrCountAff.value);
     }
 
     // ------from emit cableList --------------

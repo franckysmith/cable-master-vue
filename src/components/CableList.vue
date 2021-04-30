@@ -9,8 +9,10 @@
         <div class="name">
           <h4 :class="setColorIndicator(cable)">{{ cable.name }}</h4>
         </div>
+
         <p style="font-size:10px;line-height:0px,padding-righr:3px">
-          Total:{{ calculateTotal(cable) }}<br />{{ cable.cableid }}
+          Total:{{ calculateTotal(cable) }}<br />
+          {{ cable.total }}
         </p>
         <div>
           <input
@@ -181,23 +183,35 @@ export default {
       return props.cables;
     });
 
-    // let totalcount = ref("5");
-
     function setColorIndicator(cable) {
-      console.log("CableList | setColorIndicator | cable ", cable);
+      // console.log("CableList | setColorIndicator | cable!! ", cable);
       if (!cable) {
         return;
       }
-      console.log("cable keys", Object.keys(cable));
-      console.log("cable values", Object.values(cable));
-      console.log("cable total", Object.values(cable)[7]);
-      const cableTotal = +Object.values(cable)[7];
-      if (cableTotal > 10) {
+      // console.log("cable keys", Object.keys(cable));
+      // console.log("cable values", Object.values(cable));
+      // console.log("cable total", Object.values(cable)[7]);
+
+      // const cableTotal = +Object.values(cable)[7];
+      const cableTotal = Number(Object.values(cable)[7]);
+      const cableFromProps = props.arrCount.find(
+        cable => cable.cableid === cable.cableid
+      );
+      if (!cableFromProps) {
+        return;
+      }
+      const cableTotalUpdated = cableTotal - Number(cableFromProps.count);
+      // console.log("cableTotalUpdated", cableTotalUpdated);
+      // console.log("cableFromProps.count", cableFromProps.count);
+
+      if (cableTotalUpdated > 20) {
         return "green";
-      } else if (cableTotal > 5) {
+      } else if (cableTotalUpdated > 12) {
         return "orange";
+      } else if (cableTotalUpdated < 0) {
+        return "red";
       } else {
-        return "alert";
+        return "red";
       }
     }
 
@@ -207,7 +221,6 @@ export default {
       setColorIndicator,
       longClickDirective,
       cable,
-      // totalcount,
       changeValue
     };
   }
@@ -262,7 +275,7 @@ input {
 .green {
   border-left: 5px solid #4dcc59;
 }
-.read {
+.red {
   border-left: 5px solid red;
 }
 .orange {

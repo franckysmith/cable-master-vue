@@ -209,19 +209,19 @@ export default {
     function add_cable(data) {
       console.log("cablemaster | cableadd()", data);
       cablageServices.cableadd(data);
-      cable_get();
+      cablageServices.cableread();
     }
     // effacer un cable
     function delete_cable(data) {
       console.log("cablemaster | cabledelete()", data);
       cablageServices.cabledelete([data]);
-      cable_get();
+      cablageServices.cableread();
     }
     // update un cable
     function update_cable(param) {
       console.log("cablemaster | cableupdate", param);
       cablageServices.cableupdate([param]);
-      cable_get();
+      cablageServices.cableread();
     }
     // -----------------------------------------------
     return {
