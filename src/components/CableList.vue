@@ -183,7 +183,7 @@ export default {
       return props.cables;
     });
 
-    function setColorIndicator(cable) {
+    /* edw: function setColorIndicator(cable) {
       // console.log("CableList | setColorIndicator | cable!! ", cable);
       if (!cable) {
         return;
@@ -203,6 +203,34 @@ export default {
       const cableTotalUpdated = cableTotal - Number(cableFromProps.count);
       // console.log("cableTotalUpdated", cableTotalUpdated);
       // console.log("cableFromProps.count", cableFromProps.count);
+
+      if (cableTotalUpdated > 20) {
+        return "green";
+      } else if (cableTotalUpdated > 12) {
+        return "orange";
+      } else if (cableTotalUpdated < 0) {
+        return "red";
+      } else {
+        return "red";
+      }
+    }*/
+    
+    function setColorIndicator(cable) {
+      if(!cable)
+        return;
+      
+      // Franck, it's not a good idea to reference cable.total by index [7]
+      // because it may change in future, say if we add one more field.
+      // Why not just cable.total ?
+      // const cableTotal = Number(Object.values(cable)[7]);
+      
+      const cableFromProps = props.arrCount.find(
+        cable2 => cable.cableid == cable2.cableid  // introduce cable2 to not interfere with cable
+      );
+      if(!cableFromProps)
+        return;
+
+      const cableTotalUpdated = +cable.total - +cableFromProps.count;
 
       if (cableTotalUpdated > 20) {
         return "green";
