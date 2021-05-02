@@ -444,6 +444,7 @@ export default {
             tfc_done: orderItem.tfc_done
           };
         }
+        countDigestInit(line);
         cableTechJoinedData.value = [...cableTechJoinedData.value, line];
       });
       // console.log("cableTechJoinedData.value", cableTechJoinedData.value);
@@ -525,20 +526,41 @@ export default {
         parseInt(cable.spare_count || 0)
       );
     }
+    
+    //---- count digest ----
+    
+    function countDigest(cable) {
+      return `${cable.z1},${cable.z2},${cable.z3},${cable.z4},${cable.z5},${cable.spare_count}`;
+    }
+    
+    function countDigestInit(cable) {
+      cable.count_digest = countDigest(cable);
+    }
+    
+    function countDigestChanged(cable) {
+      return cable.count_digest != countDigest(cable);
+    }
+    
+    //----------------------
 
     // save/set_order
     function set_order(data) {
-      for (const cable of data) cable.count = calculateTotal(cable);
+      for (const cable of data)
+        cable.count = calculateTotal(cable);
+        
+      // update just cables with changed count_digest
+      const cables = data.filter(countDigestChanged);
+      if(!cables.length)
+        return;
 
-      console.log("cabletech | orderset:::", data);
+      console.log("cabletech | orderset:::", cables);
       api
-        .call("order_set", data)
-        .then(response => {
-          console.log("order_set:");
-          console.log(response);
+        .call("order_set", cables)
+        .then(() => {
+          data.forEach(countDigestInit);
         })
         .catch(response => {
-          console.log("err_order_get:");
+          console.log("order_set error:");
           console.log(response);
         });
     }
