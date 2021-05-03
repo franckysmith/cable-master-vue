@@ -49,6 +49,7 @@
 
     <div>
       <button class="ajouter" @click="add_cable">ajouter</button>
+      <button type="buton" @click="displayAddCable = false">fermer</button>
     </div>
   </form>
   ----------------------
@@ -174,8 +175,8 @@ export default {
 }
 .infolink input {
   margin: 10px;
-  width: 385px;
-  margin-right: 10px;
+  width: 315px;
+  /* margin-right: 10px; */
 }
 .name {
   width: 110px;

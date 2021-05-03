@@ -49,12 +49,7 @@
               >{{ affaire.name }}
             </option>
           </select>
-          <input
-            class="tech-name"
-            v-model="affaire.tech_name"
-            type="text"
-            placeholder="Nom du technicien"
-          />
+          <div id="teltechname"></div>
         </li>
       </ul>
     </div>
@@ -64,6 +59,15 @@
       v-for="affaire in search"
       :key="affaire.affairid"
     >
+      <div style="margin:5px">
+        <input
+          class="tech-name"
+          v-model="affaire.tech_name"
+          type="text"
+          placeholder="Nom du technicien"
+        />
+      </div>
+
       <div class="entete">
         <input
           class="entete-name-aff"
@@ -534,7 +538,7 @@ export default {
   align-items: baseline;
   display: flex;
   justify-content: space-evenly;
-  width: 375px;
+  width: 365px;
 }
 .date-size {
   width: 120px;
@@ -607,7 +611,7 @@ li {
   margin-bottom: 15px;
 }
 .search-tech-aff select {
-  margin: 0px 15px 15px 0px;
+  margin: 0px 15px 5px 0px;
 }
 .tech-name {
   width: 120px;

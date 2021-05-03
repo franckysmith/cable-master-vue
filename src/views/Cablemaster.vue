@@ -119,6 +119,7 @@
             @update="update_cable"
             :cables="filteredCableByType"
             :cable-type="typechoose"
+            @close="closeaddcable"
           />
         </div>
         <div v-else>
@@ -127,6 +128,7 @@
             :cables="search"
             cable-type=""
             @update="update_cable"
+            @close="closeaddcable"
           />
         </div>
       </div>
@@ -162,6 +164,10 @@ export default {
     let searchKey = ref("");
     let searchInCableTechJoinData = ref([]);
     let showMyList = ref([]);
+
+    function closeaddcable() {
+      displayAddCable = !closeaddcable;
+    }
 
     // choose display cable_type (buttons) --------------------------
     function selectype(data) {
@@ -229,6 +235,7 @@ export default {
       cable,
       cables,
       cableToDelete,
+      closeaddcable,
       delete_cable,
       filteredCableByType,
       filtreMaliste,

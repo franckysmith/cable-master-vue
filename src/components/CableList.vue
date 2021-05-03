@@ -93,9 +93,9 @@ export default {
     showMyList: {
       type: Boolean
     },
-    affaireSelected: {
-      type: Array
-    },
+    // affaireSelected: {
+    //   type: Array
+    // },
     arrCount: {
       type: Array
     }
@@ -214,27 +214,24 @@ export default {
         return "red";
       }
     }*/
-    
+
     function setColorIndicator(cable) {
-      if(!cable)
-        return;
-      
-      // Franck, it's not a good idea to reference cable.total by index [7]
-      // because it may change in future, say if we add one more field.
-      // Why not just cable.total ?
-      // const cableTotal = Number(Object.values(cable)[7]);
-      
+      if (!cable) return;
+
       const cableFromProps = props.arrCount.find(
-        cable2 => cable.cableid == cable2.cableid  // introduce cable2 to not interfere with cable
+        cable2 => cable.cableid == cable2.cableid // introduce cable2 to not interfere with cable
       );
-      if(!cableFromProps)
-        return;
+      if (!cableFromProps) return;
 
       const cableTotalUpdated = +cable.total - +cableFromProps.count;
+      console.log("cableFromProps.count", cableFromProps.count);
+      console.log("cableTotalUpdated:", cableTotalUpdated);
+      console.log("arrCount!:", props.arrCount);
+      console.log("cable.total:", cable.total);
 
-      if (cableTotalUpdated > 20) {
+      if (cableTotalUpdated > 2 * cable.reserved) {
         return "green";
-      } else if (cableTotalUpdated > 12) {
+      } else if (cableTotalUpdated >= cable.reserved) {
         return "orange";
       } else if (cableTotalUpdated < 0) {
         return "red";

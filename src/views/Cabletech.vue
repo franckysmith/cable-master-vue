@@ -89,7 +89,7 @@
         </button>
       </div>
 
-      <div>
+      <div class="content-button2">
         <button
           class="buttonv"
           @click="selectype('')"
@@ -415,7 +415,8 @@ export default {
           total: cable.total,
           link: cable.link,
           info: cable.info,
-          type: cable.type
+          type: cable.type,
+          reserved: cable.reserved
         };
         if (cableIdsInOrders.value.includes(cable.cableid)) {
           const orderItem = orders.find(o => o.cableid === cable.cableid);
@@ -430,6 +431,7 @@ export default {
             total: cable.total,
             link: cable.link,
             info: cable.info,
+            reserved: cable.reserved,
             type: cable.type,
             tfc1: orderItem.tfc1,
             tfc2: orderItem.tfc2,
@@ -483,7 +485,7 @@ export default {
       arrCount.value = Object.values(counts);
 
       // console.log("totalCount:", totalCount.value);
-      console.log("arrCount!:", arrCount.value);
+      // console.log("arrCount!:", arrCount.value);
     }
     // --------------- count orders by Aff -------------
     let affOrders = ref([]);
@@ -709,6 +711,9 @@ button.link {
   display: flex;
   flex-direction: column;
   align-items: center;
+  width: 364px;
+  margin: auto;
+  padding: 0px;
 }
 .content-resume {
   display: flex;
@@ -721,6 +726,9 @@ button.link {
   display: flex;
   flex-direction: column;
   align-items: center;
+}
+.content-button2 {
+  display: flex;
 }
 
 .cont_2 {
@@ -740,9 +748,8 @@ button.link {
 }
 .flightcases-button {
   display: flex;
-
   width: 370px;
-  padding-left: 275px;
+  padding-left: 260px;
 }
 .flightcases-button button {
   margin: 10px;
@@ -754,9 +761,12 @@ button.link {
   box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
   border-radius: 4px;
 }
+form {
+  width: 375px;
+}
 .head-fc {
   display: flex;
-  /* margin: auto; */
+  margin: auto;
   width: 375px;
   height: 20px;
   text-align: left;
@@ -764,11 +774,11 @@ button.link {
 }
 .head-zone {
   display: flex;
-  /* margin: auto; */
+  margin: auto;
   width: 375px;
   height: 20px;
   text-align: left;
-  padding-left: 270px;
+  padding-left: 142px;
 }
 .head-zone input {
   width: 28px;
@@ -843,6 +853,9 @@ input {
 .list_container {
   width: 375px;
 }
+.main {
+  /* width: 100%; */
+}
 
 .name {
   height: 10px;
@@ -881,7 +894,7 @@ input {
 }
 .post {
   margin: 0px 0px 20px 0px;
-  width: 375px;
+  width: 365px;
 }
 
 .post button {
@@ -904,7 +917,8 @@ input {
 } */
 .search {
   width: 100px;
-  margin: 0px 15px;
+  margin: 10px 15px 0px;
+  height: 15px;
 }
 .selectedtype {
   color: #fff;
@@ -913,7 +927,7 @@ input {
 .tech {
   width: 200px;
 }
-table {
+/* table {
   margin: 10px 0px 10px 0px;
   border: solid 1px;
   border-collapse: separate;
@@ -926,7 +940,7 @@ table {
 th {
   width: 250px;
   padding-left: 5px;
-}
+} */
 .titre_affaire {
   width: 200px;
   height: 32px;
@@ -941,6 +955,9 @@ th {
 .total-flightcase {
   display: flex;
   justify-content: center;
+  width: 375px;
+  margin: 0px;
+  padding: 0px;
 }
 /* ------------------------------------------------------------------- */
 /* The switch - the box around the slider */

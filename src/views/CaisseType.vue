@@ -1,136 +1,145 @@
 <template>
-  <div class="addflfightcase"><AddFlightCase /></div>
-  <ModalDelete @close="isOpen = false" v-if="isOpen">
-    <template v-slot:main>
-      <div>
-        <h1>{{ mfcToDelete.name }}</h1>
-        <button class="modal-default-button" @click="deletemfc(mfcToDelete)">
-          supprimer
+  <div class="main">
+    <div class="addflfightcase"><AddFlightCase /></div>
+    <ModalDelete @close="isOpen = false" v-if="isOpen">
+      <template v-slot:main>
+        <div>
+          <h1>{{ mfcToDelete.name }}</h1>
+          <button class="modal-default-button" @click="deletemfc(mfcToDelete)">
+            supprimer
+          </button>
+        </div>
+      </template>
+      <template #footer>
+        <button class="buttonv" @click="isOpenClose">
+          non
         </button>
-      </div>
-    </template>
-    <template #footer>
-      <button class="buttonv" @click="isOpenClose">
-        non
-      </button>
-    </template>
-  </ModalDelete>
-  <div class="ct-content">
-    <select v-model="caisseSelected" @change="caisseToList(caisseSelected)">
-      <option
-        v-for="caissetype in mfc"
-        :key="caissetype.mfcid"
-        :value="caissetype"
-        placeholder="choisir"
-        >{{ caissetype.name }}
-      </option>
-    </select>
-    <div>
-      <input
-        class="ct-info"
-        type="textarea"
-        v-model="caisseSelected.info"
-        placeholder="pas d'information"
-        cols="2"
-        rows="3"
-      />
-    </div>
-  </div>
-
-  <div class="content-liste">
-    ----------------------
-    <h3>Listes cables etc ...</h3>
-
-    <div class="post">
-      <button @click="selectype('speaker')">HP</button>
-      <button @click="selectype('electrical')">Elec</button>
-      <button @click="selectype('module')">Modules</button>
-      <button @click="selectype('special')">Spéciaux</button>
-      <button @click="selectype('other')">autres</button>
-      <button @click="selectype('microphone')">Micros</button>
-      <button @click="selectype('c_type')">caisses-type</button>
-      <button @click="selectype('accessory')">accessoires</button>
-      <button @click="selectype('digital')">numériques</button>
-
+      </template>
+    </ModalDelete>
+    <div class="ct-content">
+      <select v-model="caisseSelected" @change="caisseToList(caisseSelected)">
+        <option
+          v-for="caissetype in mfc"
+          :key="caissetype.mfcid"
+          :value="caissetype"
+          placeholder="choisir"
+          >{{ caissetype.name }}
+        </option>
+      </select>
       <div>
-        <button @click="selectype('')">All</button>
         <input
-          type="text"
-          v-model="searchKey"
-          placeholder="Rechercher un élément"
+          class="ct-info"
+          type="textarea"
+          v-model="caisseSelected.info"
+          placeholder="pas d'information"
+          cols="2"
+          rows="3"
         />
-        <!-- Rounded switch -->
-        <label class="toggle-label" v-if="cableLayoutData == 'flightcase'">
-          ma liste
-          <label class="switch">
-            <input type="checkbox" />
-            <span class="sliderder round"></span>
-          </label>
-        </label>
-        <label class="toggle-label" v-if="cableLayoutData == 'cableTechBase'">
-          All ..... ma liste
-          <label class="switch">
-            <input type="checkbox" @click="filtreMaliste" />
-            <span class="slider round"></span>
-          </label>
-        </label>
       </div>
     </div>
-    <form @submit.prevent="set_cablemfc(cableMfcTechJoinedData)">
-      <div class="content-buttons">
-        <button class="button2" type="submit">
-          Update
-        </button>
-        <button class="button2" type="button" @click="suppmfc(caisseSelected)">
-          Supprimer
-        </button>
+
+    <div class="content-liste">
+      ----------------------
+      <h3>Listes cables etc ...</h3>
+
+      <div class="post">
+        <button @click="selectype('speaker')">HP</button>
+        <button @click="selectype('electrical')">Elec</button>
+        <button @click="selectype('module')">Modules</button>
+        <button @click="selectype('special')">Spéciaux</button>
+        <button @click="selectype('other')">autres</button>
+        <button @click="selectype('microphone')">Micros</button>
+        <button @click="selectype('c_type')">caisses-type</button>
+        <button @click="selectype('accessory')">accessoires</button>
+        <button @click="selectype('digital')">numériques</button>
+
+        <div class="content-button2">
+          <button @click="selectype('')">All</button>
+          <input
+            type="text"
+            v-model="searchKey"
+            placeholder="Rechercher un élément"
+          />
+          <!-- Rounded switch -->
+          <label class="toggle-label" v-if="cableLayoutData == 'flightcase'">
+            ma liste
+            <label class="switch">
+              <input type="checkbox" />
+              <span class="sliderder round"></span>
+            </label>
+          </label>
+          <label class="toggle-label" v-if="cableLayoutData == 'cableTechBase'">
+            All ..... ma liste
+            <label class="switch">
+              <input type="checkbox" @click="filtreMaliste" />
+              <span class="slider round"></span>
+            </label>
+          </label>
+        </div>
       </div>
+      <form @submit.prevent="set_cablemfc(cableMfcTechJoinedData)">
+        <div class="content-buttons">
+          <button class="button2" type="submit">
+            Update
+          </button>
+          <button
+            class="button2"
+            type="button"
+            @click="suppmfc(caisseSelected)"
+          >
+            Supprimer
+          </button>
+        </div>
 
-      <div class="content-number">
-        <div v-if="typechoose != ''">
-          <div v-for="cable in filteredCableByType" :key="cable.cableid">
-            <div class="number">
-              <div class="name">
-                <h4>{{ cable.name }}{{ cable.cableid }}</h4>
+        <div class="content-number">
+          <div v-if="typechoose != ''">
+            <div v-for="cable in filteredCableByType" :key="cable.cableid">
+              <div class="number">
+                <div class="name">
+                  <h4>{{ cable.name }}{{ cable.cableid }}</h4>
+                </div>
+
+                <div>
+                  <input name="count" v-model="cable.count" />
+                </div>
               </div>
-
-              <div>
-                <input name="count" v-model="cable.count" />
+              <div class="info-content">
+                <div class="info">
+                  <p>{{ cable.info }}</p>
+                  <button type="button" class="link">
+                    <a href="cable.link">link</a>
+                  </button>
+                </div>
               </div>
             </div>
-            <div class="info-content">
-              <div class="info">
-                <p>{{ cable.info }}</p>
-                <button type="button" class="link">
-                  <a href="cable.link">link</a>
-                </button>
+          </div>
+          <div v-else>
+            <div
+              v-for="cable in searchInCableTechJoinData"
+              :key="cable.cableid"
+            >
+              <div class="number">
+                <div class="name">
+                  <h4>{{ cable.name }}</h4>
+                </div>
+
+                <div>
+                  <input name="count" v-model="cable.count" />
+                </div>
+              </div>
+              <div class="info-content">
+                <div class="info">
+                  <p>{{ cable.info }}</p>
+                  <button type="button" class="link">
+                    <a href="cable.link">link</a>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
         </div>
-        <div v-else>
-          <div v-for="cable in searchInCableTechJoinData" :key="cable.cableid">
-            <div class="number">
-              <div class="name">
-                <h4>{{ cable.name }}</h4>
-              </div>
-
-              <div>
-                <input name="count" v-model="cable.count" />
-              </div>
-            </div>
-            <div class="info-content">
-              <div class="info">
-                <p>{{ cable.info }}</p>
-                <button type="button" class="link">
-                  <a href="cable.link">link</a>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </form>
+      </form>
+    </div>
   </div>
 
   <!-- <div><button>getorder</button></div>
@@ -393,7 +402,9 @@ export default {
 </script>
 <style scoped>
 .addflfightcase {
-  margin: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 button {
   margin: 3px;
@@ -422,6 +433,10 @@ button {
 .content-buttons button {
   margin-left: 50px;
 }
+.content-button2 {
+  width: 375px;
+  margin: auto;
+}
 
 .content-liste {
   margin: auto;
@@ -433,14 +448,17 @@ button {
 
 .ct-content {
   display: flex;
-
+  justify-content: center;
+  flex-direction: column;
+  /* padding: 0px; */
   margin: auto;
   width: 375px;
-  flex-wrap: wrap;
+  /* flex-wrap: wrap; */
   /* margin: auto; */
 }
 .ct-content select {
-  margin: 5px;
+  margin: 5px 0px 5px 40px;
+  width: 200px;
 }
 .ctct-content {
   display: flex;
@@ -455,7 +473,7 @@ button {
   font-weight: 500;
 }
 .ct-info {
-  width: 350px;
+  width: 330px;
 }
 input {
   padding: 5px;
@@ -482,7 +500,7 @@ input {
 .head {
   display: flex;
   /* margin: auto; */
-  width: 400px;
+  width: 375px;
 
   text-align: left;
   padding-left: 155px;
@@ -508,7 +526,12 @@ input {
   width: 220px;
 }
 .list_container {
-  width: 400px;
+  width: 365px;
+}
+.main {
+  /* display: flex;
+  flex-direction: column;
+  align-items: center; */
 }
 
 .name {

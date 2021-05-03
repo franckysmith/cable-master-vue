@@ -25,918 +25,1143 @@
       <p>app demain (after2): {{ after2() }}</p>
       <p>dans 5 jours: {{ after5() }}</p>
     </div> -->
-
-    <div>
-      <input type="text" placeholder="Nom de l'Affaire ?" />
+    <div class="btsearch">
+      <button @click="searchInput('btsearchaff')" type="button">affaire</button>
+      <i class="fas fa-search"></i>
+      <button @click="searchInput('btsearchtech')" type="button">
+        Technicien
+      </button>
+      <button @click="searchInput('btsearchref')" type="button">
+        Référence
+      </button>
     </div>
-    <div>
-      <div class="button-select">
-        <button @click="isOpenAff('today')" class="titre-day">
-          Aujourd'hui
-        </button>
-        <button @click="isOpenAff('tomorrow')" class="titre-day">
-          Demain
-        </button>
-        <button @click="isOpenAff('after')" class="titre-day">
-          5 jours =>
-        </button>
-        <button @click="isOpenAff('futur')" class="titre-day">
-          Futur
-        </button>
-      </div>
-      <!-- <div class="head-label">
-        <ul class="head-today">
-          <li style="padding-left:9px">Desc</li>
-          <li style="padding-left:8px">Tech</li>
-          <li style="padding-left:8px">Atel</li>
-        </ul>
-      </div> -->
-
-      <!-- ---------------- Today -------------------- -->
-      <div v-if="isOpenAffSelect == 'today'" class="event-type">
-        <h3>Prépa</h3>
-      </div>
-      <div class="list-aff" v-for="affaire in affaires" :key="affaire.affairid">
-        <div v-if="isOpenAffSelect == 'today'">
-          <div
-            v-if="isToday(new Date(affaire.prep_date))"
-            @click="ficheColor(affaire)"
-          >
-            <div class="content">
-              <input type="checkbox" />
-              <h4>{{ affaire.name }}</h4>
-              <span @click="setColorIndicator(size)" class="taille">
-                {{ size }}
-              </span>
-              <h5>{{ affaire.tech_name }}</h5>
+    <div v-if="inputType == 'btsearchaff'">
+      <input type="text" placeholder="Nom de l'Affaire ?" v-model="searchAff" />
+    </div>
+    <div v-if="inputType == 'btsearchtech'">
+      <input
+        type="text"
+        placeholder="Nom du technicien ?"
+        v-model="searchTech"
+      />
+    </div>
+    <div v-if="inputType == 'btsearchref'">
+      <input
+        type="text"
+        placeholder="Nom de la Référence ?"
+        v-model="searchRef"
+      />
+    </div>
+    <h3 v-if="searchAffaires.length == 0">Aucun résultat</h3>
+    <div class="event-type"></div>
+    <div
+      class="list-aff"
+      v-for="affaire in searchAffaires"
+      :key="affaire.affairid"
+    >
+      <div v-if="searchAff">
+        <div class="content">
+          <input type="checkbox" v-model="affaire.donemaster" />
+          <h4>{{ affaire.name }}</h4>
+          <span @click="setColorIndicator(size)" class="taille">
+            {{ size }}
+          </span>
+          <h5>{{ affaire.tech_name }}</h5>
+        </div>
+        <div class="content2">
+          <div class="date-master">
+            <div>
+              {{
+                format(new Date(affaire.prep_date), "EEEE  ", {
+                  locale: fr
+                })
+              }}
             </div>
-            <div class="content2">
+
+            <div>
+              {{
+                format(new Date(affaire.prep_date), "  dd ", {
+                  locale: fr
+                })
+              }}
+            </div>
+
+            <div
+              :class="
+                affaire.prep_time == 'morning' ? 'gradientp' : 'gradientm'
+              "
+            >
+              {{ affaire.prep_time == "morning" ? "ap-midi" : "matin" }}
+            </div>
+          </div>
+          <div class="technote">
+            {{ affaire.tech_note }}
+          </div>
+          <div class="content-button">
+            <button
+              type="button"
+              @click="modalOpen(affaire.description)"
+              :class="affaire.description ? 'buttonv' : 'button'"
+            >
+              D
+            </button>
+
+            <button
+              type="button"
+              @click="modalOpen(affaire.master_note)"
+              :class="affaire.master_note ? 'buttonv' : 'button'"
+            >
+              A
+            </button>
+
+            <button
+              type="button"
+              @click="modalOpen(affaire.tech_note)"
+              :class="affaire.tech_note ? 'buttonv' : 'button'"
+            >
+              T
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div v-if="searchAff == ''">
+      <!-- ----------------button ------------ -->
+      <div>
+        <div class="button-select">
+          <button @click="isOpenAff('today')" class="titre-day">
+            Aujourd'hui
+          </button>
+          <button @click="isOpenAff('tomorrow')" class="titre-day">
+            Demain
+          </button>
+          <button @click="isOpenAff('after')" class="titre-day">
+            5 jours =>
+          </button>
+          <button @click="isOpenAff('futur')" class="titre-day">
+            Futur
+          </button>
+        </div>
+
+        <!-- ---------------- Today -------------------- -->
+        <div class="today">
+          <div v-if="isOpenAffSelect == 'today'" class="event-type">
+            <h3 v-if="isToday(new Date(affaire.return_date))">Prépa</h3>
+          </div>
+          <div class="event-type" v-if="isOpenAffSelect == 'today'">
+            <h3>Prépa</h3>
+          </div>
+          <div
+            class="list-aff"
+            v-for="affaire in affaires"
+            :key="affaire.affairid"
+          >
+            <div v-if="isOpenAffSelect == 'today'">
               <div
-                class="date-master"
-                :class="
-                  affaire.prep_time == 'morning' ? 'gradientp' : 'gradientm'
-                "
+                v-if="isToday(new Date(affaire.prep_date))"
+                @click="ficheColor(affaire)"
               >
+                <div class="content">
+                  <input type="checkbox" />
+                  <h4>{{ affaire.name }}</h4>
+                  <span @click="setColorIndicator(size)" class="taille">
+                    {{ size }}
+                  </span>
+                  <h5>{{ affaire.tech_name }}</h5>
+                </div>
+                <div class="content2">
+                  <div class="date-master">
+                    <div>
+                      {{
+                        format(new Date(affaire.prep_date), "EEEE  ", {
+                          locale: fr
+                        })
+                      }}
+                    </div>
+
+                    <div>
+                      {{
+                        format(new Date(affaire.prep_date), "  dd ", {
+                          locale: fr
+                        })
+                      }}
+                    </div>
+
+                    <div
+                      :class="
+                        affaire.prep_time == 'morning'
+                          ? 'gradientp'
+                          : 'gradientm'
+                      "
+                    >
+                      {{ affaire.prep_time == "morning" ? "ap-midi" : "matin" }}
+                    </div>
+                  </div>
+                  <div class="technote">
+                    {{ affaire.tech_note }}
+                  </div>
+                  <div class="content-button">
+                    <button
+                      type="button"
+                      @click="modalOpen(affaire.description)"
+                      :class="affaire.description ? 'buttonv' : 'button'"
+                    >
+                      D
+                    </button>
+
+                    <button
+                      type="button"
+                      @click="modalOpen(affaire.master_note)"
+                      :class="affaire.master_note ? 'buttonv' : 'button'"
+                    >
+                      A
+                    </button>
+
+                    <button
+                      type="button"
+                      @click="modalOpen(affaire.tech_note)"
+                      :class="affaire.tech_note ? 'buttonv' : 'button'"
+                    >
+                      T
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="isOpenAffSelect == 'today'" class="event-type">
+          <h3>Sortie</h3>
+          <!-- {{ affaire.receipt_date }} -->
+        </div>
+        <div
+          class="list-aff"
+          v-for="affaire in affaires"
+          :key="affaire.affairid"
+        >
+          <div v-if="isOpenAffSelect == 'today'">
+            <div v-if="isToday(new Date(affaire.receipt_date))">
+              <div class="content">
+                <input type="checkbox" />
+                <h4>{{ affaire.name }}</h4>
+                <span :class="setColorIndicator" class="taille">
+                  {{ affaire.tech_id }}
+                </span>
+                <h5>{{ affaire.tech_name }}</h5>
+              </div>
+              <div class="content2">
                 <div>
-                  {{
-                    format(new Date(affaire.prep_date), "EEEE  ", {
-                      locale: fr
-                    })
-                  }}
-                </div>
+                  <div>
+                    {{
+                      format(new Date(affaire.receipt_date), "EEEE  ", {
+                        locale: fr
+                      })
+                    }}
+                  </div>
 
-                <div>
-                  {{
-                    format(new Date(affaire.prep_date), "  dd ", {
-                      locale: fr
-                    })
-                  }}
-                </div>
+                  <div>
+                    {{
+                      format(new Date(affaire.receipt_date), "  dd ", {
+                        locale: fr
+                      })
+                    }}
+                  </div>
 
-                <div>
-                  {{ affaire.prep_time == "morning" ? "ap-midi" : "matin" }}
+                  <div
+                    class="date-master"
+                    :class="
+                      affaire.return_time == 'morning'
+                        ? 'gradientp'
+                        : 'gradientm'
+                    "
+                  >
+                    {{ affaire.return_time == "morning" ? "ap-midi" : "matin" }}
+                  </div>
+                </div>
+                <!-- <div class="technote">
+                  {{ affaire.tech_note }}{{ affaire.receipt_time }}
+                </div> -->
+                <div class="content-button">
+                  <button
+                    type="button"
+                    @click="modalOpen(affaire.description)"
+                    :class="affaire.description ? 'buttonv' : 'button'"
+                  >
+                    D
+                  </button>
+
+                  <button
+                    type="button"
+                    @click="modalOpen(affaire.master_note)"
+                    :class="affaire.master_note ? 'buttonv' : 'button'"
+                  >
+                    A
+                  </button>
+
+                  <button
+                    type="button"
+                    @click="modalOpen(affaire.tech_note)"
+                    :class="affaire.tech_note ? 'buttonv' : 'button'"
+                  >
+                    T
+                  </button>
                 </div>
               </div>
-              <div class="technote">
-                {{ affaire.tech_note }}
+            </div>
+          </div>
+        </div>
+        <div class="event-type" v-if="isOpenAffSelect == 'today'">
+          <h3>Retour</h3>
+        </div>
+        <div
+          class="list-aff"
+          v-for="affaire in affaires"
+          :key="affaire.affairid"
+        >
+          <div v-if="isOpenAffSelect == 'today'">
+            <div v-if="isToday(new Date(affaire.return_date))">
+              <div class="content">
+                <input type="checkbox" />
+                <h4>{{ affaire.name }}</h4>
+                <span
+                  @click="setColorIndicator(affaire.tech_id)"
+                  class="taille"
+                >
+                  {{ affaire.tech_id }}
+                </span>
+                <h5>{{ affaire.tech_name }}</h5>
               </div>
-              <div class="content-button">
-                <button
-                  type="button"
-                  @click="modalOpen(affaire.description)"
-                  :class="affaire.description ? 'buttonv' : 'button'"
-                >
-                  D
-                </button>
+              <div class="content2">
+                <div class="date-master">
+                  <div>
+                    {{
+                      format(new Date(affaire.return_date), "EEEE ", {
+                        locale: fr
+                      })
+                    }}
+                  </div>
+                  <div>
+                    {{
+                      format(new Date(affaire.return_date), "  dd ", {
+                        locale: fr
+                      })
+                    }}
+                  </div>
 
-                <button
-                  type="button"
-                  @click="modalOpen(affaire.master_note)"
-                  :class="affaire.master_note ? 'buttonv' : 'button'"
-                >
-                  A
-                </button>
+                  <div
+                    :class="
+                      affaire.return_time == 'morning'
+                        ? 'gradientp'
+                        : 'gradientm'
+                    "
+                  >
+                    {{ affaire.return_time == "morning" ? "ap-midi" : "matin" }}
+                  </div>
+                </div>
+                <!-- <div class="technote">
+                  {{ affaire.tech_note }}
+                </div> -->
+                <div class="content-button">
+                  <button
+                    type="button"
+                    @click="modalOpen(affaire.description)"
+                    :class="affaire.description ? 'buttonv' : 'button'"
+                  >
+                    D
+                  </button>
 
-                <button
-                  type="button"
-                  @click="modalOpen(affaire.tech_note)"
-                  :class="affaire.tech_note ? 'buttonv' : 'button'"
+                  <button
+                    type="button"
+                    @click="modalOpen(affaire.master_note)"
+                    :class="affaire.master_note ? 'buttonv' : 'button'"
+                  >
+                    A
+                  </button>
+
+                  <button
+                    type="button"
+                    @click="modalOpen(affaire.tech_note)"
+                    :class="affaire.tech_note ? 'buttonv' : 'button'"
+                  >
+                    T
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- ---------------Tomorrow -------------------------------- -->
+
+      <div class="tomorrow">
+        <div v-if="isOpenAffSelect == 'tomorrow'" class="event-type">
+          <h3 v-if="isTomorrow(new Date(affaire.return_date))">Prépa</h3>
+        </div>
+        <div class="event-type" v-if="isOpenAffSelect == 'tomorrow'">
+          <h3>Prépa</h3>
+        </div>
+        <div
+          class="list-aff"
+          v-for="affaire in affaires"
+          :key="affaire.affairid"
+        >
+          <div v-if="isOpenAffSelect == 'tomorrow'">
+            <div v-if="isTomorrow(new Date(affaire.return_date))">
+              <div class="content">
+                <input type="checkbox" />
+                <h4>{{ affaire.name }}</h4>
+                <span
+                  @click="setColorIndicator(affaire.tech_id)"
+                  class="taille"
                 >
-                  T
-                </button>
+                  {{ affaire.tech_id }}
+                </span>
+                <h5>{{ affaire.tech_name }}</h5>
+              </div>
+              <div class="content2">
+                <div class="date-master">
+                  <div>
+                    {{
+                      format(new Date(affaire.return_date), "EEEE  ", {
+                        locale: fr
+                      })
+                    }}
+                  </div>
+                  <div>
+                    {{
+                      format(new Date(affaire.return_date), " dd ", {
+                        locale: fr
+                      })
+                    }}
+                  </div>
+
+                  <div
+                    :class="
+                      affaire.return_time == 'morning'
+                        ? 'gradientp'
+                        : 'gradientm'
+                    "
+                  >
+                    {{ affaire.return_time == "morning" ? "ap-midi" : "matin" }}
+                  </div>
+                </div>
+                <!-- <div class="technote">
+                  {{ affaire.tech_note }}
+                </div> -->
+                <div class="content-button">
+                  <button
+                    type="button"
+                    @click="modalOpen(affaire.description)"
+                    :class="affaire.description ? 'buttonv' : 'button'"
+                  >
+                    D
+                  </button>
+
+                  <button
+                    type="button"
+                    @click="modalOpen(affaire.master_note)"
+                    :class="affaire.master_note ? 'buttonv' : 'button'"
+                  >
+                    A
+                  </button>
+
+                  <button
+                    type="button"
+                    @click="modalOpen(affaire.tech_note)"
+                    :class="affaire.tech_note ? 'buttonv' : 'button'"
+                  >
+                    T
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div v-if="isOpenAffSelect == 'tomorrow'" class="event-type">
+          <h3>Sortie</h3>
+          <!-- {{ affaire.receipt_date }} -->
+        </div>
+        <div
+          class="list-aff"
+          v-for="affaire in affaires"
+          :key="affaire.affairid"
+        >
+          <div v-if="isOpenAffSelect == 'tomorrow'">
+            <div v-if="isTomorrow(new Date(affaire.receipt_date))">
+              <div class="content">
+                <input type="checkbox" />
+                <h4>{{ affaire.name }}</h4>
+                <span
+                  @click="setColorIndicator(affaire.tech_id)"
+                  class="taille"
+                >
+                  {{ affaire.tech_id }}
+                </span>
+                <h5>{{ affaire.tech_name }}</h5>
+              </div>
+              <div class="content2">
+                <div class="date-master">
+                  <div>
+                    {{
+                      format(new Date(affaire.receipt_date), "EEEE   ", {
+                        locale: fr
+                      })
+                    }}
+                  </div>
+                  <div>
+                    {{
+                      format(new Date(affaire.receipt_date), "  dd ", {
+                        locale: fr
+                      })
+                    }}
+                  </div>
+
+                  <div
+                    :class="
+                      affaire.receipt_time == 'morning'
+                        ? 'gradientp'
+                        : 'gradientm'
+                    "
+                  >
+                    {{
+                      affaire.receipt_time == "morning" ? "ap-midi" : "matin"
+                    }}
+                  </div>
+                </div>
+                <div class="technote">
+                  {{ affaire.tech_note }}
+                </div>
+                <div class="content-button">
+                  <button
+                    type="button"
+                    @click="modalOpen(affaire.description)"
+                    :class="affaire.description ? 'buttonv' : 'button'"
+                  >
+                    D
+                  </button>
+
+                  <button
+                    type="button"
+                    @click="modalOpen(affaire.master_note)"
+                    :class="affaire.master_note ? 'buttonv' : 'button'"
+                  >
+                    A
+                  </button>
+
+                  <button
+                    type="button"
+                    @click="modalOpen(affaire.tech_note)"
+                    :class="affaire.tech_note ? 'buttonv' : 'button'"
+                  >
+                    T
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div v-if="isOpenAffSelect == 'tomorrow'" class="event-type">
+          <h3>Retour</h3>
+          <!-- {{ affaire.receipt_date }} -->
+        </div>
+        <div
+          class="list-aff"
+          v-for="affaire in affaires"
+          :key="affaire.affairid"
+        >
+          <div v-if="isOpenAffSelect == 'tomorrow'">
+            <div v-if="isTomorrow(new Date(affaire.return_date))">
+              <div class="content">
+                <input type="checkbox" />
+                <h4>{{ affaire.name }}</h4>
+                <span
+                  @click="setColorIndicator(affaire.tech_id)"
+                  class="taille"
+                >
+                  {{ affaire.tech_id }}
+                </span>
+                <h5>{{ affaire.tech_name }}</h5>
+              </div>
+              <div class="content2">
+                <div class="date-master">
+                  <div>
+                    {{
+                      format(new Date(affaire.return_date), "EEEE   ", {
+                        locale: fr
+                      })
+                    }}
+                  </div>
+                  <div>
+                    {{
+                      format(new Date(affaire.return_date), "  dd ", {
+                        locale: fr
+                      })
+                    }}
+                  </div>
+
+                  <div
+                    :class="
+                      affaire.return_time == 'morning'
+                        ? 'gradientp'
+                        : 'gradientm'
+                    "
+                  >
+                    {{ affaire.return_time == "morning" ? "ap-midi" : "matin" }}
+                  </div>
+                </div>
+                <!-- <div class="technote">
+                  {{ affaire.tech_note }}
+                </div> -->
+                <div class="content-button">
+                  <button
+                    type="button"
+                    @click="modalOpen(affaire.description)"
+                    :class="affaire.description ? 'buttonv' : 'button'"
+                  >
+                    D
+                  </button>
+
+                  <button
+                    type="button"
+                    @click="modalOpen(affaire.master_note)"
+                    :class="affaire.master_note ? 'buttonv' : 'button'"
+                  >
+                    A
+                  </button>
+
+                  <button
+                    type="button"
+                    @click="modalOpen(affaire.tech_note)"
+                    :class="affaire.tech_note ? 'buttonv' : 'button'"
+                  >
+                    T
+                  </button>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      <div v-if="isOpenAffSelect == 'today'" class="event-type">
-        <h3>Sortie</h3>
-        <!-- {{ affaire.receipt_date }} -->
-      </div>
-      <div class="list-aff" v-for="affaire in affaires" :key="affaire.affairid">
-        <div v-if="isOpenAffSelect == 'today'">
-          <div v-if="isToday(new Date(affaire.receipt_date))">
-            <div class="content">
-              <input type="checkbox" />
-              <h4>{{ affaire.name }}</h4>
-              <span :class="setColorIndicator" class="taille">
-                {{ affaire.tech_id }}
-              </span>
-              <h5>{{ affaire.tech_name }}</h5>
+      <!-- -----------------------(2)After(5)---------------------------------- -->
+      <div class="after">
+        <div v-if="isOpenAffSelect == 'after'" class="event-type">
+          <h3>Prépa</h3>
+        </div>
+
+        <div
+          class="list-aff"
+          v-for="affaire in affaires"
+          :key="affaire.affairid"
+        >
+          <div v-if="isOpenAffSelect == 'after'">
+            <div
+              v-if="
+                after2() < affaire.return_date &&
+                  affaire.return_date <= after5()
+              "
+            >
+              <div class="content">
+                <input type="checkbox" />
+                <h4>{{ affaire.name }}</h4>
+                <span
+                  @click="setColorIndicator(affaire.tech_id)"
+                  class="taille"
+                >
+                  {{ affaire.tech_id }}
+                </span>
+                <h5>{{ affaire.tech_name }}</h5>
+              </div>
+              <div class="content2">
+                <div class="date-master">
+                  <div>
+                    {{
+                      format(new Date(affaire.return_date), "EEEE   ", {
+                        locale: fr
+                      })
+                    }}
+                  </div>
+
+                  <div>
+                    {{
+                      format(new Date(affaire.return_date), " dd ", {
+                        locale: fr
+                      })
+                    }}
+                  </div>
+
+                  <div
+                    :class="
+                      affaire.return_time == 'morning'
+                        ? 'gradientp'
+                        : 'gradientm'
+                    "
+                  >
+                    {{ affaire.return_time == "morning" ? "ap-midi" : "matin" }}
+                  </div>
+                </div>
+                <!-- <div class="technote">
+                  {{ affaire.tech_note }}
+                </div> -->
+                <div class="content-button">
+                  <button
+                    type="button"
+                    @click="modalOpen(affaire.description)"
+                    :class="affaire.description ? 'buttonv' : 'button'"
+                  >
+                    D
+                  </button>
+
+                  <button
+                    type="button"
+                    @click="modalOpen(affaire.master_note)"
+                    :class="affaire.master_note ? 'buttonv' : 'button'"
+                  >
+                    A
+                  </button>
+
+                  <button
+                    type="button"
+                    @click="modalOpen(affaire.tech_note)"
+                    :class="affaire.tech_note ? 'buttonv' : 'button'"
+                  >
+                    T
+                  </button>
+                </div>
+              </div>
             </div>
-            <div class="content2">
-              <div
-                class="date-master"
-                :class="
-                  affaire.return_time == 'morning' ? 'gradientp' : 'gradientm'
-                "
-              >
-                <div>
-                  {{
-                    format(new Date(affaire.return_date), "EEEE  ", {
-                      locale: fr
-                    })
-                  }}
-                </div>
+          </div>
+        </div>
+        <div v-if="isOpenAffSelect == 'after'" class="event-type">
+          <h3>Sortie</h3>
+          <!-- {{ affaire.receipt_date }} -->
+        </div>
+        <div
+          class="list-aff"
+          v-for="affaire in affaires"
+          :key="affaire.affairid"
+        >
+          <div v-if="isOpenAffSelect == 'after'">
+            <div
+              v-if="
+                after2() < affaire.receipt_date &&
+                  affaire.receipt_date <= after5()
+              "
+            >
+              <div class="content">
+                <input type="checkbox" />
+                <h4>{{ affaire.name }}</h4>
+                <span
+                  @click="setColorIndicator(affaire.tech_id)"
+                  class="taille"
+                >
+                  {{ affaire.tech_id }}
+                </span>
+                <h5>{{ affaire.tech_name }}</h5>
+              </div>
+              <div class="content2">
+                <div class="date-master">
+                  <div>
+                    {{
+                      format(new Date(affaire.receipt_date), "EEEE  ", {
+                        locale: fr
+                      })
+                    }}
+                  </div>
+                  <div>
+                    {{
+                      format(new Date(affaire.receipt_date), " dd ", {
+                        locale: fr
+                      })
+                    }}
+                  </div>
 
-                <div>
-                  {{
-                    format(new Date(affaire.return_date), "  dd ", {
-                      locale: fr
-                    })
-                  }}
+                  <div
+                    :class="
+                      affaire.receipt_time == 'morning'
+                        ? 'gradientp'
+                        : 'gradientm'
+                    "
+                  >
+                    {{
+                      affaire.receipt_time == "morning" ? "ap-midi" : "matin"
+                    }}
+                  </div>
                 </div>
+                <div class="technote">
+                  {{ affaire.tech_note }}
+                </div>
+                <div class="content-button">
+                  <button
+                    type="button"
+                    @click="modalOpen(affaire.description)"
+                    :class="affaire.description ? 'buttonv' : 'button'"
+                  >
+                    D
+                  </button>
 
-                <div>
-                  {{ affaire.return_time == "morning" ? "ap-midi" : "matin" }}
+                  <button
+                    type="button"
+                    @click="modalOpen(affaire.master_note)"
+                    :class="affaire.master_note ? 'buttonv' : 'button'"
+                  >
+                    A
+                  </button>
+
+                  <button
+                    type="button"
+                    @click="modalOpen(affaire.tech_note)"
+                    :class="affaire.tech_note ? 'buttonv' : 'button'"
+                  >
+                    T
+                  </button>
                 </div>
               </div>
-              <div class="technote">
-                {{ affaire.tech_note }}{{ affaire.receipt_time }}
+            </div>
+          </div>
+        </div>
+        <div v-if="isOpenAffSelect == 'after'" class="event-type">
+          <h3>Retour</h3>
+          <!-- {{ affaire.receipt_date }} -->
+        </div>
+        <div
+          class="list-aff"
+          v-for="affaire in affaires"
+          :key="affaire.affairid"
+        >
+          <div v-if="isOpenAffSelect == 'after'">
+            <div
+              v-if="
+                after2() < affaire.return_date &&
+                  affaire.return_date <= after5()
+              "
+            >
+              <div class="content">
+                <input type="checkbox" />
+                <h4>{{ affaire.name }}</h4>
+                <span
+                  @click="setColorIndicator(affaire.tech_id)"
+                  class="taille"
+                >
+                  {{ affaire.tech_id }}
+                </span>
+                <h5>{{ affaire.tech_name }}</h5>
               </div>
-              <div class="content-button">
-                <button
-                  type="button"
-                  @click="modalOpen(affaire.description)"
-                  :class="affaire.description ? 'buttonv' : 'button'"
-                >
-                  D
-                </button>
+              <div class="content2">
+                <div class="date-master">
+                  <div>
+                    {{
+                      format(new Date(affaire.return_date), "EEEE  ", {
+                        locale: fr
+                      })
+                    }}
+                  </div>
+                  <div>
+                    {{
+                      format(new Date(affaire.return_date), " dd ", {
+                        locale: fr
+                      })
+                    }}
+                  </div>
 
-                <button
-                  type="button"
-                  @click="modalOpen(affaire.master_note)"
-                  :class="affaire.master_note ? 'buttonv' : 'button'"
-                >
-                  A
-                </button>
+                  <div
+                    :class="
+                      affaire.return_time == 'morning'
+                        ? 'gradientp'
+                        : 'gradientm'
+                    "
+                  >
+                    {{ affaire.return_time == "morning" ? "ap-midi" : "matin" }}
+                  </div>
+                </div>
+                <!-- <div class="technote">
+                  {{ affaire.tech_note }}
+                </div> -->
+                <div class="content-button">
+                  <button
+                    type="button"
+                    @click="modalOpen(affaire.description)"
+                    :class="affaire.description ? 'buttonv' : 'button'"
+                  >
+                    D
+                  </button>
 
-                <button
-                  type="button"
-                  @click="modalOpen(affaire.tech_note)"
-                  :class="affaire.tech_note ? 'buttonv' : 'button'"
-                >
-                  T
-                </button>
+                  <button
+                    type="button"
+                    @click="modalOpen(affaire.master_note)"
+                    :class="affaire.master_note ? 'buttonv' : 'button'"
+                  >
+                    A
+                  </button>
+
+                  <button
+                    type="button"
+                    @click="modalOpen(affaire.tech_note)"
+                    :class="affaire.tech_note ? 'buttonv' : 'button'"
+                  >
+                    T
+                  </button>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
-      <div class="event-type" v-if="isOpenAffSelect == 'today'">
-        <h3>Retour</h3>
-        <!-- {{ affaire.receipt_date }} -->
-      </div>
-      <div class="list-aff" v-for="affaire in affaires" :key="affaire.affairid">
-        <div v-if="isOpenAffSelect == 'today'">
-          <div v-if="isToday(new Date(affaire.return_date))">
-            <div class="content">
-              <input type="checkbox" />
-              <h4>{{ affaire.name }}</h4>
-              <span @click="setColorIndicator(affaire.tech_id)" class="taille">
-                {{ affaire.tech_id }}
-              </span>
-              <h5>{{ affaire.tech_name }}</h5>
-            </div>
-            <div class="content2">
-              <div class="date-master">
-                <div
-                  :class="
-                    affaire.return_time == 'morning' ? 'gradientp' : 'gradientm'
-                  "
-                >
-                  {{
-                    format(new Date(affaire.return_date), "EEEE  dd ", {
-                      locale: fr
-                    })
-                  }}
-                </div>
+      <!-- -------------------  Futur ....... -------------------------->
+      <div class="futur">
+        <div v-if="isOpenAffSelect == 'futur'" class="event-type">
+          <h3>Prépa</h3>
+        </div>
 
-                <div
-                  :class="
-                    affaire.return_time == 'morning' ? 'gradientp' : 'gradientm'
-                  "
+        <div
+          class="list-aff"
+          v-for="affaire in affaires"
+          :key="affaire.affairid"
+        >
+          <div v-if="isOpenAffSelect == 'futur'">
+            <div v-if="affaire.return_date > after5()">
+              <div class="content">
+                <input type="checkbox" />
+                <h4>{{ affaire.name }}</h4>
+                <span
+                  @click="setColorIndicator(affaire.tech_id)"
+                  class="taille"
                 >
-                  {{ affaire.return_time == "morning" ? "ap-midi" : "matin" }}
-                </div>
+                  {{ affaire.tech_id }}
+                </span>
+                <h5>{{ affaire.tech_name }}</h5>
               </div>
-              <div class="technote">
-                {{ affaire.tech_note }}
-              </div>
-              <div class="content-button">
-                <button
-                  type="button"
-                  @click="modalOpen(affaire.description)"
-                  :class="affaire.description ? 'buttonv' : 'button'"
-                >
-                  D
-                </button>
+              <div class="content2">
+                <div class="date-master">
+                  <div>
+                    {{
+                      format(new Date(affaire.return_date), "EEEE  ", {
+                        locale: fr
+                      })
+                    }}
+                  </div>
+                  <div>
+                    {{
+                      format(new Date(affaire.return_date), " dd ", {
+                        locale: fr
+                      })
+                    }}
+                  </div>
 
-                <button
-                  type="button"
-                  @click="modalOpen(affaire.master_note)"
-                  :class="affaire.master_note ? 'buttonv' : 'button'"
-                >
-                  A
-                </button>
+                  <div
+                    :class="
+                      affaire.return_time == 'morning'
+                        ? 'gradientp'
+                        : 'gradientm'
+                    "
+                  >
+                    {{ affaire.return_time == "morning" ? "ap-midi" : "matin" }}
+                  </div>
+                </div>
+                <!-- <div class="technote">
+                  {{ affaire.tech_note }}
+                </div> -->
+                <div class="content-button">
+                  <button
+                    type="button"
+                    @click="modalOpen(affaire.description)"
+                    :class="affaire.description ? 'buttonv' : 'button'"
+                  >
+                    D
+                  </button>
 
-                <button
-                  type="button"
-                  @click="modalOpen(affaire.tech_note)"
-                  :class="affaire.tech_note ? 'buttonv' : 'button'"
-                >
-                  T
-                </button>
+                  <button
+                    type="button"
+                    @click="modalOpen(affaire.master_note)"
+                    :class="affaire.master_note ? 'buttonv' : 'button'"
+                  >
+                    A
+                  </button>
+
+                  <button
+                    type="button"
+                    @click="modalOpen(affaire.tech_note)"
+                    :class="affaire.tech_note ? 'buttonv' : 'button'"
+                  >
+                    T
+                  </button>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-    </div>
-    <!-- ---------------Tomorrow -------------------------------- -->
-
-    <div class="tomorrow">
-      <div v-if="isOpenAffSelect == 'tomorrow'" class="event-type">
-        <h3 v-if="isTomorrow(new Date(affaire.return_date))">Prépa</h3>
-      </div>
-      <div class="event-type" v-if="isOpenAffSelect == 'tomorrow'">
-        <h3>Prépa</h3>
-        <!-- {{ affaire.receipt_date }} -->
-      </div>
-      <div class="list-aff" v-for="affaire in affaires" :key="affaire.affairid">
-        <div v-if="isOpenAffSelect == 'tomorrow'">
-          <div v-if="isTomorrow(new Date(affaire.return_date))">
-            <div class="content">
-              <input type="checkbox" />
-              <h4>{{ affaire.name }}</h4>
-              <span @click="setColorIndicator(affaire.tech_id)" class="taille">
-                {{ affaire.tech_id }}
-              </span>
-              <h5>{{ affaire.tech_name }}</h5>
-            </div>
-            <div class="content2">
-              <div class="date-master">
-                <div
-                  :class="
-                    affaire.return_time == 'morning' ? 'gradientp' : 'gradientm'
-                  "
+        <div v-if="isOpenAffSelect == 'futur'" class="event-type">
+          <h3>Sortie</h3>
+          <!-- {{ affaire.receipt_date }} -->
+        </div>
+        <div
+          class="list-aff"
+          v-for="affaire in affaires"
+          :key="affaire.affairid"
+        >
+          <div v-if="isOpenAffSelect == 'futur'">
+            <div
+              v-if="
+                after2() < affaire.receipt_date &&
+                  affaire.receipt_date <= after5()
+              "
+            >
+              <div class="content">
+                <input type="checkbox" />
+                <h4>{{ affaire.name }}</h4>
+                <span
+                  @click="setColorIndicator(affaire.tech_id)"
+                  class="taille"
                 >
-                  {{
-                    format(new Date(affaire.return_date), "EEEE  dd ", {
-                      locale: fr
-                    })
-                  }}
-                </div>
-
-                <div
-                  :class="
-                    affaire.return_time == 'morning' ? 'gradientp' : 'gradientm'
-                  "
-                >
-                  {{ affaire.return_time == "morning" ? "ap-midi" : "matin" }}
-                </div>
+                  {{ affaire.tech_id }}
+                </span>
+                <h5>{{ affaire.tech_name }}</h5>
               </div>
-              <div class="technote">
-                {{ affaire.tech_note }}
-              </div>
-              <div class="content-button">
-                <button
-                  type="button"
-                  @click="modalOpen(affaire.description)"
-                  :class="affaire.description ? 'buttonv' : 'button'"
-                >
-                  D
-                </button>
+              <div class="content2">
+                <div class="date-master">
+                  <div>
+                    {{
+                      format(new Date(affaire.receipt_date), "EEEE  ", {
+                        locale: fr
+                      })
+                    }}
+                  </div>
 
-                <button
-                  type="button"
-                  @click="modalOpen(affaire.master_note)"
-                  :class="affaire.master_note ? 'buttonv' : 'button'"
-                >
-                  A
-                </button>
+                  <div>
+                    {{
+                      format(new Date(affaire.receipt_date), "  dd ", {
+                        locale: fr
+                      })
+                    }}
+                  </div>
 
-                <button
-                  type="button"
-                  @click="modalOpen(affaire.tech_note)"
-                  :class="affaire.tech_note ? 'buttonv' : 'button'"
-                >
-                  T
-                </button>
+                  <div
+                    :class="
+                      affaire.receipt_time == 'morning'
+                        ? 'gradientp'
+                        : 'gradientm'
+                    "
+                  >
+                    {{
+                      affaire.receipt_time == "morning" ? "ap-midi" : "matin"
+                    }}
+                  </div>
+                </div>
+                <div class="technote">
+                  {{ affaire.tech_note }}
+                </div>
+                <div class="content-button">
+                  <button
+                    type="button"
+                    @click="modalOpen(affaire.description)"
+                    :class="affaire.description ? 'buttonv' : 'button'"
+                  >
+                    D
+                  </button>
+
+                  <button
+                    type="button"
+                    @click="modalOpen(affaire.master_note)"
+                    :class="affaire.master_note ? 'buttonv' : 'button'"
+                  >
+                    A
+                  </button>
+
+                  <button
+                    type="button"
+                    @click="modalOpen(affaire.tech_note)"
+                    :class="affaire.tech_note ? 'buttonv' : 'button'"
+                  >
+                    T
+                  </button>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-      <div v-if="isOpenAffSelect == 'tomorrow'" class="event-type">
-        <h3>Sortie</h3>
-        <!-- {{ affaire.receipt_date }} -->
-      </div>
-      <div class="list-aff" v-for="affaire in affaires" :key="affaire.affairid">
-        <div v-if="isOpenAffSelect == 'tomorrow'">
-          <div v-if="isTomorrow(new Date(affaire.receipt_date))">
-            <div class="content">
-              <input type="checkbox" />
-              <h4>{{ affaire.name }}</h4>
-              <span @click="setColorIndicator(affaire.tech_id)" class="taille">
-                {{ affaire.tech_id }}
-              </span>
-              <h5>{{ affaire.tech_name }}</h5>
-            </div>
-            <div class="content2">
-              <div class="date-master">
-                <div
-                  :class="
-                    affaire.receipt_time == 'morning'
-                      ? 'gradientp'
-                      : 'gradientm'
-                  "
-                >
-                  {{
-                    format(new Date(affaire.receipt_date), "EEEE  dd ", {
-                      locale: fr
-                    })
-                  }}
-                </div>
-
-                <div
-                  :class="
-                    affaire.receipt_time == 'morning'
-                      ? 'gradientp'
-                      : 'gradientm'
-                  "
-                >
-                  {{ affaire.receipt_time == "morning" ? "ap-midi" : "matin" }}
-                </div>
-              </div>
-              <div class="technote">
-                {{ affaire.tech_note }}
-              </div>
-              <div class="content-button">
-                <button
-                  type="button"
-                  @click="modalOpen(affaire.description)"
-                  :class="affaire.description ? 'buttonv' : 'button'"
-                >
-                  D
-                </button>
-
-                <button
-                  type="button"
-                  @click="modalOpen(affaire.master_note)"
-                  :class="affaire.master_note ? 'buttonv' : 'button'"
-                >
-                  A
-                </button>
-
-                <button
-                  type="button"
-                  @click="modalOpen(affaire.tech_note)"
-                  :class="affaire.tech_note ? 'buttonv' : 'button'"
-                >
-                  T
-                </button>
-              </div>
-            </div>
-          </div>
+        <div v-if="isOpenAffSelect == 'futur'" class="event-type">
+          <h3>Retour</h3>
+          <!-- {{ affaire.receipt_date }} -->
         </div>
-      </div>
-      <div v-if="isOpenAffSelect == 'tomorrow'" class="event-type">
-        <h3>Retour</h3>
-        <!-- {{ affaire.receipt_date }} -->
-      </div>
-      <div class="list-aff" v-for="affaire in affaires" :key="affaire.affairid">
-        <div v-if="isOpenAffSelect == 'tomorrow'">
-          <div v-if="isTomorrow(new Date(affaire.return_date))">
-            <div class="content">
-              <input type="checkbox" />
-              <h4>{{ affaire.name }}</h4>
-              <span @click="setColorIndicator(affaire.tech_id)" class="taille">
-                {{ affaire.tech_id }}
-              </span>
-              <h5>{{ affaire.tech_name }}</h5>
-            </div>
-            <div class="content2">
-              <div class="date-master">
-                <div
-                  :class="
-                    affaire.return_time == 'morning' ? 'gradientp' : 'gradientm'
-                  "
+        <div
+          class="list-aff"
+          v-for="affaire in affaires"
+          :key="affaire.affairid"
+        >
+          <div v-if="isOpenAffSelect == 'futur'">
+            <div
+              v-if="
+                after2() < affaire.return_date &&
+                  affaire.return_date <= after5()
+              "
+            >
+              <div class="content">
+                <input type="checkbox" />
+                <h4>{{ affaire.name }}</h4>
+                <span
+                  @click="setColorIndicator(affaire.tech_id)"
+                  class="taille"
                 >
-                  {{
-                    format(new Date(affaire.return_date), "EEEE  dd ", {
-                      locale: fr
-                    })
-                  }}
+                  {{ affaire.tech_id }}
+                </span>
+                <h5>{{ affaire.tech_name }}</h5>
+              </div>
+              <div class="content2">
+                <div class="date-master">
+                  <div>
+                    {{
+                      format(new Date(affaire.return_date), "EEEE   ", {
+                        locale: fr
+                      })
+                    }}
+                  </div>
+                  <div>
+                    {{
+                      format(new Date(affaire.return_date), " dd ", {
+                        locale: fr
+                      })
+                    }}
+                  </div>
+
+                  <div
+                    :class="
+                      affaire.return_time == 'morning'
+                        ? 'gradientp'
+                        : 'gradientm'
+                    "
+                  >
+                    {{ affaire.return_time == "morning" ? "ap-midi" : "matin" }}
+                  </div>
                 </div>
-
-                <div
-                  :class="
-                    affaire.return_time == 'morning' ? 'gradientp' : 'gradientm'
-                  "
-                >
-                  {{ affaire.return_time == "morning" ? "ap-midi" : "matin" }}
+                <div class="technote">
+                  {{ affaire.tech_note }}
                 </div>
-              </div>
-              <div class="technote">
-                {{ affaire.tech_note }}
-              </div>
-              <div class="content-button">
-                <button
-                  type="button"
-                  @click="modalOpen(affaire.description)"
-                  :class="affaire.description ? 'buttonv' : 'button'"
-                >
-                  D
-                </button>
+                <div class="content-button">
+                  <button
+                    type="button"
+                    @click="modalOpen(affaire.description)"
+                    :class="affaire.description ? 'buttonv' : 'button'"
+                  >
+                    D
+                  </button>
 
-                <button
-                  type="button"
-                  @click="modalOpen(affaire.master_note)"
-                  :class="affaire.master_note ? 'buttonv' : 'button'"
-                >
-                  A
-                </button>
+                  <button
+                    type="button"
+                    @click="modalOpen(affaire.master_note)"
+                    :class="affaire.master_note ? 'buttonv' : 'button'"
+                  >
+                    A
+                  </button>
 
-                <button
-                  type="button"
-                  @click="modalOpen(affaire.tech_note)"
-                  :class="affaire.tech_note ? 'buttonv' : 'button'"
-                >
-                  T
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- -----------------------(2)After(5)---------------------------------- -->
-    <div class="after">
-      <div v-if="isOpenAffSelect == 'after'" class="event-type">
-        <h3>Prépa</h3>
-      </div>
-
-      <div class="list-aff" v-for="affaire in affaires" :key="affaire.affairid">
-        <div v-if="isOpenAffSelect == 'after'">
-          <div
-            v-if="
-              after2() < affaire.return_date && affaire.return_date <= after5()
-            "
-          >
-            <div class="content">
-              <input type="checkbox" />
-              <h4>{{ affaire.name }}</h4>
-              <span @click="setColorIndicator(affaire.tech_id)" class="taille">
-                {{ affaire.tech_id }}
-              </span>
-              <h5>{{ affaire.tech_name }}</h5>
-            </div>
-            <div class="content2">
-              <div class="date-master">
-                <div
-                  :class="
-                    affaire.return_time == 'morning' ? 'gradientp' : 'gradientm'
-                  "
-                >
-                  {{
-                    format(new Date(affaire.return_date), "EEEE  dd ", {
-                      locale: fr
-                    })
-                  }}
+                  <button
+                    type="button"
+                    @click="modalOpen(affaire.tech_note)"
+                    :class="affaire.tech_note ? 'buttonv' : 'button'"
+                  >
+                    T
+                  </button>
                 </div>
-
-                <div
-                  :class="
-                    affaire.return_time == 'morning' ? 'gradientp' : 'gradientm'
-                  "
-                >
-                  {{ affaire.return_time == "morning" ? "ap-midi" : "matin" }}
-                </div>
-              </div>
-              <div class="technote">
-                {{ affaire.tech_note }}
-              </div>
-              <div class="content-button">
-                <button
-                  type="button"
-                  @click="modalOpen(affaire.description)"
-                  :class="affaire.description ? 'buttonv' : 'button'"
-                >
-                  D
-                </button>
-
-                <button
-                  type="button"
-                  @click="modalOpen(affaire.master_note)"
-                  :class="affaire.master_note ? 'buttonv' : 'button'"
-                >
-                  A
-                </button>
-
-                <button
-                  type="button"
-                  @click="modalOpen(affaire.tech_note)"
-                  :class="affaire.tech_note ? 'buttonv' : 'button'"
-                >
-                  T
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div v-if="isOpenAffSelect == 'after'" class="event-type">
-        <h3>Sortie</h3>
-        <!-- {{ affaire.receipt_date }} -->
-      </div>
-      <div class="list-aff" v-for="affaire in affaires" :key="affaire.affairid">
-        <div v-if="isOpenAffSelect == 'after'">
-          <div
-            v-if="
-              after2() < affaire.receipt_date &&
-                affaire.receipt_date <= after5()
-            "
-          >
-            <div class="content">
-              <input type="checkbox" />
-              <h4>{{ affaire.name }}</h4>
-              <span @click="setColorIndicator(affaire.tech_id)" class="taille">
-                {{ affaire.tech_id }}
-              </span>
-              <h5>{{ affaire.tech_name }}</h5>
-            </div>
-            <div class="content2">
-              <div class="date-master">
-                <div
-                  :class="
-                    affaire.receipt_time == 'morning'
-                      ? 'gradientp'
-                      : 'gradientm'
-                  "
-                >
-                  {{
-                    format(new Date(affaire.receipt_date), "EEEE  dd ", {
-                      locale: fr
-                    })
-                  }}
-                </div>
-
-                <div
-                  :class="
-                    affaire.receipt_time == 'morning'
-                      ? 'gradientp'
-                      : 'gradientm'
-                  "
-                >
-                  {{ affaire.receipt_time == "morning" ? "ap-midi" : "matin" }}
-                </div>
-              </div>
-              <div class="technote">
-                {{ affaire.tech_note }}
-              </div>
-              <div class="content-button">
-                <button
-                  type="button"
-                  @click="modalOpen(affaire.description)"
-                  :class="affaire.description ? 'buttonv' : 'button'"
-                >
-                  D
-                </button>
-
-                <button
-                  type="button"
-                  @click="modalOpen(affaire.master_note)"
-                  :class="affaire.master_note ? 'buttonv' : 'button'"
-                >
-                  A
-                </button>
-
-                <button
-                  type="button"
-                  @click="modalOpen(affaire.tech_note)"
-                  :class="affaire.tech_note ? 'buttonv' : 'button'"
-                >
-                  T
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div v-if="isOpenAffSelect == 'after'" class="event-type">
-        <h3>Retour</h3>
-        <!-- {{ affaire.receipt_date }} -->
-      </div>
-      <div class="list-aff" v-for="affaire in affaires" :key="affaire.affairid">
-        <div v-if="isOpenAffSelect == 'after'">
-          <div
-            v-if="
-              after2() < affaire.return_date && affaire.return_date <= after5()
-            "
-          >
-            <div class="content">
-              <input type="checkbox" />
-              <h4>{{ affaire.name }}</h4>
-              <span @click="setColorIndicator(affaire.tech_id)" class="taille">
-                {{ affaire.tech_id }}
-              </span>
-              <h5>{{ affaire.tech_name }}</h5>
-            </div>
-            <div class="content2">
-              <div class="date-master">
-                <div
-                  :class="
-                    affaire.return_time == 'morning' ? 'gradientp' : 'gradientm'
-                  "
-                >
-                  {{
-                    format(new Date(affaire.return_date), "EEEE  dd ", {
-                      locale: fr
-                    })
-                  }}
-                </div>
-
-                <div
-                  :class="
-                    affaire.return_time == 'morning' ? 'gradientp' : 'gradientm'
-                  "
-                >
-                  {{ affaire.return_time == "morning" ? "ap-midi" : "matin" }}
-                </div>
-              </div>
-              <div class="technote">
-                {{ affaire.tech_note }}
-              </div>
-              <div class="content-button">
-                <button
-                  type="button"
-                  @click="modalOpen(affaire.description)"
-                  :class="affaire.description ? 'buttonv' : 'button'"
-                >
-                  D
-                </button>
-
-                <button
-                  type="button"
-                  @click="modalOpen(affaire.master_note)"
-                  :class="affaire.master_note ? 'buttonv' : 'button'"
-                >
-                  A
-                </button>
-
-                <button
-                  type="button"
-                  @click="modalOpen(affaire.tech_note)"
-                  :class="affaire.tech_note ? 'buttonv' : 'button'"
-                >
-                  T
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <!-- -------------------  Futur ....... -------------------------->
-    <div class="futur">
-      <div v-if="isOpenAffSelect == 'futur'" class="event-type">
-        <h3>Prépa</h3>
-      </div>
-
-      <div class="list-aff" v-for="affaire in affaires" :key="affaire.affairid">
-        <div v-if="isOpenAffSelect == 'futur'">
-          <div v-if="affaire.return_date > after5()">
-            <div class="content">
-              <input type="checkbox" />
-              <h4>{{ affaire.name }}</h4>
-              <span @click="setColorIndicator(affaire.tech_id)" class="taille">
-                {{ affaire.tech_id }}
-              </span>
-              <h5>{{ affaire.tech_name }}</h5>
-            </div>
-            <div class="content2">
-              <div class="date-master">
-                <div
-                  :class="
-                    affaire.return_time == 'morning' ? 'gradientp' : 'gradientm'
-                  "
-                >
-                  {{
-                    format(new Date(affaire.return_date), "EEEE  dd ", {
-                      locale: fr
-                    })
-                  }}
-                </div>
-
-                <div
-                  :class="
-                    affaire.return_time == 'morning' ? 'gradientp' : 'gradientm'
-                  "
-                >
-                  {{ affaire.return_time == "morning" ? "ap-midi" : "matin" }}
-                </div>
-              </div>
-              <div class="technote">
-                {{ affaire.tech_note }}
-              </div>
-              <div class="content-button">
-                <button
-                  type="button"
-                  @click="modalOpen(affaire.description)"
-                  :class="affaire.description ? 'buttonv' : 'button'"
-                >
-                  D
-                </button>
-
-                <button
-                  type="button"
-                  @click="modalOpen(affaire.master_note)"
-                  :class="affaire.master_note ? 'buttonv' : 'button'"
-                >
-                  A
-                </button>
-
-                <button
-                  type="button"
-                  @click="modalOpen(affaire.tech_note)"
-                  :class="affaire.tech_note ? 'buttonv' : 'button'"
-                >
-                  T
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div v-if="isOpenAffSelect == 'futur'" class="event-type">
-        <h3>Sortie</h3>
-        <!-- {{ affaire.receipt_date }} -->
-      </div>
-      <div class="list-aff" v-for="affaire in affaires" :key="affaire.affairid">
-        <div v-if="isOpenAffSelect == 'futur'">
-          <div
-            v-if="
-              after2() < affaire.receipt_date &&
-                affaire.receipt_date <= after5()
-            "
-          >
-            <div class="content">
-              <input type="checkbox" />
-              <h4>{{ affaire.name }}</h4>
-              <span @click="setColorIndicator(affaire.tech_id)" class="taille">
-                {{ affaire.tech_id }}
-              </span>
-              <h5>{{ affaire.tech_name }}</h5>
-            </div>
-            <div class="content2">
-              <div class="date-master">
-                <div
-                  :class="
-                    affaire.receipt_time == 'morning'
-                      ? 'gradientp'
-                      : 'gradientm'
-                  "
-                >
-                  {{
-                    format(new Date(affaire.receipt_date), "EEEE  dd ", {
-                      locale: fr
-                    })
-                  }}
-                </div>
-
-                <div
-                  :class="
-                    affaire.receipt_time == 'morning'
-                      ? 'gradientp'
-                      : 'gradientm'
-                  "
-                >
-                  {{ affaire.receipt_time == "morning" ? "ap-midi" : "matin" }}
-                </div>
-              </div>
-              <div class="technote">
-                {{ affaire.tech_note }}
-              </div>
-              <div class="content-button">
-                <button
-                  type="button"
-                  @click="modalOpen(affaire.description)"
-                  :class="affaire.description ? 'buttonv' : 'button'"
-                >
-                  D
-                </button>
-
-                <button
-                  type="button"
-                  @click="modalOpen(affaire.master_note)"
-                  :class="affaire.master_note ? 'buttonv' : 'button'"
-                >
-                  A
-                </button>
-
-                <button
-                  type="button"
-                  @click="modalOpen(affaire.tech_note)"
-                  :class="affaire.tech_note ? 'buttonv' : 'button'"
-                >
-                  T
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div v-if="isOpenAffSelect == 'futur'" class="event-type">
-        <h3>Retour</h3>
-        <!-- {{ affaire.receipt_date }} -->
-      </div>
-      <div class="list-aff" v-for="affaire in affaires" :key="affaire.affairid">
-        <div v-if="isOpenAffSelect == 'futur'">
-          <div
-            v-if="
-              after2() < affaire.return_date && affaire.return_date <= after5()
-            "
-          >
-            <div class="content">
-              <input type="checkbox" />
-              <h4>{{ affaire.name }}</h4>
-              <span @click="setColorIndicator(affaire.tech_id)" class="taille">
-                {{ affaire.tech_id }}
-              </span>
-              <h5>{{ affaire.tech_name }}</h5>
-            </div>
-            <div class="content2">
-              <div class="date-master">
-                <div
-                  :class="
-                    affaire.return_time == 'morning' ? 'gradientp' : 'gradientm'
-                  "
-                >
-                  {{
-                    format(new Date(affaire.return_date), "EEEE  dd ", {
-                      locale: fr
-                    })
-                  }}
-                </div>
-
-                <div
-                  :class="
-                    affaire.return_time == 'morning' ? 'gradientp' : 'gradientm'
-                  "
-                >
-                  {{ affaire.return_time == "morning" ? "ap-midi" : "matin" }}
-                </div>
-              </div>
-              <div class="technote">
-                {{ affaire.tech_note }}
-              </div>
-              <div class="content-button">
-                <button
-                  type="button"
-                  @click="modalOpen(affaire.description)"
-                  :class="affaire.description ? 'buttonv' : 'button'"
-                >
-                  D
-                </button>
-
-                <button
-                  type="button"
-                  @click="modalOpen(affaire.master_note)"
-                  :class="affaire.master_note ? 'buttonv' : 'button'"
-                >
-                  A
-                </button>
-
-                <button
-                  type="button"
-                  @click="modalOpen(affaire.tech_note)"
-                  :class="affaire.tech_note ? 'buttonv' : 'button'"
-                >
-                  T
-                </button>
               </div>
             </div>
           </div>
@@ -948,6 +1173,7 @@
 
 <script>
 import ModalDelete from "@/components/ModalDelete.vue";
+// import AffaireMaster from "@/components/AffaireMaster.vue";
 import { Api } from "../js/api.js";
 var url = "https://cinod.fr/cables/api.php";
 var api = new Api(url);
@@ -970,6 +1196,7 @@ import { ref, onMounted, computed } from "vue";
 export default {
   name: "MasterAffaire",
   components: { ModalDelete },
+
   setup() {
     let affaires = ref([]);
     let cables = ref([]);
@@ -977,6 +1204,31 @@ export default {
     const morning = "";
     const isOpenNote = ref(false);
     const displayNote = ref("");
+    const dateP = "date_prep";
+
+    // ------------------ search button -----------------
+
+    const inputType = ref("");
+    function searchInput(data) {
+      inputType.value = data;
+    }
+
+    // ---- recherche dans liste cable par search.... ------------
+    const searchAff = ref("");
+    const searchTech = ref("");
+    const searchRef = ref("");
+
+    const searchAffaires = computed(() => {
+      // console.log("SearchAffaires:",SearchAffaires);
+      return affaires.value.filter(affaire => {
+        return (
+          affaire.name.toLowerCase().includes(searchAff.value.toLowerCase()) &&
+          affaire.tech_name
+            .toLowerCase()
+            .includes(searchTech.value.toLowerCase())
+        );
+      });
+    });
 
     function modalOpen(data) {
       displayNote.value = data;
@@ -1104,6 +1356,7 @@ export default {
 
       cable_get,
       cables,
+      dateP,
       affair_get,
       ficheColor,
       ficheSelected,
@@ -1113,7 +1366,7 @@ export default {
       isOpenAff,
       isTomorrow,
       isToday,
-
+      inputType,
       isYesterday,
       modalOpen,
       displayNote,
@@ -1123,9 +1376,15 @@ export default {
       subDays,
       size,
       // showIcon,
+      searchAff,
+      searchTech,
+      searchRef,
+      searchInput,
+      searchAffaires,
       setColorIndicator,
       today,
       tomorrow,
+
       startOfTomorrow,
       fr,
 
@@ -1176,17 +1435,18 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  width: 365px;
+  /* width: 365px; */
   height: 35px;
   background: rgb(235, 233, 233);
   padding: 5px;
+  /* margin: 0px 5px; */
 }
 .content2 {
   display: flex;
   justify-content: space-between;
   width: 365px;
   align-items: center;
-
+  margin: 0px 5px;
   border-bottom: 1px solid black;
 }
 .content-button {
@@ -1208,6 +1468,7 @@ h4 {
 }
 .event-type {
   display: flex;
+  margin: 0px 5px;
 }
 .event-type h3 {
   color: red;

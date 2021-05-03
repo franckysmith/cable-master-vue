@@ -48,25 +48,26 @@ import { computed, ref } from "vue";
 
 export default {
   name: "MasterCableList",
-  emits: ["update", "supp"],
+  emits: ["update", "supp", "close"],
   props: {
     cables: {
       type: Array
-    },
-    cableType: {
-      type: String
-    },
-    showMyList: {
-      type: Boolean
-    },
-    affaireSelected: {
-      type: Array
     }
+    // cableType: {
+    //   type: String
+    // },
+    // showMyList: {
+    //   type: Boolean
+    // },
+    // affaireSelected: {
+    //   type: Array
+    // }
   },
 
   setup(props, { emit }) {
     let allCables = ref([]);
     let cable = ref([]);
+    const displayAddCable = ref("");
     const listeType = ref([
       {
         id: 1,
@@ -121,6 +122,7 @@ export default {
     function suppcable(param) {
       emit("supp", param);
     }
+    emit("close", displayAddCable);
 
     function calculateTotal(cable) {
       return (
@@ -157,7 +159,8 @@ export default {
       emit,
       updatecable,
       cable,
-      suppcable
+      suppcable,
+      displayAddCable
     };
   }
 };
@@ -188,7 +191,7 @@ button {
 }
 
 .delete {
-  margin-left: 25px;
+  margin-left: 5px;
 }
 .head {
   display: flex;
@@ -219,14 +222,14 @@ button {
 }
 
 .list_container {
-  width: 400px;
+  width: 375px;
 }
 .link .modaldelete {
-  width: 400px;
+  width: 375px;
   margin: auto;
 }
 .link {
-  width: 120px;
+  width: 80px;
 }
 .number {
   width: 365px;

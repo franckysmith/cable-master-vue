@@ -3,7 +3,7 @@
     <form @submit.prevent="updateOrder()">
       <div class="number">
         <div>
-          <input type="checkbox" v-model="tfc_done" />
+          <input type="checkbox" v-model="cable.tfc_done" />
         </div>
         <div class="name">
           <h4>{{ cable.name }}</h4>
@@ -215,8 +215,8 @@ export default {
   padding-top: 5px;
   border: 1px solid black;
   background: rgb(224, 222, 222);
-  width: 23px;
-  height: 20px;
+  width: 30px;
+  height: 23px;
 }
 input {
   padding: 5px;
@@ -296,10 +296,10 @@ form {
   line-height: 6px;
   padding-top: 5px;
   border: 1px solid green;
-  width: 23px;
-  height: 20px;
+  width: 30px;
+  height: 23px;
   margin-top: 5px;
-  margin-left: 4px;
+  /* margin-left: 4px; */
   margin-right: 9px;
 }
 .ready p {

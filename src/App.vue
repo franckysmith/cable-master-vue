@@ -29,8 +29,6 @@ select {
 }
 
 #nav {
-  padding: 30px;
-  width: 365px;
   margin: auto;
 }
 
@@ -44,7 +42,7 @@ select {
 }
 /*** iPhone and iOS Form Input Zoom Fixes ***/
 /* Fix Input Zoom on devices older than iPhone 5: */
-@media screen and (device-aspect-ratio: 2/3) {
+/* @media screen and (device-aspect-ratio: 2/3) {
   select,
   textarea,
   input[type="text"],
@@ -63,7 +61,7 @@ select {
 }
 
 /* Fix Input Zoom on iPhone 5, 5C, 5S, iPod Touch 5g */
-@media screen and (device-aspect-ratio: 40/71) {
+/* @media screen and (device-aspect-ratio: 40/71) {
   select,
   textarea,
   input[type="text"],
@@ -79,10 +77,10 @@ select {
   input[type="url"] {
     font-size: 16px;
   }
-}
+} */
 
 /* Fix Input Zoom on iPhone 6, iPhone 6s, iPhone 7  */
-@media screen and (device-aspect-ratio: 375/667) {
+/* @media screen and (device-aspect-ratio: 375/667) {
   select,
   textarea,
   input[type="text"],
@@ -99,10 +97,10 @@ select {
   input[type="url"] {
     font-size: 16px;
   }
-}
+} */
 
 /* Fix Input Zoom on iPhone 6 Plus, iPhone 6s Plus, iPhone 7 Plus, iPhone 8, iPhone X, XS, XS Max  */
-@media screen and (device-aspect-ratio: 9/16) {
+/* @media screen and (device-aspect-ratio: 9/16) {
   select,
   textarea,
   input[type="text"],
@@ -119,21 +117,22 @@ select {
   input[type="url"] {
     font-size: 16px;
   }
-}
+} */
+
 /* """""""""""""""""""""""""""""""""""""""""""""""""""""" GENERAL MEDIAS QUERIES """"""""""""""""""""""""""""""""""""""""""""""""" */
 /* Extra small devices (phones, 600px and down) */
-@media only screen and (max-width: 600px) {
-}
+/* @media only screen and (max-width: 600px) {
+} */
 /* Small devices (portrait tablets and large phones, 600px and up) */
-@media only screen and (min-width: 600px) {
-}
+/* @media only screen and (min-width: 600px) {
+} */
 /* Medium devices (landscape tablets, 768px and up) */
-@media only screen and (min-width: 768px) {
-}
+/* @media only screen and (min-width: 768px) {
+} */
 /* Large devices (laptops/desktops, 992px and up) */
-@media only screen and (min-width: 992px) {
-}
+/* @media only screen and (min-width: 992px) {
+} */
 /* Extra large devices (large laptops and desktops, 1200px and up) */
-@media only screen and (min-width: 1200px) {
-}
+/* @media only screen and (min-width: 1200px) {
+} */
 </style>
