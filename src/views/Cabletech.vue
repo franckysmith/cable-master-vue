@@ -528,32 +528,30 @@ export default {
         parseInt(cable.spare_count || 0)
       );
     }
-    
+
     //---- count digest ----
-    
+
     function countDigest(cable) {
       return `${cable.z1},${cable.z2},${cable.z3},${cable.z4},${cable.z5},${cable.spare_count}`;
     }
-    
+
     function countDigestInit(cable) {
       cable.count_digest = countDigest(cable);
     }
-    
+
     function countDigestChanged(cable) {
       return cable.count_digest != countDigest(cable);
     }
-    
+
     //----------------------
 
     // save/set_order
     function set_order(data) {
-      for (const cable of data)
-        cable.count = calculateTotal(cable);
-        
+      for (const cable of data) cable.count = calculateTotal(cable);
+
       // update just cables with changed count_digest
       const cables = data.filter(countDigestChanged);
-      if(!cables.length)
-        return;
+      if (!cables.length) return;
 
       console.log("cabletech | orderset:::", cables);
       api
@@ -770,11 +768,11 @@ button.link {
 }
 .flightcases-button {
   display: flex;
-  width: 370px;
-  padding-left: 260px;
+  width: 120px;
+  padding-left: 140px;
 }
 .flightcases-button button {
-  margin: 10px;
+  margin: 9px;
   padding: 5px;
   min-width: 20px;
   background: rgb(211, 210, 210);
@@ -789,18 +787,18 @@ form {
 .head-fc {
   display: flex;
   margin: auto;
-  width: 375px;
+  width: 110px;
   height: 20px;
   text-align: left;
-  padding-left: 260px;
+  padding-left: 20px;
 }
 .head-zone {
   display: flex;
   margin: auto;
-  width: 375px;
+  width: 120px;
   height: 20px;
   text-align: left;
-  padding-left: 142px;
+  padding-left: 20px;
 }
 .head-zone input {
   width: 28px;

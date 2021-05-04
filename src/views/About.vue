@@ -36,17 +36,15 @@
       écran
     </p>
     <ul>
-      <li>
-        1. cliquer sur 'Cabletech'
-      </li>
+      <li>1. cliquer sur 'Cabletech'<br /></li>
       <li>2. Créer une affaire</li>
+      <br />
       <li>
         3. vous êtes dans le mode "sélectionner"
         <br />finissez de remplir tous les champs proposés, et choisissez
         différents éléments cables etc ..., en cliquant dans les cases pour
         incrémenter alors qu'un contact prolongé va permettre de décrémenter
-        jusqu'a zéro
-        <br />
+        jusqu'a zéro <br /><br />
         la première colonne 'spare' est la colonne correspondant aux cables
         suplémentaires "au cas ou" ... <br />
         les colonnes Zone1 à zone5 que vous pouvez renomer en cliquant dessus,
@@ -54,6 +52,7 @@
         les zone: Face, Sub, Front fil, Side, delay, caisse micro .... <br />
       </li>
       <li>
+        <br />
         4. le mode FlightCase <br />
         Ici vous allez retrouver le nombre exact de tous les éléments que vous
         avez sélectionnés auparavent et de la même facon vous allez pouvoir

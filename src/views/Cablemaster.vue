@@ -353,12 +353,12 @@ button {
 }
 
 .name input {
-  font-size: 15px;
+  /* font-size: 15px;
   font-weight: 600;
   text-align: left;
   width: 110px;
   margin-left: 15px;
-  background-color: #c1c7c33a;
+  background-color: #c1c7c33a; */
 }
 .selectedtype {
   color: rgb(255, 255, 255);

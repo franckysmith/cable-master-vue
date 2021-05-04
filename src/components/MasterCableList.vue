@@ -13,21 +13,8 @@
         <input v-model="cable.info" placeholder="details" />
       </div>
       <div class="number2">
-        <div class="type">
-          <select v-model="cable.type" @change="updatecable(cable)">
-            <option
-              v-for="choix in listeType"
-              :key="choix.id"
-              :value="choix.value"
-              >{{ choix.name }}
-            </option>
-          </select>
-        </div>
         <button>
           <a :href="cable.link">link</a>
-        </button>
-        <button type="submit" @click="updatecable(cable)" name="save">
-          update
         </button>
 
         <div>
@@ -37,6 +24,24 @@
             v-model="cable.link"
             placeholder="http://www.demo.fr"
           />
+        </div>
+        <button
+          class="update"
+          type="submit"
+          @click="updatecable(cable)"
+          name="save"
+        >
+          update
+        </button>
+        <div class="type">
+          <select v-model="cable.type" @change="updatecable(cable)">
+            <option
+              v-for="choix in listeType"
+              :key="choix.id"
+              :value="choix.value"
+              >{{ choix.name }}
+            </option>
+          </select>
         </div>
       </div>
     </div>
@@ -222,14 +227,15 @@ button {
 }
 
 .list_container {
-  width: 375px;
+  /* width: 375px; */
 }
 .link .modaldelete {
   width: 375px;
   margin: auto;
 }
 .link {
-  width: 80px;
+  width: 120px;
+  margin-left: 0px;
 }
 .number {
   width: 365px;
@@ -246,7 +252,7 @@ button {
   align-items: center;
   margin: 5px 0px 25px 0px;
 }
-.number2 button {
+.update {
   margin-left: 10px;
 }
 
@@ -277,8 +283,8 @@ button {
   font-size: 15px;
   font-weight: 600;
   text-align: left;
-  width: 110px;
-
+  width: 100px;
+  white-space: nowrap;
   background-color: #c1c7c33a;
 }
 .selectedtype {

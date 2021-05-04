@@ -475,6 +475,14 @@ button {
 .ct-info {
   width: 330px;
 }
+.head {
+  display: flex;
+  /* margin: auto; */
+  width: 375px;
+
+  text-align: left;
+  padding-left: 155px;
+}
 input {
   padding: 5px;
 }
@@ -497,14 +505,6 @@ input {
   margin: 0px;
 }
 
-.head {
-  display: flex;
-  /* margin: auto; */
-  width: 375px;
-
-  text-align: left;
-  padding-left: 155px;
-}
 .link {
   height: 18px;
   background: transparent;
@@ -567,7 +567,7 @@ input {
 
 .post {
   margin: 10px 0px 20px 0px;
-  width: 400px;
+  width: 375px;
 }
 
 .post button {

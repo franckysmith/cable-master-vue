@@ -9,6 +9,7 @@
             </div>
           </div>
         </template>
+        <template #body> </template>
         <template #footer>
           <button>
             fermer
@@ -63,9 +64,8 @@
         <div class="content">
           <input type="checkbox" v-model="affaire.donemaster" />
           <h4>{{ affaire.name }}</h4>
-          <span @click="setColorIndicator(size)" class="taille">
-            {{ size }}
-          </span>
+          <!-- <span @click="setColorIndicator(size)" class="taille"> -->
+
           <h5>{{ affaire.tech_name }}</h5>
         </div>
         <div class="content2">
@@ -164,9 +164,10 @@
                 <div class="content">
                   <input type="checkbox" />
                   <h4>{{ affaire.name }}</h4>
-                  <span @click="setColorIndicator(size)" class="taille">
-                    {{ size }}
-                  </span>
+                  <!-- <span @click="setColorIndicator(size)" class="taille"> -->
+                  <!-- <h3>{{ size }}</h3> -->
+                  <p>hello</p>
+
                   <h5>{{ affaire.tech_name }}</h5>
                 </div>
                 <div class="content2">
@@ -1233,7 +1234,7 @@ export default {
     function modalOpen(data) {
       displayNote.value = data;
       isOpenNote.value = true;
-      console.log("countfc.value | data:", data);
+      // console.log("countfc.value | data:", data);
     }
 
     // get affaire
@@ -1285,17 +1286,17 @@ export default {
           console.log("err_cable_get:", response);
         });
     });
-    let size = ref("");
-    const setColorIndicator = computed(() => {
-      console.log("affaire.value.tech_id::", size.value);
-      if (size.value < "30") {
-        return "grey";
-        // } else if (size >= "30" && size < "70") {
-        //   return "orange";
-      } else {
-        return "red";
-      }
-    });
+    // let size = ref("");
+    // const setColorIndicator = computed(() => {
+    //   console.log("affaire.value.tech_id::", size.value);
+    //   if (size.value < "30") {
+    //     return "grey";
+    //     // } else if (size >= "30" && size < "70") {
+    //     //   return "orange";
+    //   } else {
+    //     return "red";
+    //   }
+    // });
     let ficheSelected = ref([]);
     function ficheColor(data) {
       ficheSelected.value = data;
@@ -1374,14 +1375,14 @@ export default {
       formatRelative,
       ordersAff,
       subDays,
-      size,
+      // size,
       // showIcon,
       searchAff,
       searchTech,
       searchRef,
       searchInput,
       searchAffaires,
-      setColorIndicator,
+      // setColorIndicator,
       today,
       tomorrow,
 

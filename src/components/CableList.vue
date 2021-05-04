@@ -10,21 +10,27 @@
           <h4 :class="setColorIndicator(cable)">{{ cable.name }}</h4>
         </div>
 
-        <p style="font-size:10px;line-height:0px,padding-righr:3px">
+        <div style="font-size:10px;">
           Total:{{ calculateTotal(cable) }}<br />
-          {{ cable.total }}
-        </p>
+          <!-- {{ cable.total }} -->
+        </div>
         <div>
           <input
+            class="input-btn"
+            type="button"
             name="spare_count"
             v-model.number="cable.spare_count"
-            @click="cable.spare_count = parseInt(cable.spare_count || 0) + 1"
+            @mousedown="
+              cable.spare_count = parseInt(cable.spare_count || 0) + 1
+            "
+            v-longclick="() => changeValue({ cable, prop: 'spare_count' })"
           />
         </div>
 
         <div>
           <input
-            name=""
+            class="input-btn"
+            type="button"
             v-model="cable.z1"
             @mousedown="cable.z1 = parseInt(cable.z1 || 0) + 1"
             v-longclick="() => changeValue({ cable, prop: 'z1' })"
@@ -32,7 +38,8 @@
         </div>
         <div>
           <input
-            class="z2"
+            class="input-btn"
+            type="button"
             v-model="cable.z2"
             @mousedown="cable.z2 = parseInt(cable.z2 || 0) + 1"
             v-longclick="() => changeValue({ cable, prop: 'z2' })"
@@ -40,6 +47,8 @@
         </div>
         <div>
           <input
+            class="input-btn"
+            type="button"
             name=""
             v-model="cable.z3"
             @mousedown="cable.z3 = parseInt(cable.z3 || 0) + 1"
@@ -48,7 +57,8 @@
         </div>
         <div>
           <input
-            class="z2"
+            class="input-btn"
+            type="button"
             v-model="cable.z4"
             @mousedown="cable.z4 = parseInt(cable.z4 || 0) + 1"
             v-longclick="() => changeValue({ cable, prop: 'z4' })"
@@ -56,6 +66,8 @@
         </div>
         <div>
           <input
+            class="input-btn"
+            type="button"
             name=""
             v-model="cable.z5"
             @mousedown="cable.z5 = parseInt(cable.z5 || 0) + 1"
@@ -68,7 +80,7 @@
           <p>{{ cable.info }}</p>
 
           <button type="button" class="link" v-if="cable.link">
-            <a href="cable.link" target="_blank">link</a>
+            <a :href="cable.link" target="_blank">link</a>
           </button>
         </div>
       </div>
@@ -224,9 +236,9 @@ export default {
       if (!cableFromProps) return;
 
       const cableTotalUpdated = +cable.total - +cableFromProps.count;
+      console.log("arrCount!:", props.arrCount);
       console.log("cableFromProps.count", cableFromProps.count);
       console.log("cableTotalUpdated:", cableTotalUpdated);
-      console.log("arrCount!:", props.arrCount);
       console.log("cable.total:", cable.total);
 
       if (cableTotalUpdated > 2 * cable.reserved) {
@@ -273,6 +285,15 @@ input {
   font-style: italic;
   border-bottom: 1px solid;
 }
+.input-btn {
+  height: 28px;
+  width: 40px;
+  text-align: center;
+  padding-right: 15px;
+  border: 1px solid grey;
+  -webkit-appearance: none;
+  border-radius: 0;
+}
 
 .link {
   height: 18px;
@@ -313,7 +334,7 @@ input {
 }
 
 .number input {
-  width: 18px;
+  width: 28px;
   margin: 3px;
 }
 

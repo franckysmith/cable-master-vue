@@ -21,7 +21,7 @@
   text-align: center;
   color: #2c3e50;
   margin: 0px;
-  padding: 0px;
+  padding-top: 20px;
 }
 .input,
 select {
@@ -42,7 +42,7 @@ select {
 }
 /*** iPhone and iOS Form Input Zoom Fixes ***/
 /* Fix Input Zoom on devices older than iPhone 5: */
-/* @media screen and (device-aspect-ratio: 2/3) {
+@media screen and (device-aspect-ratio: 2/3) {
   select,
   textarea,
   input[type="text"],
@@ -61,7 +61,7 @@ select {
 }
 
 /* Fix Input Zoom on iPhone 5, 5C, 5S, iPod Touch 5g */
-/* @media screen and (device-aspect-ratio: 40/71) {
+@media screen and (device-aspect-ratio: 40/71) {
   select,
   textarea,
   input[type="text"],
@@ -77,10 +77,10 @@ select {
   input[type="url"] {
     font-size: 16px;
   }
-} */
+}
 
 /* Fix Input Zoom on iPhone 6, iPhone 6s, iPhone 7  */
-/* @media screen and (device-aspect-ratio: 375/667) {
+@media screen and (device-aspect-ratio: 375/667) {
   select,
   textarea,
   input[type="text"],
@@ -97,10 +97,10 @@ select {
   input[type="url"] {
     font-size: 16px;
   }
-} */
+}
 
 /* Fix Input Zoom on iPhone 6 Plus, iPhone 6s Plus, iPhone 7 Plus, iPhone 8, iPhone X, XS, XS Max  */
-/* @media screen and (device-aspect-ratio: 9/16) {
+@media screen and (device-aspect-ratio: 9/16) {
   select,
   textarea,
   input[type="text"],
@@ -117,7 +117,7 @@ select {
   input[type="url"] {
     font-size: 16px;
   }
-} */
+}
 
 /* """""""""""""""""""""""""""""""""""""""""""""""""""""" GENERAL MEDIAS QUERIES """"""""""""""""""""""""""""""""""""""""""""""""" */
 /* Extra small devices (phones, 600px and down) */
