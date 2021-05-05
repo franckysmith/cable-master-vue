@@ -1,4 +1,7 @@
 <template>
+  <div>
+    <h3>{{ $store.state.counter }}</h3>
+  </div>
   <div class="main">
     <h2>
       CableTech : version test

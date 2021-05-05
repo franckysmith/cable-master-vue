@@ -41,7 +41,7 @@
           v-model="affaireSelectedObject"
           @change="selectedaff(affaireSelectedObject)"
           id="selectaff"
-          ><option value="" selected disabled>Choose</option>
+          ><option value="" selected disabled>Choisir</option>
           <option
             v-for="affaire in affaireSelectedTech"
             :key="affaire.affairid"
