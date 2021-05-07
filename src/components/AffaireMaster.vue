@@ -1,5 +1,5 @@
 <template>
-  <div v-for="affaire in affaires" :key="affaire.affairid">
+  <div class="main" v-for="affaire in affaires" :key="affaire.affairid">
     <div class="content">
       <input type="checkbox" />
       <h4>{{ affaire.name }}</h4>
@@ -202,9 +202,7 @@ li {
 }
 
 .main {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  border: 1px black solid;
 }
 
 .taille {
