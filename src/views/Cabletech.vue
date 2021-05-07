@@ -1,5 +1,6 @@
 <template>
   <div class="main">
+    {{ $store.getters.getCableCount }}
     <AddAffair
       v-if="affairIsOpen === true"
       @listenopennewaff="toAffairOpen"
@@ -301,6 +302,7 @@
 </template>
 
 <script>
+import { useStore } from "vuex";
 import { Api } from "../js/api.js";
 var url = "https://cinod.fr/cables/api.php";
 var api = new Api(url);
@@ -346,6 +348,8 @@ export default {
     const isOpentfc = ref(false);
     let affairesRef = ref();
 
+    const store = useStore();
+
     function modalOpentfc(data) {
       countfc.value = data.tfc;
       countlfc.value = data.lfc;
@@ -370,6 +374,7 @@ export default {
       .then(response => {
         console.log("cable_get:", response);
         cables.value = response;
+        store.dispatch("setCables", response);
       })
       .catch(response => {
         console.log("err_cable_get:", response);
@@ -873,10 +878,6 @@ input {
 .list_container {
   width: 375px;
 }
-.main {
-  /* width: 100%; */
-}
-
 .name {
   height: 10px;
   width: 100px;

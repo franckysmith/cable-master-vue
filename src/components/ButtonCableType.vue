@@ -105,17 +105,18 @@
 </template>
 
 <script>
+// import { ref } from "vue";
 export default {
   name: "ButtonCableType",
   props: {
     selectype: {
       type: String
     }
-  },
-
-  setup(props) {
-    let typechoose = ref("speaker");
   }
+
+  // setup(props) {
+  //   let typechoose = ref("speaker");
+  // }
 };
 </script>
 

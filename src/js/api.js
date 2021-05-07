@@ -3,8 +3,8 @@
 // Created:    13.02.2019
 // Programmer: Edward A. Shiryaev
 
-import { ajax } from './lib/ajax.js';
-import { url } from './lib/url.js';
+import { ajax } from "./lib/ajax.js";
+import { url } from "./lib/url.js";
 
 /*        // Parameters:
         //    apiUrl  - 'BookingTech' api url.
@@ -55,53 +55,50 @@ function Api(apiUrl)
 }*/
 
 ajax.timeout = 15000;
-        
+
 class Api {
-  
-        // Parameters:
-        //    apiUrl  - 'BookingTech' api url.
-  
-  constructor(apiUrl)
-  {
+  // Parameters:
+  //    apiUrl  - 'BookingTech' api url.
+
+  constructor(apiUrl) {
     this.apiUrl_ = apiUrl;
   }
-  
-        // Requests the server to execute specified API method with parameters.
-        //    method    - method name, see api.php for supported methods
-        //    [params]  - object with parameters, specific to the method requested, see api.php
-        // Returns:
-        //    Promise<object>, or nothing if the method does not assume return data;
-        //    in case of an error, <object> has 'error' field keeping the error message and optionally other fields
-        //    keeping info about the error details
-  
-  call(method, params)
-  {
+
+  // Requests the server to execute specified API method with parameters.
+  //    method    - method name, see api.php for supported methods
+  //    [params]  - object with parameters, specific to the method requested, see api.php
+  // Returns:
+  //    Promise<object>, or nothing if the method does not assume return data;
+  //    in case of an error, <object> has 'error' field keeping the error message and optionally other fields
+  //    keeping info about the error details
+
+  call(method, params) {
     var self = this;
     params = params || {};
-    
+
     return new Promise(function(resolve, reject) {
-      ajax.send({
-        url: self.apiUrl_,
-        urlParams: {
-          method: method
+      ajax.send(
+        {
+          url: self.apiUrl_,
+          urlParams: {
+            method: method
+          },
+          postData: params,
+          format: {
+            output: "json"
+          }
         },
-        postData: params,
-        format: {
-          output: 'json'
+        function(response) {
+          if (response.error) reject(response);
+          else resolve(response);
         }
-      }, function(response) {
-        if(response.error)
-          reject(response);
-        else
-          resolve(response);
-      });
+      );
     });
   }
-  
-        // Returns api-url of the specified method.
-  
-  url(method)
-  {
+
+  // Returns api-url of the specified method.
+
+  url(method) {
     return url.params(this.apiUrl_, { method: method });
   }
 }
