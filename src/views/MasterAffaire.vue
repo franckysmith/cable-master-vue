@@ -1,5 +1,7 @@
 <template>
   <div class="main">
+    {{ $store.getters.getCableCount }}
+    <!-- {{ $store.state.cabletech.cables }} -->
     <div>
       <ModalDelete @close="isOpenNote = false" v-if="isOpenNote">
         <template v-slot:main>
@@ -1230,6 +1232,7 @@
 </template>
 
 <script>
+// import { useStore } from "vuex";
 import ModalDelete from "@/components/ModalDelete.vue";
 // import AffaireMaster from "@/components/AffaireMaster.vue";
 import { Api } from "../js/api.js";
@@ -1265,6 +1268,8 @@ export default {
     const displayNote = ref("");
     const dateP = "date_prep";
     const phonedata = "0663689054";
+
+    // const store = useStore();
 
     // ---------- dial ------------------------
 
