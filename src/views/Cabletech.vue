@@ -1,7 +1,7 @@
 <template>
   <div class="main">
-    {{ $store.getters.getCableCount }}
-    {{ $store.state.cabletech.ingeson }}
+    <!-- {{ $store.getters.getCableCount }}
+    {{ $store.state.cabletech.ingeson }} -->
     <AddAffair
       v-if="affairIsOpen === true"
       @listenopennewaff="toAffairOpen"
@@ -350,7 +350,7 @@ export default {
     let affairesRef = ref();
 
     const store = useStore();
-    console.log("store:", store);
+    // console.log("store:", store);
 
     function modalOpentfc(data) {
       countfc.value = data.tfc;
@@ -602,7 +602,7 @@ export default {
       );
     });
 
-    //cableTechLayout button organisation fightcase et
+    //cableTechLayout button organisation flightcases et
     function cableTechLayout(data) {
       console.log("data cableTechLayout", data);
       cableLayoutData.value = data;

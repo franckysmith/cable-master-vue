@@ -2,7 +2,9 @@
   <div class="content-number" v-for="cable in allCables" :key="cable.cableid">
     <div class="number">
       <div class="number1">
-        <div class="name"><input v-model="cable.name" /></div>
+        <div class="name" :class="cable.color">
+          <input v-model="cable.name" />
+        </div>
         <div><input v-model="cable.reserved" name="tampon" /></div>
         <div><input v-model="cable.total" name="total" /></div>
         <div><input v-model="cable.weight" name="poids" /></div>
@@ -33,6 +35,8 @@
         >
           update
         </button>
+      </div>
+      <div class="number3">
         <div class="type">
           <select v-model="cable.type" @change="updatecable(cable)">
             <option
@@ -42,6 +46,17 @@
               >{{ choix.name }}
             </option>
           </select>
+        </div>
+        <div class="color">
+          <select v-model="cable.color" @change="updatecable(cable)">
+            <option
+              v-for="setcolor in listeColor"
+              :key="setcolor.id"
+              :value="setcolor.color"
+              >{{ setcolor.name }}
+            </option>
+          </select>
+          {{ cable.color }}
         </div>
       </div>
     </div>
@@ -73,6 +88,41 @@ export default {
     let allCables = ref([]);
     let cable = ref([]);
     const displayAddCable = ref("");
+    let colorChoosed = ref("");
+    // const color1 = "black";
+    // const color2 = "red";
+
+    // function chooseColor(data) {
+    //   colorChoosed.value = data;
+    // }
+
+    const listeColor = ref([
+      {
+        id: 1,
+        name: "color1",
+        color: "color1"
+      },
+      {
+        id: 2,
+        name: "color2",
+        color: "color2"
+      },
+      {
+        id: 3,
+        name: "color3",
+        color: "color3"
+      },
+      {
+        id: 4,
+        name: "color4",
+        color: "color4"
+      },
+      {
+        id: 5,
+        name: "color5",
+        color: "color5"
+      }
+    ]);
     const listeType = ref([
       {
         id: 1,
@@ -165,7 +215,12 @@ export default {
       updatecable,
       cable,
       suppcable,
-      displayAddCable
+      displayAddCable,
+      listeColor,
+      colorChoosed
+      // chooseColor,
+      // color1,
+      // color2
     };
   }
 };
@@ -194,13 +249,19 @@ button {
   box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
   border-radius: 4px;
 }
+.color1 {
+  background-color: #9fd8ee;
+}
+.color2 {
+  background-color: rgb(230, 134, 134);
+}
 
 .delete {
   margin-left: 5px;
 }
 .head {
   display: flex;
-  margin-left: 140px;
+  margin-left: 120px;
   text-align: left;
   font-size: 12px;
 }
@@ -226,15 +287,12 @@ button {
   margin: 0px !important;
 }
 
-.list_container {
-  /* width: 375px; */
-}
 .link .modaldelete {
   width: 375px;
   margin: auto;
 }
 .link {
-  width: 120px;
+  width: 220px;
   margin-left: 0px;
 }
 .number {
@@ -248,6 +306,11 @@ button {
 }
 
 .number2 {
+  display: flex;
+  align-items: center;
+  margin: 5px 0px 0px 0px;
+}
+.number3 {
   display: flex;
   align-items: center;
   margin: 5px 0px 25px 0px;

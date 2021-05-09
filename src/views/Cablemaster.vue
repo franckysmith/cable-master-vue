@@ -288,7 +288,7 @@ button {
 }
 .head {
   display: flex;
-  margin-left: 128px;
+  margin-left: 118px;
   text-align: left;
   font-size: 12px;
 }
