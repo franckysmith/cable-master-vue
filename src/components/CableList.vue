@@ -7,7 +7,9 @@
           {{ cable.done }}
         </div> -->
         <div class="name">
-          <h4 :class="setColorIndicator(cable)">{{ cable.name }}</h4>
+          <div :class="[setColorIndicator(cable), cable.color]">
+            <h4>{{ cable.name }}</h4>
+          </div>
         </div>
 
         <div style="font-size:10px;">
@@ -168,6 +170,7 @@ export default {
   setup(props, { emit }) {
     let allCables = ref([]);
     let cable = ref([]);
+
     // let calculateTotal = ref([]);
     emit("listentotalcable", calculateTotal(cable));
     // data is now an object with two properties: { cable, prop: 'tfc1' } or { cable, prop: 'tfc2' } ...
@@ -265,6 +268,21 @@ export default {
 </script>
 
 <style scoped>
+.color1 {
+  background-color: rgb(171, 223, 224);
+}
+.color2 {
+  background-color: rgb(230, 134, 134);
+}
+.color3 {
+  background-color: rgb(230, 224, 134);
+}
+.color4 {
+  background-color: rgb(230, 134, 214);
+}
+.color5 {
+  background-color: rgb(210, 243, 131);
+}
 input {
   padding: 5px;
 }

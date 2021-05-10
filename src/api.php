@@ -504,24 +504,17 @@ class api extends errorhandled {
           break;
         }
         
-        if(!db::delete('affair', self::$data['affairid'], false /* silent */)) {
-          if(db::errNo() != db::ER_ROW_IS_REFERENCED)
-            self::trigger(db::error());   // we don't handle such an error
-          
-          $result['error'] =  'The affair '.json_encode(self::$data['affairid']).
-                              ' cannot be deleted as it is referenced in orders or in MFCs';
-        }
+        db::delete('affair', self::$data['affairid']);
         
         break;
 
       
         // Gets orders from the 'order' table, either all or matching a search criteria if specified.
         // Input:
-        //    search criteria as an object with these possible fields with specified values:
+        //    search criteria as an object with these possible fields with specified values (all are of 'order' table):
         //    {
         //      [orderid],
         //      [cableid],
-        //			[name],
         //      [affairid],
         //      [tech_id],
         //      [count],
@@ -558,16 +551,26 @@ class api extends errorhandled {
       
       case 'order_get':
         
-        $where = "o.cableid=c.cableid";
+        $where = "o.cableid=c.cableid AND o.affairid=a.affairid";
         
         if(self::$data) {
 					// silently unset not searchable fields, if any, so may get empty
 					$where2 = form::prepareValues(self::$FIELDS[$method], self::$data);
-					if($where2)
+					if($where2) {
+            // prepend with 'o' prefix to avoid ambiguity
+            foreach($where2 as $key => $value) {
+              $where2["o.$key"] = $value;
+              unset($where2[$key]);
+            }
+            
 						$where .= ' AND '.db::where($where2);
+					}
 				}
         
-        $result = db::rows('o.*, c.name', '`order` o, cable c', $where);
+        $fields = 'o.*, c.name, prep_date, prep_time, receipt_date, receipt_time, return_date, return_time, '.
+                  'a.done AS affair_done';
+        
+        $result = db::rows($fields, '`order` o, cable c, affair a', $where);
         
         break;
       
@@ -753,12 +756,16 @@ class api extends errorhandled {
           
           extract($values);
           
+          $key = compact('cableid', 'affairid', 'tech_id');
+          
           if($count == 0) {
-            db::delete('`order`', compact('cableid', 'affairid', 'tech_id'));
+            db::delete('`order`', $key);
             continue;
           }
           
-          if(db::insert('`order`', $values, true, '', false) === false) {
+          if(db::find('`order`', $key, 'FOR UPDATE'))
+            db::update('`order`', $values, $key);
+          else if(db::insert('`order`', $values, true, '', false) === false) {
             if(db::errNo() != db::ER_NO_REFERENCED_ROW)
               self::trigger(db::error());   // we don't handle such an error
             $result['error'] =  "One of cableid=$cableid or affairid=$affairid or tech_id=$tech_id ".
@@ -1067,6 +1074,7 @@ api::$FIELDS = [
     'type'      =>  ENUM('electrical', 'speaker', 'microphone', 'module', 'special', 'other', 'c_type', 'accessory', 'digital'),
     //'sortno'    =>  UINT, auto-assigned so omitted
     'weight'    =>  UINT,
+    'color'     =>  ENUM('color1', 'color2', 'color3', 'color4', 'color5'),
     'total'     =>  UINT,
     'reserved'  =>  UINT,
     'info'      =>  STR(255),
@@ -1080,6 +1088,7 @@ api::$FIELDS = [
     'type'      =>  ENUM('electrical', 'speaker', 'microphone', 'module', 'special', 'other', 'c_type', 'accessory', 'digital'),
     'sortno'    =>  UINT,
     'weight'    =>  UINT,
+    'color'     =>  ENUM('color1', 'color2', 'color3', 'color4', 'color5'),
     'total'     =>  UINT,
     'reserved'  =>  UINT,
     'info'      =>  STR(255),
@@ -1189,7 +1198,6 @@ api::$FIELDS = [
   [
     'orderid'       =>  ANY,
     'cableid'       =>  ANY,
-    'name'          =>  ANY,
     'affairid'      =>  ANY,
     'tech_id'       =>  ANY,
     'count'         =>  ANY,

@@ -121,6 +121,11 @@ export default {
         id: 5,
         name: "color5",
         color: "color5"
+      },
+      {
+        id: 6,
+        name: "Sans couleur",
+        color: ""
       }
     ]);
     const listeType = ref([
@@ -250,10 +255,19 @@ button {
   border-radius: 4px;
 }
 .color1 {
-  background-color: #9fd8ee;
+  background-color: rgb(171, 223, 224);
 }
 .color2 {
   background-color: rgb(230, 134, 134);
+}
+.color3 {
+  background-color: rgb(230, 224, 134);
+}
+.color4 {
+  background-color: rgb(230, 134, 214);
+}
+.color5 {
+  background-color: rgb(210, 243, 131);
 }
 
 .delete {
