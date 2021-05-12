@@ -7,14 +7,13 @@
           {{ cable.done }}
         </div> -->
         <div class="name">
+          <div class="total">
+            Total:{{ calculateTotal(cable) }}<br />
+            <!-- {{ cable.total }} -->
+          </div>
           <div :class="[setColorIndicator(cable), cable.color]">
             <h4>{{ cable.name }}</h4>
           </div>
-        </div>
-
-        <div style="font-size:10px;">
-          Total:{{ calculateTotal(cable) }}<br />
-          <!-- {{ cable.total }} -->
         </div>
         <div>
           <input
@@ -269,10 +268,10 @@ export default {
 
 <style scoped>
 .color1 {
-  background-color: rgb(171, 223, 224);
+  background-color: rgb(171, 223, 224, 0.5);
 }
 .color2 {
-  background-color: rgb(230, 134, 134);
+  background-color: rgb(230, 134, 134, 0.5);
 }
 .color3 {
   background-color: rgb(230, 224, 134);
@@ -307,7 +306,8 @@ input {
   height: 28px;
   width: 40px;
   text-align: center;
-  padding-right: 15px;
+  padding-right: 20px;
+  padding-left: 5px;
   border: 1px solid grey;
   -webkit-appearance: none;
   border-radius: 0;
@@ -323,14 +323,14 @@ input {
 
 .name {
   height: 10px;
-  width: 100px;
+  width: 120px;
   cursor: pointer;
 }
 .name h4 {
-  margin: 10px 30px 10px 0px;
+  margin: 0px 0px 10px 0px;
   font-weight: 500;
   text-align: left;
-  width: 110px;
+  width: 120px;
   padding: 1px 1px 1px 3px;
   /* margin-left: 5px; */
   /* border-left: 5px solid #4dcc59; */
@@ -365,7 +365,11 @@ input {
 .post {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  /* align-items: center; */
+}
+.total {
+  font-size: 10px;
+  text-align: right;
 }
 form {
   display: flex;

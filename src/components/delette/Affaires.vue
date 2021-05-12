@@ -236,10 +236,16 @@
               name="end"
           /></label>
         </div>
-        <div>
-          <div class="date" name="update" style="width:350px">
-            <label for="update">Mise à jour le: {{ today() }} </label>
-          </div>
+
+        <div class="date" name="update" style="width:350px">
+          <label for="update"
+            >Mise à jour le:
+            <!-- {{
+              format(new Date(affaire.timestamp), "EEEE  MM / hh:mm ", {
+                locale: fr
+              })
+            }} -->
+          </label>
         </div>
       </div>
     </div>
@@ -334,11 +340,6 @@ export default {
     onBeforeMount(() => {
       techSelected();
     });
-
-    // -----------Today -------------
-    function today() {
-      return format(new Date(), " EEEE dd MMMM / hh:mm ", { locale: fr });
-    }
 
     function newAffairOpen() {
       newAffairIsOpen.value = true;
@@ -435,7 +436,6 @@ export default {
       selectedaff,
       searchby,
       selectAffaire,
-      today,
       techSelected,
       update_affair
     };

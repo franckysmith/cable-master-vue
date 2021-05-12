@@ -255,10 +255,10 @@ button {
   border-radius: 4px;
 }
 .color1 {
-  background-color: rgb(171, 223, 224);
+  background-color: rgb(171, 223, 224, 0.5);
 }
 .color2 {
-  background-color: rgb(230, 134, 134);
+  background-color: rgba(230, 134, 134, 0.5);
 }
 .color3 {
   background-color: rgb(230, 224, 134);
