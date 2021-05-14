@@ -222,7 +222,7 @@
             Atelier
           </button>
           <button @click="update_affair(affaire)" class="button2" type="submit">
-            Enregistrer
+            Enregistrer {{ showMessage }}
           </button>
 
           <label for="end"
@@ -238,7 +238,7 @@
         </div>
         <div>
           <div class="date" name="update" style="width:350px">
-            <label for="update">Mise à jour le: {{ today() }} </label>
+            <label for="update">Mise à jour le: {{ today(affaire) }} </label>
           </div>
         </div>
       </div>
@@ -308,7 +308,8 @@ export default {
     "listenopennewaff",
     "lesson-affaire",
     "listenaffairelabel",
-    "listenaffaire"
+    "listenaffaire",
+    "updateaffair"
   ],
   setup(props, context) {
     let affaire = ref([]);
@@ -336,8 +337,10 @@ export default {
     });
 
     // -----------Today -------------
-    function today() {
-      return format(new Date(), " EEEE dd MMMM / hh:mm ", { locale: fr });
+    function today(data) {
+      return format(new Date(data.timestamp), " EEEE dd MMMM / hh:mm ", {
+        locale: fr
+      });
     }
 
     function newAffairOpen() {
@@ -379,17 +382,19 @@ export default {
     }
 
     // --------------- update affair
-    async function update_affair(param) {
+
+    function update_affair(param) {
+      context.emit("updateaffair", param);
       // console.log("formaffair | affairupdate", param);
-      const res = await cablageServices.affaireupdate(param);
-      console.log("res", res);
-      showMessage(res.msg);
-    }
-    function showMessage(text) {
-      message.value = text;
-      setTimeout(() => {
-        message.value = "";
-      }, 3000);
+      //   const res = await cablageServices.affaireupdate(param);
+      //   console.log("res", res);
+      //   showMessage(res.msg);
+      // }
+      // function showMessage(text) {
+      //   message.value = text;
+      //   setTimeout(() => {
+      //     message.value = "";
+      //   }, 3000);
     }
 
     // ------------- add affair

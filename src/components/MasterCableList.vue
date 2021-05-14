@@ -56,7 +56,6 @@
               >{{ setcolor.name }}
             </option>
           </select>
-          {{ cable.color }}
         </div>
       </div>
     </div>
@@ -68,14 +67,14 @@ import { computed, ref } from "vue";
 
 export default {
   name: "MasterCableList",
-  emits: ["update", "supp", "close"],
+  emits: ["update", "supp"],
   props: {
     cables: {
       type: Array
+    },
+    cableType: {
+      type: String
     }
-    // cableType: {
-    //   type: String
-    // },
     // showMyList: {
     //   type: Boolean
     // },
@@ -87,14 +86,8 @@ export default {
   setup(props, { emit }) {
     let allCables = ref([]);
     let cable = ref([]);
-    const displayAddCable = ref("");
+    // const displayAddCable = ref("");
     let colorChoosed = ref("");
-    // const color1 = "black";
-    // const color2 = "red";
-
-    // function chooseColor(data) {
-    //   colorChoosed.value = data;
-    // }
 
     const listeColor = ref([
       {
@@ -182,7 +175,7 @@ export default {
     function suppcable(param) {
       emit("supp", param);
     }
-    emit("close", displayAddCable);
+    // emit("close", displayAddCable);
 
     function calculateTotal(cable) {
       return (
@@ -220,7 +213,7 @@ export default {
       updatecable,
       cable,
       suppcable,
-      displayAddCable,
+      // displayAddCable,
       listeColor,
       colorChoosed
       // chooseColor,
@@ -264,7 +257,7 @@ button {
   background-color: rgb(230, 224, 134);
 }
 .color4 {
-  background-color: rgb(230, 134, 214);
+  background-color: rgba(253, 62, 224, 0.164);
 }
 .color5 {
   background-color: rgb(210, 243, 131);

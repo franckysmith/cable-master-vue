@@ -45,7 +45,7 @@ import { ref } from "vue";
 import cablageServices from "@/services/cablage.js";
 export default {
   name: "AddAffair",
-  emit: ["listenclosenewaff", "showcreatedaff", "listenopennewaff"],
+  emits: ["listenclosenewaff", "showcreatedaff", "listenopennewaff"],
   setup(_, context) {
     const name = ref("");
     const tech_name = ref("");

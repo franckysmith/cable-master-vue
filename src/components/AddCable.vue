@@ -36,7 +36,7 @@
               v-for="choix in listeType"
               :key="choix.id"
               :value="choix.value"
-              >{{ choix.name }}
+              >{{ choix.name }} {{ cable.cableid }}
             </option>
           </select>
         </div>
@@ -62,10 +62,13 @@ import cablageServices from "@/services/cablage.js";
 
 export default {
   name: "AddCable",
+  emits: ["listendisplayaddcable"],
 
-  setup() {
+  setup(props, { emit }) {
     let cables = ref([]);
     let typechoose = ref("");
+    let displayAddCable = ref(Boolean);
+
     const listeType = ref([
       {
         id: 1,
@@ -120,6 +123,8 @@ export default {
     const info = ref("");
     const reserved = ref("");
 
+    emit("listendisplayaddcable", displayAddCable);
+
     function add_cable() {
       const data = [
         {
@@ -137,6 +142,7 @@ export default {
     return {
       add_cable,
       cables,
+      displayAddCable,
       listeType,
       typechoose,
       name,

@@ -21,7 +21,7 @@
   </div>
 
   <div>
-    <div v-show="displayAddCable"><AddCable /></div>
+    <AddCable v-if="displayAddCable" @listencloseaddcable="closeaddcable" />
 
     <div class="post">
       <button
@@ -91,11 +91,11 @@
     <button
       class="button3"
       @click="displayAddCable = true"
-      v-show="!displayAddCable"
+      v-if="!displayAddCable"
     >
       Ajouter un élément
     </button>
-    <button @click="displayAddCable = false" v-show="displayAddCable">
+    <button @click="displayAddCable = false" v-if="displayAddCable">
       fermer
     </button>
     <input
@@ -119,7 +119,6 @@
             @update="update_cable"
             :cables="filteredCableByType"
             :cable-type="typechoose"
-            @close="closeaddcable"
           />
         </div>
         <div v-else>
@@ -128,7 +127,6 @@
             :cables="search"
             cable-type=""
             @update="update_cable"
-            @close="closeaddcable"
           />
         </div>
       </div>
@@ -166,7 +164,7 @@ export default {
     let showMyList = ref([]);
 
     function closeaddcable() {
-      displayAddCable = !closeaddcable;
+      displayAddCable.value = !displayAddCable.value;
     }
 
     // choose display cable_type (buttons) --------------------------
@@ -352,14 +350,6 @@ button {
   border-radius: 4px;
 }
 
-.name input {
-  /* font-size: 15px;
-  font-weight: 600;
-  text-align: left;
-  width: 110px;
-  margin-left: 15px;
-  background-color: #c1c7c33a; */
-}
 .selectedtype {
   color: rgb(255, 255, 255);
 }

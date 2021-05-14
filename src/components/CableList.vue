@@ -271,13 +271,13 @@ export default {
   background-color: rgb(171, 223, 224, 0.5);
 }
 .color2 {
-  background-color: rgb(230, 134, 134, 0.5);
+  background-color: rgba(230, 134, 134, 0.5);
 }
 .color3 {
   background-color: rgb(230, 224, 134);
 }
 .color4 {
-  background-color: rgb(230, 134, 214);
+  background-color: rgba(253, 62, 224, 0.164);
 }
 .color5 {
   background-color: rgb(210, 243, 131);

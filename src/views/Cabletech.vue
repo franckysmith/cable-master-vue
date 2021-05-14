@@ -1,7 +1,9 @@
 <template>
   <div class="main">
-    <!-- {{ $store.getters.getCableCount }}
-    {{ $store.state.cabletech.ingeson }} -->
+    {{ $store.getters.getCableCount }}
+    {{ $store.getters.getCableName }}
+    <!-- {{ $store.state.cabletech.cables }} -->
+    <!-- {{ $store.state.arrcount }} -->
     <AddAffair
       v-if="affairIsOpen === true"
       @listenopennewaff="toAffairOpen"
@@ -9,6 +11,7 @@
       @showcreatedaff="openNewAffair"
     />
     <Affaires
+      @updateaffair="updateaffair"
       @listenaffaire="affaireIdToList"
       @listenaffairelabel="getAffaireToLabel"
       @listenopennewaff="toAffairOpen"
@@ -219,8 +222,8 @@
         <div v-if="cableLayoutData == 'cableTechBase'">
           <!-- label Zone ---------------- -->
           <div class="head-zone">
-            <div><p>Spare</p></div>
-            <div style="padding-left: 5px">
+            <div class="spare"><p>Spare</p></div>
+            <div>
               <input
                 type="text"
                 placeholder="Zone1"
@@ -248,7 +251,7 @@
                 v-model="affaireSelected.lz4"
               />
             </div>
-            <div style="padding-left: 2px">
+            <div style="padding-left: 0px">
               <input
                 type="text"
                 placeholder="Zone5"
@@ -307,7 +310,7 @@ import { useStore } from "vuex";
 import { Api } from "../js/api.js";
 var url = "https://cinod.fr/cables/api.php";
 var api = new Api(url);
-// import cablageServices from "@/services/cablage.js";
+import cablageServices from "@/services/cablage.js";
 
 import ModalDelete from "@/components/ModalDelete.vue";
 import Affaires from "@/components/Affaires.vue";
@@ -468,6 +471,7 @@ export default {
         console.log("ALL order_get:", response);
         allOrders.value = response;
         calculOrderCount(allOrders);
+        // store.dispatch("setArrCount", response);
       })
       .catch(function(response) {
         console.log("ALL order_get:", response);
@@ -552,9 +556,34 @@ export default {
       return cable.count_digest != countDigest(cable);
     }
 
-    //----------------------
+    // ------------- update all --------
+    // Promise.all([
+    //   api.call("set_order", orderData),
+    //   api.call("updateaffair", affairData)
+    // ])
+    //   .then(function() {
+    //     // no response, so empty
+    //   })
+    //   .catch(function(error) {
+    //     // handle error, if any
+    //   });
 
-    // save/set_order
+    //---------------update affair- from emit Afffaires ------------------
+    let message = ref("");
+    async function updateaffair(param) {
+      // console.log("formaffair | affairupdate", param);
+      const res = await cablageServices.affaireupdate(param);
+      console.log("res", res);
+      showMessage(res.msg);
+    }
+    function showMessage(text) {
+      message.value = text;
+      setTimeout(() => {
+        message.value = "";
+      }, 3000);
+    }
+
+    // ---------------- save/set_order  -----------------
     function set_order(data) {
       for (const cable of data) cable.count = calculateTotal(cable);
 
@@ -677,6 +706,7 @@ export default {
 
       toAffairOpen,
       totalCount,
+      updateaffair,
       openNewAffair,
       affairesRef
     };
@@ -804,13 +834,13 @@ form {
 .head-zone {
   display: flex;
   margin: auto;
-  width: 120px;
+  width: 110px;
   height: 20px;
   text-align: left;
   padding-left: 20px;
 }
 .head-zone input {
-  width: 28px;
+  width: 25px;
   border: 1px rgb(211, 210, 210);
   font-size: 10px;
   font-weight: 400;
@@ -1069,6 +1099,11 @@ input:checked + .slider:before {
 
 .slider.round:before {
   border-radius: 50%;
+}
+.spare p {
+  color: blue;
+  line-height: 0.8px;
+  /* background-color: red; */
 }
 .toggle-label {
   display: block;

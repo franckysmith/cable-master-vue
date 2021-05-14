@@ -77,6 +77,7 @@
           </label>
         </div>
       </div>
+
       <form @submit.prevent="set_cablemfc(cableMfcTechJoinedData)">
         <div class="content-buttons">
           <button class="button2" type="submit">
@@ -96,7 +97,7 @@
             <div v-for="cable in filteredCableByType" :key="cable.cableid">
               <div class="number">
                 <div class="name">
-                  <h4>{{ cable.name }}{{ cable.cableid }}</h4>
+                  <h4>{{ cable.name }}{{ -cable.cableid }}</h4>
                 </div>
 
                 <div>
@@ -122,7 +123,7 @@
                 <div class="name">
                   <h4>{{ cable.name }}</h4>
                 </div>
-
+                <p>{{ cable.cableid }}</p>
                 <div>
                   <input name="count" v-model="cable.count" />
                 </div>
@@ -316,7 +317,7 @@ export default {
     });
 
     // --------- mfc --------//
-    // save/update updatemfc
+    // save/update mfc
     function mfcupdate(data) {
       api
         .call("mfc_update", data)
