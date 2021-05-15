@@ -54,14 +54,14 @@
         <button @click="selectype('digital')">numériques</button>
 
         <div class="content-button2">
-          <button @click="selectype('')">All</button>
+          <button @click="selectype('')">Contenu de la caisse</button>
           <input
             type="text"
             v-model="searchKey"
             placeholder="Rechercher un élément"
           />
           <!-- Rounded switch -->
-          <label class="toggle-label" v-if="cableLayoutData == 'flightcase'">
+          <!-- <label class="toggle-label" v-if="cableLayoutData == 'flightcase'">
             ma liste
             <label class="switch">
               <input type="checkbox" />
@@ -71,10 +71,10 @@
           <label class="toggle-label" v-if="cableLayoutData == 'cableTechBase'">
             All ..... ma liste
             <label class="switch">
-              <input type="checkbox" @click="filtreMaliste" />
+              <input type="checkbox" @click="filtreMaListe" />
               <span class="slider round"></span>
             </label>
-          </label>
+          </label> -->
         </div>
       </div>
 
@@ -95,9 +95,10 @@
         <div class="content-number">
           <div v-if="typechoose != ''">
             <div v-for="cable in filteredCableByType" :key="cable.cableid">
+              <!-- <div v-if="cable.count > zerobutton"></div> -->
               <div class="number">
                 <div class="name">
-                  <h4>{{ cable.name }}{{ -cable.cableid }}</h4>
+                  <h4>{{ cable.name }}</h4>
                 </div>
 
                 <div>
@@ -119,21 +120,23 @@
               v-for="cable in searchInCableTechJoinData"
               :key="cable.cableid"
             >
-              <div class="number">
-                <div class="name">
-                  <h4>{{ cable.name }}</h4>
+              <div v-if="cable.count > zerobutton">
+                <div class="number">
+                  <div class="name">
+                    <h4>{{ cable.name }}</h4>
+                  </div>
+
+                  <div>
+                    <input name="count" v-model="cable.count" />
+                  </div>
                 </div>
-                <p>{{ cable.cableid }}</p>
-                <div>
-                  <input name="count" v-model="cable.count" />
-                </div>
-              </div>
-              <div class="info-content">
-                <div class="info">
-                  <p>{{ cable.info }}</p>
-                  <button type="button" class="link">
-                    <a href="cable.link">link</a>
-                  </button>
+                <div class="info-content">
+                  <div class="info">
+                    <p>{{ cable.info }}</p>
+                    <button type="button" class="link">
+                      <a href="cable.link">link</a>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -180,10 +183,11 @@ export default {
     let mfc = ref([]);
     let cablemfc = ref([]);
     let calculateTotal = ref("");
-    let showMyList = ref(false);
+    // let showMyList = ref(false);
     let searchKey = ref("");
     let isOpen = ref("");
     let mfcToDelete = ref([]);
+    let zerobutton = ref("1000");
 
     // let searchbycaisse = ref([]);
 
@@ -193,6 +197,15 @@ export default {
     //   cablageServices.mfcread();
     //   console.log("mfc_get | ", mfc);
     // });
+
+    function filtreMaliste() {
+      if (zerobutton.value == "1000") {
+        zerobutton.value = "0";
+      }
+      console.log("zerobutton.value", zerobutton.value);
+      zerobutton.value = " 1000";
+    }
+
     //suppresion cable => modalDelete --------------
     const suppmfc = function(data) {
       mfcToDelete.value = data;
@@ -288,24 +301,6 @@ export default {
         return cable.name.toLowerCase().includes(searchKey.value.toLowerCase());
       });
     });
-
-    // --- filtrer liste ----------------------------
-    function filtreMaliste() {
-      showMyList.value = !showMyList.value;
-      console.log("showMyList.value", showMyList.value);
-    }
-    const maliste = computed(() => {
-      if (showMyList.value) {
-        return cableMfcTechJoinedData.value.filter(c => calculateTotal(c) > 0);
-      }
-      return cableMfcTechJoinedData;
-    });
-    // // --------------  cableNonZero ---filtre ma liste------------
-    // const cablesNonZero = computed(() => {
-    //   // console.log("cableMfcTechJoinedData", cableMfcTechJoinedData);
-    //   return searchInCableTechJoinData.value.filter(c => c.count > 0);
-    // });
-
     // choose display cable_type (buttons)
     function selectype(data) {
       typechoose.value = data;
@@ -315,6 +310,18 @@ export default {
         c => c.type === typechoose.value
       );
     });
+
+    // --- filtrer liste ----------------------------
+    // function filtreMaliste() {
+    //   showMyList.value = !showMyList.value;
+    //   console.log("showMyList.value", showMyList.value);
+    // }
+    // const maliste = computed(() => {
+    //   if (showMyList.value) {
+    //     return searchInCableTechJoinData.value.filter(c => c.count > 0);
+    //   }
+    //   return searchInCableTechJoinData;
+    // });
 
     // --------- mfc --------//
     // save/update mfc
@@ -374,7 +381,7 @@ export default {
       caisseSelected,
       mfcupdate,
       mfcToDelete,
-      maliste,
+      // maliste,
       deletemfc,
       searchKey,
       // caisses,
@@ -396,7 +403,8 @@ export default {
       searchInCableTechJoinData,
       isOpen,
       // cablesNonZero,
-      mfc
+      mfc,
+      zerobutton
     };
   }
 };
