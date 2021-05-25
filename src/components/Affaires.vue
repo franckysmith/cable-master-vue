@@ -236,11 +236,10 @@
               name="end"
           /></label>
         </div>
-        <div>
-          <div class="date" name="update" style="width:350px">
-            <label for="update">Mise à jour le: {{ today(affaire) }} </label>
-          </div>
-        </div>
+
+        <!-- <div class="date" name="update" style="width:350px">
+          <label for="update">Mise à jour le: {{ today(affaire) }} </label>
+        </div> -->
       </div>
     </div>
     <div v-if="description">
@@ -264,13 +263,6 @@
       <div class="atelier">
         <p>{{ affaire.master_note }} Réponse de l'atelier :</p>
       </div>
-
-      <!-- <textarea
-          cols="50"
-          rows="10"
-          v-model.lazy="affaire.master_note"
-          placeholder="Noter ici une liste des amplis et enceintes optionel biensur mais cela peut être un aide mémoire...."
-        ></textarea> -->
     </div>
 
     <div v-if="note">
@@ -496,6 +488,13 @@ export default {
   box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
   border-radius: 4px;
 }
+button[type="submit"]:active {
+  transform: scale(1.1);
+  transition: 0.5s;
+}
+button {
+  cursor: pointer;
+}
 .closebutton {
   background: #e08d8d;
 }
@@ -569,11 +568,14 @@ form {
   display: flex;
   flex-direction: column;
   align-items: center;
-  width: 375px;
+
   margin: auto;
 }
 input {
   padding: 5px;
+}
+input[type="checkbox"] {
+  cursor: pointer;
 }
 .label {
   display: flex;

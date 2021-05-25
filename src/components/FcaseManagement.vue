@@ -31,6 +31,7 @@
           v-longclick="() => changeValue({ cable, prop: 'tfc2' })"
           autocomplete="off"
         />
+        -
 
         <input
           name="tfc3"

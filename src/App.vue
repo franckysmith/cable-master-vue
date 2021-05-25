@@ -13,7 +13,13 @@
 /* * {
   margin: 0;
   padding: 0;
+  box-sizing: border-box;
 } */
+:root {
+  --color1: #4dcc59;
+  --color2: #f3e309;
+  --color3: #eb910a;
+}
 #app {
   font-family: Avenir, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;

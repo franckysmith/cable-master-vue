@@ -144,170 +144,152 @@
             flightcase
           </button>
         </div>
-        <!-- ---------------  LISTE FLIGHTCASES AND ZONES ----------------------- -->
-
         <!-- label fc ---------------- -->
+        <div class="flightcases-button" v-if="cableLayoutData == 'flightcase'">
+          <button
+            type="button"
+            @click="modalOpentfc({ tfc: 'count', lfc: 'Total' })"
+            style="font-size: 7px"
+          >
+            all
+          </button>
+          <button
+            type="button"
+            @click="modalOpentfc({ tfc: 'tfc1', lfc: 'lfc1' })"
+          ></button>
+          <button
+            type="button"
+            @click="modalOpentfc({ tfc: 'tfc2', lfc: 'lfc2' })"
+          ></button>
+          <button
+            type="button"
+            @click="modalOpentfc({ tfc: 'tfc3', lfc: 'lfc3' })"
+          ></button>
+          <button
+            type="button"
+            @click="modalOpentfc({ tfc: 'tfc4', lfc: 'lfc4' })"
+          ></button>
+          <button
+            type="button"
+            @click="modalOpentfc({ tfc: 'tfc5', lfc: 'lfc5' })"
+          ></button>
+        </div>
+        <!-- {{ cableTechJoinedData[6] }} -->
         <div v-if="cableLayoutData == 'flightcase'">
-          <div class="container-fc">
-            <div class="flightcases-button">
-              <button
-                type="button"
-                @click="modalOpentfc({ tfc: 'count', lfc: 'Total' })"
-                style="font-size: 7px"
-              ></button>
-              <button
-                type="button"
-                @click="modalOpentfc({ tfc: 'tfc1', lfc: 'lfc1' })"
-              ></button>
-              <button
-                type="button"
-                @click="modalOpentfc({ tfc: 'tfc2', lfc: 'lfc2' })"
-              ></button>
-              <button
-                type="button"
-                @click="modalOpentfc({ tfc: 'tfc3', lfc: 'lfc3' })"
-              ></button>
-              <button
-                type="button"
-                @click="modalOpentfc({ tfc: 'tfc4', lfc: 'lfc4' })"
-              ></button>
-              <button
-                type="button"
-                @click="modalOpentfc({ tfc: 'tfc5', lfc: 'lfc5' })"
-              ></button>
+          <div class="head-fc">
+            <div>
+              <p>Répartir</p>
             </div>
-            <!-- {{ cableTechJoinedData[6] }} -->
-
-            <div class="head-fc">
-              <div>
-                <p>Répartir</p>
-              </div>
-              <div style="padding-left: 5px">
-                <input
-                  type="text"
-                  placeholder="FC1"
-                  v-model="affaireSelected.lfc1"
-                  default
-                />
-              </div>
-              <div style="padding-left: 3px">
-                <input
-                  type="text"
-                  placeholder="Fc2"
-                  v-model="affaireSelected.lfc2"
-                />
-              </div>
-              <div style="padding-left: 10px">
-                <input
-                  type="text"
-                  placeholder="Fc3"
-                  v-model="affaireSelected.lfc3"
-                />
-              </div>
-              <div style="padding-left: 2px">
-                <input
-                  type="text"
-                  placeholder="Fc4"
-                  v-model="affaireSelected.lfc4"
-                />
-              </div>
-              <div style="padding-left: 5px">
-                <input
-                  type="text"
-                  placeholder="Fc5"
-                  v-model="affaireSelected.lfc5"
-                />
-              </div>
-            </div>
-          </div>
-          <div class="content-number" v-if="cableLayoutData == 'flightcase'">
-            <div v-if="typechoose !== ''">
-              <FcaseManagement
-                :cables="filteredCableByType"
-                :cable-type="typechoose"
-                :show-my-list="showMyList"
+            <div style="padding-left: 0px">
+              <input
+                type="text"
+                placeholder="FC1"
+                v-model="affaireSelected.lfc1"
+                default
               />
             </div>
-            <div v-else>
-              <FcaseManagement
-                :cables="searchInCableTechJoinData"
-                cable-type=""
-                :show-my-list="showMyList"
+            <div style="padding-left: 0px">
+              <input
+                type="text"
+                placeholder="Fc2"
+                v-model="affaireSelected.lfc2"
+              />
+            </div>
+            <div style="padding-left: 0px">
+              <input
+                type="text"
+                placeholder="Fc3"
+                v-model="affaireSelected.lfc3"
+              />
+            </div>
+            <div style="padding-left: 0px">
+              <input
+                type="text"
+                placeholder="Fc4"
+                v-model="affaireSelected.lfc4"
+              />
+            </div>
+            <div style="padding-left: 0px">
+              <input
+                type="text"
+                placeholder="Fc5"
+                v-model="affaireSelected.lfc5"
               />
             </div>
           </div>
         </div>
 
-        <!-- -------------------zones ---------------- -->
         <div v-if="cableLayoutData == 'cableTechBase'">
-          <div class="container-zone">
-            <div
-              class="flightcases-button"
-              v-if="cableLayoutData == 'cableTechBase'"
+          <!-- label Zone ---------------- -->
+
+          <div
+            class="flightcases-button"
+            v-if="cableLayoutData == 'cableTechBase'"
+          >
+            <button
+              type="button"
+              @click="modalOpentfc({ tfc: 'spare_count', lfc: 'Spare' })"
+              style="font-size: 7px"
             >
-              <button
-                type="button"
-                @click="modalOpentfc({ tfc: 'spare_count', lfc: 'Spare' })"
-                style="font-size: 7px"
-              ></button>
-              <button
-                type="button"
-                @click="modalOpentfc({ tfc: 'z1', lfc: 'lz1' })"
-              ></button>
-              <button
-                type="button"
-                @click="modalOpentfc({ tfc: 'z2', lfc: 'lz2' })"
-              ></button>
-              <button
-                type="button"
-                @click="modalOpentfc({ tfc: 'z3', lfc: 'lz3' })"
-              ></button>
-              <button
-                type="button"
-                @click="modalOpentfc({ tfc: 'z4', lfc: 'lz4' })"
-              ></button>
-              <button
-                type="button"
-                @click="modalOpentfc({ tfc: 'z5', lfc: 'lz5' })"
-              ></button>
+              all
+            </button>
+            <button
+              type="button"
+              @click="modalOpentfc({ tfc: 'z1', lfc: 'lz1' })"
+            ></button>
+            <button
+              type="button"
+              @click="modalOpentfc({ tfc: 'z2', lfc: 'lz2' })"
+            ></button>
+            <button
+              type="button"
+              @click="modalOpentfc({ tfc: 'z3', lfc: 'lz3' })"
+            ></button>
+            <button
+              type="button"
+              @click="modalOpentfc({ tfc: 'z4', lfc: 'lz4' })"
+            ></button>
+            <button
+              type="button"
+              @click="modalOpentfc({ tfc: 'z5', lfc: 'lz5' })"
+            ></button>
+          </div>
+          <div class="head-zone">
+            <div class="spare"><p>Spare</p></div>
+            <div style="padding-left: 6px">
+              <input
+                type="text"
+                placeholder="Zone1"
+                v-model="affaireSelected.lz1"
+              />
             </div>
-            <div class="head-zone">
-              <div class="spare"><p>Spare</p></div>
-              <div style="padding-left: 10px">
-                <input
-                  type="text"
-                  placeholder="Zone1"
-                  v-model="affaireSelected.lz1"
-                />
-              </div>
-              <div style="padding-left: 5px">
-                <input
-                  type="text"
-                  placeholder="Zone2"
-                  v-model="affaireSelected.lz2"
-                />
-              </div>
-              <div style="padding-left: 16px">
-                <input
-                  type="text"
-                  placeholder="Zone3"
-                  v-model="affaireSelected.lz3"
-                />
-              </div>
-              <div style="padding-left: 4px">
-                <input
-                  type="text"
-                  placeholder="Zone4"
-                  v-model="affaireSelected.lz4"
-                />
-              </div>
-              <div style="padding-left: 8px">
-                <input
-                  type="text"
-                  placeholder="Zone5"
-                  v-model="affaireSelected.lz5"
-                />
-              </div>
+            <div style="padding-left: 0px">
+              <input
+                type="text"
+                placeholder="Zone2"
+                v-model="affaireSelected.lz2"
+              />
+            </div>
+            <div style="padding-left: 8px">
+              <input
+                type="text"
+                placeholder="Zone3"
+                v-model="affaireSelected.lz3"
+              />
+            </div>
+            <div style="padding-left: 0px">
+              <input
+                type="text"
+                placeholder="Zone4"
+                v-model="affaireSelected.lz4"
+              />
+            </div>
+            <div style="padding-left: 2px">
+              <input
+                type="text"
+                placeholder="Zone5"
+                v-model="affaireSelected.lz5"
+              />
             </div>
           </div>
           <!-- <div>arrCount{{ arrCount }}</div> -->
@@ -333,6 +315,22 @@
                 :arr-count="arrCount"
               />
             </div>
+          </div>
+        </div>
+        <div class="content-number" v-if="cableLayoutData == 'flightcase'">
+          <div v-if="typechoose !== ''">
+            <FcaseManagement
+              :cables="filteredCableByType"
+              :cable-type="typechoose"
+              :show-my-list="showMyList"
+            />
+          </div>
+          <div v-else>
+            <FcaseManagement
+              :cables="searchInCableTechJoinData"
+              cable-type=""
+              :show-my-list="showMyList"
+            />
           </div>
         </div>
       </form>
@@ -751,7 +749,7 @@ export default {
 <style scoped>
 button {
   cursor: pointer;
-  margin: 10px 15px;
+  margin: 10px;
   padding: 5px;
   min-width: 50px;
   background: #ebe7df;
@@ -767,7 +765,7 @@ button.link {
   margin: 10px;
   padding: 5px;
   min-width: 50px;
-  background: var(--color1);
+  background: #4dcc59;
 
   border: 1px solid #000000;
   box-sizing: border-box;
@@ -778,7 +776,7 @@ button.link {
   margin: 10px;
   padding: 5px;
   min-width: 50px;
-  background: var(--color2);
+  background: #f3e309;
   border: 1px solid #000000;
   box-sizing: border-box;
   box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
@@ -788,17 +786,12 @@ button.link {
   margin: 10px;
   padding: 5px;
   min-width: 50px;
-  background: var(--color3);
+  background: #eb910a;
   border: 1px solid #000000;
   box-sizing: border-box;
   box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
   border-radius: 4px;
 }
-button[type="submit"]:active {
-  transform: scale(1.1);
-  transition: 0.5s;
-}
-
 .content-list-tfc {
   display: flex;
   flex-direction: row;
@@ -824,7 +817,6 @@ button[type="submit"]:active {
 .content-number {
   display: flex;
   flex-direction: column;
-  justify-content: center;
   align-items: center;
 }
 .content-button2 {
@@ -848,11 +840,11 @@ button[type="submit"]:active {
 }
 .flightcases-button {
   display: flex;
-  /* width: 150px; */
-  padding-left: 130px;
+  width: 120px;
+  padding-left: 140px;
 }
 .flightcases-button button {
-  margin: 11px 15px 11px 5px;
+  margin: 9px;
   padding: 5px;
   min-width: 20px;
   background: rgb(211, 210, 210);
@@ -865,10 +857,10 @@ button[type="submit"]:active {
 .head-fc {
   display: flex;
   margin: auto;
-  /* width: 105px; */
+  width: 105px;
   height: 20px;
   text-align: left;
-  padding-left: 8.4rem;
+  padding-left: 5px;
 }
 .head-zone {
   display: flex;
@@ -876,14 +868,14 @@ button[type="submit"]:active {
   /* width: 110px; */
   height: 20px;
   text-align: left;
-  padding-left: 128px;
+  padding-left: 138px;
 }
 .head-zone p {
   line-height: 1px;
-  font-size: 0.6rem;
+  font-size: 10px;
 }
 .head-zone input {
-  width: 28px;
+  width: 25px;
   border: 1px rgb(211, 210, 210);
   font-size: 10px;
   font-weight: 400;
@@ -892,19 +884,18 @@ button[type="submit"]:active {
 .head-fc input {
   width: 28px;
   border: 1px rgb(211, 210, 210);
-  font-size: 0.6rem;
+  font-size: 10px;
   font-weight: 400;
   text-align: center;
 }
 
 .head-fc p {
   line-height: 1px;
-  font-size: 0.75rem;
+  font-size: 12px;
 }
 
-input[type="text"]:hover::placeholder {
-  transform: translateY(-15px);
-  transition: 0.3s;
+input {
+  padding: 5px;
 }
 .info-content {
   height: 14px;
@@ -912,7 +903,7 @@ input[type="text"]:hover::placeholder {
   line-height: 0;
 }
 .info {
-  font-size: 0.75rem;
+  font-size: 12px;
   width: 360px;
   height: 20px;
   display: flex;
@@ -962,14 +953,14 @@ input[type="text"]:hover::placeholder {
   width: 100px;
 }
 .name h4 {
-  /* margin: 10px 0px;
+  margin: 10px 0px;
   font-weight: 500;
   text-align: left;
   width: 10px;
   padding: 1px 1px 1px 3px;
- 
+  /* margin-left: 5px; */
   background-color: #c1c7c33a;
-  border-left: 5px solid #4dcc59; */
+  border-left: 5px solid #4dcc59;
 }
 .number {
   display: flex;
@@ -1149,7 +1140,7 @@ input:checked + .slider:before {
   display: block;
   float: right;
   width: 100px;
-  font-size: 0.75rem;
+  font-size: 12px;
   padding-left: 10px;
 }
 </style>

@@ -17,7 +17,7 @@
         </div>
         <div>
           <input
-            class="input-btn"
+            class="input-btn-spare"
             type="button"
             name="spare_count"
             v-model.number="cable.spare_count"
@@ -46,6 +46,7 @@
             v-longclick="() => changeValue({ cable, prop: 'z2' })"
           />
         </div>
+        -
         <div>
           <input
             class="input-btn"
@@ -197,38 +198,6 @@ export default {
       return props.cables;
     });
 
-    /* edw: function setColorIndicator(cable) {
-      // console.log("CableList | setColorIndicator | cable!! ", cable);
-      if (!cable) {
-        return;
-      }
-      // console.log("cable keys", Object.keys(cable));
-      // console.log("cable values", Object.values(cable));
-      // console.log("cable total", Object.values(cable)[7]);
-
-      // const cableTotal = +Object.values(cable)[7];
-      const cableTotal = Number(Object.values(cable)[7]);
-      const cableFromProps = props.arrCount.find(
-        cable => cable.cableid === cable.cableid
-      );
-      if (!cableFromProps) {
-        return;
-      }
-      const cableTotalUpdated = cableTotal - Number(cableFromProps.count);
-      // console.log("cableTotalUpdated", cableTotalUpdated);
-      // console.log("cableFromProps.count", cableFromProps.count);
-
-      if (cableTotalUpdated > 20) {
-        return "green";
-      } else if (cableTotalUpdated > 12) {
-        return "orange";
-      } else if (cableTotalUpdated < 0) {
-        return "red";
-      } else {
-        return "red";
-      }
-    }*/
-
     function setColorIndicator(cable) {
       if (!cable) return;
 
@@ -268,19 +237,19 @@ export default {
 
 <style scoped>
 .color1 {
-  background-color: rgb(171, 223, 224, 0.5);
+  background-color: rgba(0, 251, 255, 0.089);
 }
 .color2 {
-  background-color: rgba(230, 134, 134, 0.5);
+  background-color: rgba(253, 4, 4, 0.025);
 }
 .color3 {
-  background-color: rgb(230, 224, 134);
+  background-color: rgba(255, 238, 6, 0.171);
 }
 .color4 {
-  background-color: rgba(253, 62, 224, 0.164);
+  background-color: rgba(253, 6, 216, 0.103);
 }
 .color5 {
-  background-color: rgb(210, 243, 131);
+  background-color: rgba(173, 245, 7, 0.103);
 }
 input {
   padding: 5px;
@@ -292,7 +261,7 @@ input {
 }
 .info {
   font-size: 12px;
-  width: 325px;
+  width: 345px;
   height: 20px;
   display: flex;
   justify-content: space-between;
@@ -303,14 +272,24 @@ input {
   border-bottom: 1px solid;
 }
 .input-btn {
-  height: 28px;
-  width: 40px;
+  height: 30px;
+  width: 43px;
   text-align: center;
-  padding-right: 20px;
   padding-left: 5px;
   border: 1px solid grey;
   -webkit-appearance: none;
+  border-radius: 0px;
+  line-height: 1;
+}
+.input-btn-spare {
+  border: 2px dotted rgb(181, 184, 181);
+  height: 30px;
+  width: 40px;
+  text-align: center;
+  padding-left: 5px;
+  -webkit-appearance: none;
   border-radius: 0;
+  line-height: 1;
 }
 
 .link {
@@ -330,7 +309,7 @@ input {
   margin: 0px 0px 10px 0px;
   font-weight: 500;
   text-align: left;
-  width: 120px;
+  width: 110px;
   padding: 1px 1px 1px 3px;
   /* margin-left: 5px; */
   /* border-left: 5px solid #4dcc59; */
@@ -352,21 +331,17 @@ input {
 }
 
 .number input {
-  width: 28px;
-  margin: 3px;
+  width: 32px;
+  margin: 4px;
+  font-size: 1.1rem;
 }
 
-.zoro {
-  width: 18px !important;
-  cursor: pointer;
-  margin: 5px;
-  color: red;
-}
 .post {
   display: flex;
   flex-direction: column;
   /* align-items: center; */
 }
+
 .total {
   font-size: 10px;
   text-align: right;
@@ -376,8 +351,9 @@ form {
   flex-direction: column;
   align-items: center;
 }
+
 .z2 {
-  background-color: rgb(248, 245, 245);
-  border: 1px solid rgb(12, 12, 2);
+  /* background-color: rgb(248, 245, 245);
+  border: 1px solid rgb(12, 12, 2); */
 }
 </style>

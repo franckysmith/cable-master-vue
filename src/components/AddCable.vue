@@ -36,7 +36,7 @@
               v-for="choix in listeType"
               :key="choix.id"
               :value="choix.value"
-              >{{ choix.name }} {{ cable.cableid }}
+              >{{ choix.name }}
             </option>
           </select>
         </div>
