@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Cable Master</string>
+    <string name="title_activity_main">Cable Master</string>
+    <string name="package_name">com.cablemaster.app</string>
+    <string name="custom_url_scheme">com.cablemaster.app</string>
+</resources>

@@ -1,0 +1,99 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+body {
+  font-family: Avenir, Helvetica, Arial, sans-serif;
+  font-size: 16px;
+}
+input, select, textarea,
+input[type="text"], input[type="date"], input[type="number"], input[type="search"],
+.q-field__native, .q-field__input {
+  font-size: 16px !important;
+}
+
+/* Dark mode global overrides */
+.dark body,
+.dark input,
+.dark select,
+.dark textarea {
+  background-color: var(--bg);
+  color: var(--text);
+}
+.dark input,
+.dark select,
+.dark textarea {
+  background-color: var(--bg-input);
+  border-color: var(--border-light);
+  color: var(--text);
+}
+.dark button {
+  background-color: var(--bg-card);
+  color: var(--text);
+  border-color: var(--border-light);
+}
+.dark .cable-row {
+  background: var(--bg) !important;
+}
+.dark .cable-row.row-band {
+  background: var(--bg-card) !important;
+}
+.dark .cable-row.row-band .cable-name {
+  background: var(--border) !important;
+}
+.dark .zone-cell,
+.dark .fc-cell {
+  background: var(--border) !important;
+}
+.dark .cable-row:not(.row-band) .zone-cell,
+.dark .cable-row:not(.row-band) .fc-cell {
+  background: var(--border-light) !important;
+}
+.dark .zone-value,
+.dark .fc-value {
+  color: var(--text-muted);
+}
+.dark .zone-value.active,
+.dark .fc-value.active {
+  color: var(--text);
+}
+.dark .cable-name {
+  color: var(--text);
+}
+.dark .cable-total {
+  color: var(--text) !important;
+}
+.dark .affair-card {
+  background: var(--bg-card);
+  border-color: var(--border);
+}
+.dark .cable-list,
+.dark .fcase-list {
+  border-color: var(--border);
+}
+.dark .cable-row {
+  box-shadow: none !important;
+  border-bottom-color: var(--border) !important;
+}
+.dark .head-label-angled span,
+.dark .head-label-angled input,
+.dark .head-label-angled-fc span,
+.dark .head-label-angled-fc input {
+  color: var(--text) !important;
+}
+.dark .head-label-angled input::placeholder,
+.dark .head-label-angled-fc input::placeholder {
+  color: var(--text-muted) !important;
+}
+.dark .head-spare span {
+  color: #ffb74d !important;
+}
+.dark .fc-label-btn {
+  color: var(--text) !important;
+  background: var(--bg-card) !important;
+  border-color: var(--color1) !important;
+}
+.dark .sticky-header {
+  background: var(--bg) !important;
+}
