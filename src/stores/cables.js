@@ -9,19 +9,23 @@ export const useCableStore = defineStore('cables', () => {
 
   async function fetchCables(catalogId = null) {
     loading.value = true
+    // Si pas de catalogId, utiliser celui du localStorage
+    if (!catalogId) {
+      catalogId = parseInt(localStorage.getItem('cablemaster-catalogid')) || null
+    }
     const cacheKey = catalogId ? `cables-${catalogId}` : 'cables'
     // Charger le cache immédiatement
-    if (cables.value.length === 0) {
-      const cached = cacheGet(cacheKey)
-      if (cached) cables.value = cached
-    }
+    const cached = cacheGet(cacheKey)
+    if (cached) cables.value = cached
     try {
       let query = supabase
         .from('cable')
         .select('*')
         .order('sortno', { ascending: true })
         .order('name', { ascending: true })
-      if (catalogId) query = query.eq('catalog_id', catalogId)
+      if (catalogId) {
+        query = query.eq('catalog_id', catalogId)
+      }
 
       const { data, error } = await query
       if (!error && data) {
@@ -58,12 +62,16 @@ export const useCableStore = defineStore('cables', () => {
     return { data, error }
   }
 
+  let lastCatalogId = null
+
   async function deleteCable(cableid) {
     const { error } = await supabase
       .from('cable')
       .delete()
       .eq('cableid', cableid)
-    if (!error) await fetchCables()
+    if (!error) {
+      cables.value = cables.value.filter(c => c.cableid !== cableid)
+    }
     return { error }
   }
 

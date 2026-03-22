@@ -96,6 +96,7 @@ const props = defineProps({
   soloFilter: { type: Number, default: null },
   incrementStep: { type: Number, default: 1 },
   counts: { type: Object, default: () => ({}) },
+  readOnly: { type: Boolean, default: false },
 })
 
 const emit = defineEmits(['updated', 'select', 'longpress'])
@@ -153,6 +154,7 @@ function getRowTotal(cableid) {
 let didLongPress = false
 
 function startPress(cable, ctIndex, e) {
+  if (props.readOnly) return
   if (e?.type?.startsWith('mouse') && usedTouch) return
   if (e?.type?.startsWith('touch')) usedTouch = true
   if (cable.cableid !== props.activeCableId) {
@@ -164,6 +166,7 @@ function startPress(cable, ctIndex, e) {
 }
 
 function endPress(cable, ctIndex, e) {
+  if (props.readOnly) return
   if (e?.type?.startsWith('mouse') && usedTouch) return
   if (cable.cableid !== props.activeCableId) return
   if (!didLongPress) {

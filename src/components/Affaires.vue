@@ -1,11 +1,41 @@
 <template>
   <div class="affaires">
     <!-- Quand un projet est sélectionné : juste le titre -->
-    <div v-if="affairStore.selectedAffair" class="selected-bar" @click="deselectAffair">
-      <span class="sel-dot">●</span>
-      <span class="sel-name">{{ affairStore.selectedAffair.name }}</span>
-      <span class="sel-date">{{ formatDate(affairStore.selectedAffair.receipt_date) }}</span>
-      <span class="sel-change">▼</span>
+    <div v-if="affairStore.selectedAffair" class="selected-panel">
+      <div class="selected-bar" @click="deselectAffair">
+        <span class="sel-dot">●</span>
+        <span class="sel-name">{{ affairStore.selectedAffair.name }}</span>
+        <span class="sel-date">{{ formatDate(affairStore.selectedAffair.receipt_date) }}</span>
+        <span class="sel-change">▼</span>
+      </div>
+      <div class="sel-details">
+        <div class="sel-tags">
+          <span v-if="affairStore.selectedAffair.front" class="tag tag-front">Front</span>
+          <span v-if="affairStore.selectedAffair.monitor" class="tag tag-monitor">Monitor</span>
+          <span v-if="affairStore.selectedAffair.stage" class="tag tag-stage">Stage</span>
+        </div>
+        <span class="sel-catalog">{{ getCatalogName(affairStore.selectedAffair) }}</span>
+        <button class="btn-materiel-sel" @click="showMateriel = !showMateriel">
+          {{ showMateriel ? '▲ Matériel' : '▼ Matériel' }}
+        </button>
+      </div>
+      <div v-if="showMateriel" class="materiel-panel">
+        <div class="materiel-section" v-if="affairStore.selectedAffair.front">
+          <div class="materiel-title">🔊 Front</div>
+          <div class="materiel-content">Enceintes, subs, amplis...</div>
+        </div>
+        <div class="materiel-section" v-if="affairStore.selectedAffair.monitor">
+          <div class="materiel-title">🎧 Monitor</div>
+          <div class="materiel-content">Retours, wedges, ears, amplis...</div>
+        </div>
+        <div class="materiel-section" v-if="affairStore.selectedAffair.stage">
+          <div class="materiel-title">🎸 Stage</div>
+          <div class="materiel-content">Front-fills, side-fills, DI...</div>
+        </div>
+        <div v-if="!affairStore.selectedAffair.front && !affairStore.selectedAffair.monitor && !affairStore.selectedAffair.stage" class="materiel-empty">
+          Aucune zone définie
+        </div>
+      </div>
     </div>
 
     <!-- Sinon : barre d'actions + liste -->
@@ -37,11 +67,20 @@
             <div class="card-line1">
               <span class="card-dot">●</span>
               <span class="card-name">{{ affair.name }}</span>
-              <span class="card-date">{{ formatDate(affair.receipt_date) }}</span>
+              <span class="card-date-main">{{ formatDate(affair.receipt_date) }}</span>
             </div>
             <div class="card-line2">
-              <span class="card-created">édité le {{ formatDate(affair.created_at) }}</span>
-              <span class="card-updated" v-if="affair.updated_at">modifié le {{ formatDate(affair.updated_at) }}</span>
+              <span class="card-catalog">{{ getCatalogName(affair) }}</span>
+              <span class="card-updated">MAJ {{ formatDate(affair.updated_at || affair.created_at) }}</span>
+            </div>
+            <div class="card-line3">
+              <div class="card-tags">
+                <span v-if="affair.front" class="tag tag-front">Front</span>
+                <span v-if="affair.monitor" class="tag tag-monitor">Monitor</span>
+                <span v-if="affair.stage" class="tag tag-stage">Stage</span>
+                <span v-if="!affair.front && !affair.monitor && !affair.stage" class="tag tag-none">—</span>
+              </div>
+              <button class="btn-materiel" @click.stop="$emit('materiel', affair)">Matériel</button>
             </div>
           </div>
         </div>
@@ -55,16 +94,31 @@
 import { ref, computed, onMounted } from 'vue'
 import { useAffairStore } from '../stores/affairs'
 
-const emit = defineEmits(['selected', 'edit', 'openNew'])
+const emit = defineEmits(['selected', 'edit', 'openNew', 'materiel'])
 const affairStore = useAffairStore()
 
 const search = ref('')
 const searchInput = ref(null)
 const editMode = ref(false)
+const showMateriel = ref(false)
+const catalogs = ref({})
 
-onMounted(() => {
+onMounted(async () => {
   affairStore.fetchAffairs()
+  // Charger les noms des catalogues
+  const { supabase } = await import('../lib/supabase')
+  const { data } = await supabase.from('catalog').select('catalogid, name, owner_name')
+  if (data) {
+    for (const c of data) {
+      catalogs.value[c.catalogid] = c.owner_name || c.name
+    }
+  }
 })
+
+function getCatalogName(affair) {
+  if (!affair.catalog_id) return 'Ma liste'
+  return catalogs.value[affair.catalog_id] || 'Ma liste'
+}
 
 
 const filteredAffairs = computed(() => {
@@ -148,7 +202,7 @@ function deselectAffair() {
   align-items: center;
   gap: 8px;
   padding: 10px 12px;
-  background: var(--color1-light);
+  background: var(--bg-card, #f5f5f5);
   border: 2px solid var(--color1);
   border-radius: 8px;
   cursor: pointer;
@@ -175,6 +229,67 @@ function deselectAffair() {
 .sel-change {
   font-size: 12px;
   color: #888;
+}
+.selected-panel {
+  margin-bottom: 4px;
+}
+.sel-details {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+}
+.sel-tags {
+  display: flex;
+  gap: 4px;
+  flex: 1;
+}
+.sel-catalog {
+  font-size: 11px;
+  color: var(--color1);
+  font-weight: 600;
+}
+.btn-materiel-sel {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 8px;
+  background: transparent;
+  border: 1px solid var(--color3);
+  color: var(--color3);
+  border-radius: 4px;
+  cursor: pointer;
+  box-shadow: none;
+  min-width: auto;
+  white-space: nowrap;
+}
+.materiel-panel {
+  margin: 4px 12px 8px;
+  border: 2px solid var(--color1);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.materiel-section {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-light, #eee);
+}
+.materiel-section:last-child {
+  border-bottom: none;
+}
+.materiel-title {
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.materiel-content {
+  font-size: 12px;
+  color: var(--text-light, #888);
+  font-style: italic;
+}
+.materiel-empty {
+  padding: 12px;
+  text-align: center;
+  color: var(--text-muted, #999);
+  font-size: 12px;
 }
 .affair-list {
   max-height: 60vh;
@@ -257,10 +372,10 @@ function deselectAffair() {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.card-date {
-  font-size: 15px;
-  font-weight: 600;
-  color: #333;
+.card-date-main {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color3);
   white-space: nowrap;
   flex-shrink: 0;
 }
@@ -271,15 +386,62 @@ function deselectAffair() {
   margin-top: 2px;
   padding-left: 26px;
 }
-.card-created {
-  font-size: 13px;
-  color: #888;
+.card-catalog {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color1);
 }
 .card-updated {
   font-size: 13px;
   color: #888;
   white-space: nowrap;
   flex-shrink: 0;
+}
+.card-line3 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 4px;
+  padding-left: 26px;
+}
+.card-tags {
+  display: flex;
+  gap: 4px;
+}
+.tag {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+.tag-front {
+  background: #3b82f6;
+  color: #fff;
+}
+.tag-monitor {
+  background: #f59e0b;
+  color: #fff;
+}
+.tag-stage {
+  background: #10b981;
+  color: #fff;
+}
+.tag-none {
+  color: #999;
+  font-size: 12px;
+}
+.btn-materiel {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 8px;
+  background: transparent;
+  border: 1px solid var(--color3);
+  color: var(--color3);
+  border-radius: 4px;
+  cursor: pointer;
+  box-shadow: none;
+  min-width: auto;
 }
 .empty {
   padding: 15px;

@@ -1,24 +1,56 @@
 <template>
   <div v-if="!online" class="offline-bar">Mode hors-ligne</div>
+  <div v-if="userRole === 'master' && companyName" class="company-bar">
+    🏢 {{ companyName }}
+  </div>
   <div id="nav">
-    <router-link to="/Cablemaster">Cablemaster</router-link> |
-    <router-link to="/MasterAffaire">MasterAffaire</router-link> |
-    <router-link to="/CaisseType">CaisseType</router-link> |
+    <template v-if="userRole === 'master'">
+      <router-link to="/company">Entreprise</router-link> |
+      <router-link to="/Cablemaster">Cablemaster</router-link> |
+      <router-link to="/MasterAffaire">MasterAffaire</router-link> |
+      <router-link to="/CaisseType">CaisseType</router-link> |
+    </template>
     <span class="refresh-btn" @click="refreshPage" title="Actualiser">↻</span>
     <router-link to="/about">About</router-link> |
     <router-link to="/">CableTech</router-link> |
+    <router-link to="/micros" class="mic-link" title="Bibliothèque Micros">🎤</router-link>
     <router-link to="/settings" class="settings-link" title="Réglages">&#9881;</router-link>
     <span class="help-btn" :class="{ active: helpMode }" @click="helpMode = !helpMode" title="Aide">?</span>
+    <span class="role-toggle" :class="userRole" @click="toggleRole" :title="userRole === 'master' ? 'Mode Entreprise' : 'Mode Technicien'">
+      {{ userRole === 'master' ? 'M' : 'T' }}
+    </span>
   </div>
   <router-view />
 </template>
 
 <script setup>
 import { ref, onMounted, onUnmounted, provide } from 'vue'
+import { supabase } from './lib/supabase'
 
 const online = ref(navigator.onLine)
 const helpMode = ref(false)
 provide('helpMode', helpMode)
+
+const userRole = ref(localStorage.getItem('cablemaster-role') || 'technician')
+const companyName = ref(localStorage.getItem('cablemaster-company') || '')
+
+function toggleRole() {
+  userRole.value = userRole.value === 'technician' ? 'master' : 'technician'
+  localStorage.setItem('cablemaster-role', userRole.value)
+  if (userRole.value === 'master' && !companyName.value) {
+    loadCompany()
+  }
+}
+provide('userRole', userRole)
+provide('companyName', companyName)
+
+async function loadCompany() {
+  const { data } = await supabase.from('company').select('name').limit(1)
+  if (data?.[0]) {
+    companyName.value = data[0].name
+    localStorage.setItem('cablemaster-company', data[0].name)
+  }
+}
 
 function refreshPage() {
   window.location.reload()
@@ -29,6 +61,7 @@ function onOffline() { online.value = false }
 onMounted(() => {
   window.addEventListener('online', onOnline)
   window.addEventListener('offline', onOffline)
+  if (userRole.value === 'master') loadCompany()
 })
 onUnmounted(() => {
   window.removeEventListener('online', onOnline)
@@ -100,6 +133,15 @@ select {
 .settings-link {
   font-size: 18px;
 }
+.company-bar {
+  background: var(--color3);
+  color: #fff;
+  text-align: center;
+  padding: 6px;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
 .offline-bar {
   background: #ef4444;
   color: white;
@@ -107,6 +149,11 @@ select {
   padding: 4px;
   font-size: 12px;
   font-weight: bold;
+}
+.mic-link {
+  font-size: 18px;
+  text-decoration: none;
+  vertical-align: middle;
 }
 .refresh-btn {
   display: inline-flex;
@@ -125,6 +172,28 @@ select {
 .refresh-btn:active {
   transform: rotate(180deg);
   transition: transform 0.3s;
+}
+.role-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  margin-left: 6px;
+  vertical-align: middle;
+  transition: all 0.2s;
+}
+.role-toggle.technician {
+  background: #3b82f6;
+  color: #fff;
+}
+.role-toggle.master {
+  background: #ef4444;
+  color: #fff;
 }
 .help-btn {
   display: inline-flex;

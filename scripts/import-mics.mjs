@@ -94,7 +94,7 @@ async function importMic(filename, specs) {
     if (error) console.error(`  Erreur update:`, error.message)
     else console.log(`  Mis à jour (id: ${existing[0].cableid})`)
   } else {
-    // Créer
+    // Créer dans le catalogue bibliothèque (id: 2)
     const { data, error } = await supabase
       .from('cable')
       .insert({
@@ -107,6 +107,7 @@ async function importMic(filename, specs) {
         sortno: 0,
         total: 0,
         reserved: 0,
+        catalog_id: 2,
       })
       .select()
 

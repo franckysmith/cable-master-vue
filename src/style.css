@@ -136,6 +136,60 @@ input[type="text"], input[type="date"], input[type="number"], input[type="search
   color: var(--text);
   border-color: var(--border-light);
 }
+/* Quasar inputs en dark mode (formulaire affaire) */
+.dark .q-field__native,
+.dark .q-field__input,
+.dark .q-field__prefix,
+.dark .q-field__suffix,
+.dark .q-textarea__inner {
+  color: var(--text) !important;
+}
+.dark .q-field__label {
+  color: var(--text-light) !important;
+}
+.dark .q-field--outlined .q-field__control {
+  border-color: var(--border-light) !important;
+  background: var(--bg-input) !important;
+}
+.dark .q-field--outlined .q-field__control:hover {
+  border-color: var(--color1) !important;
+}
+.dark .add-affair {
+  color: var(--text);
+}
+.dark .add-affair h3,
+.dark .add-affair .text-h6 {
+  color: var(--text) !important;
+}
+.dark .q-item__label {
+  color: var(--text) !important;
+}
+.dark .q-select__dropdown-icon {
+  color: var(--text-light) !important;
+}
+.dark .q-checkbox__label {
+  color: var(--text) !important;
+}
+.dark .q-btn[flat] {
+  color: var(--text) !important;
+}
+/* Quasar dropdown/popup en dark mode */
+.dark .q-menu,
+.dark .q-select__dialog,
+.dark .q-popup-proxy {
+  background: var(--bg-card) !important;
+  color: var(--text) !important;
+}
+.dark .q-item {
+  color: var(--text) !important;
+}
+.dark .q-item--active,
+.dark .q-item:hover {
+  background: var(--border) !important;
+}
+.dark .q-virtual-scroll__content .q-item__label {
+  color: var(--text) !important;
+}
 .dark .cable-row {
   box-shadow: none !important;
   border-bottom-color: var(--border) !important;

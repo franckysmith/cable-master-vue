@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 
 const STORAGE_KEY = 'cablemaster-settings'
 
@@ -114,6 +114,7 @@ export const useSettingsStore = defineStore('settings', () => {
       darkMode: darkMode.value,
       visibleZones: visibleZones.value,
       visibleFc: visibleFc.value,
+      userRole: userRole.value,
     }))
   }
 
@@ -130,5 +131,11 @@ export const useSettingsStore = defineStore('settings', () => {
   watch([visibleZones, visibleFc], save)
   watch([defaultZoneLabels, defaultFcLabels, defaultCtLabels, defaultTypeLabels], save, { deep: true })
 
-  return { defaultZoneLabels, defaultFcLabels, defaultCtLabels, defaultTypeLabels, colorTheme, darkMode, visibleZones, visibleFc, COLOR_THEMES }
+  const userRole = ref(stored.userRole || 'technician') // 'technician' ou 'master'
+
+  const isMaster = computed(() => userRole.value === 'master')
+
+  watch(userRole, save)
+
+  return { defaultZoneLabels, defaultFcLabels, defaultCtLabels, defaultTypeLabels, colorTheme, darkMode, visibleZones, visibleFc, userRole, isMaster, COLOR_THEMES }
 })

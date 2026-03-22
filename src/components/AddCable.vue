@@ -49,7 +49,7 @@
         <input v-model="form.link" placeholder="https://..." />
       </div>
       <div class="form-actions">
-        <button type="submit" class="btn-add">Ajouter</button>
+        <button type="submit" class="btn-add" :disabled="submitting">{{ submitting ? 'Ajout en cours...' : 'Ajouter' }}</button>
         <button type="button" class="btn-cancel" @click="$emit('close')">Annuler</button>
       </div>
     </form>
@@ -57,7 +57,7 @@
 </template>
 
 <script setup>
-import { reactive } from 'vue'
+import { reactive, ref } from 'vue'
 import { useCableStore } from '../stores/cables'
 import { useSettingsStore } from '../stores/settings'
 
@@ -85,13 +85,20 @@ const form = reactive({
   link: '',
 })
 
+const submitting = ref(false)
+
 async function submit() {
-  if (!form.name || !form.type) return
+  if (!form.name || !form.type || submitting.value) return
+  submitting.value = true
   const payload = { ...form }
   if (!payload.brand) delete payload.brand
   if (!payload.info) delete payload.info
   if (!payload.link) delete payload.link
+  // Ajouter au catalogue actif
+  const catalogId = parseInt(localStorage.getItem('cablemaster-catalogid')) || null
+  if (catalogId) payload.catalog_id = catalogId
   const { error } = await cableStore.addCable(payload)
+  submitting.value = false
   if (!error) {
     Object.assign(form, { name: '', type: '', brand: '', weight: 0, total: 0, reserved: 0, sortno: 0, info: '', link: '' })
     emit('close')

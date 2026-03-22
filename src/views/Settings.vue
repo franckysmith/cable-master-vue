@@ -18,21 +18,6 @@
     </section>
 
     <section class="section">
-      <h3>Noms par défaut des caisses type</h3>
-      <div class="label-grid">
-        <div v-for="i in 7" :key="'ct'+i" class="label-row">
-          <span class="label-num">CT{{ i }}</span>
-          <input
-            v-model="settingsStore.defaultCtLabels[`ct${i}`]"
-            :placeholder="`Caisse ${i}`"
-            class="label-input"
-            maxlength="12"
-          />
-        </div>
-      </div>
-    </section>
-
-    <section class="section">
       <h3>Catégories de câbles</h3>
       <div class="label-grid">
         <div v-for="i in 10" :key="'type'+i" class="label-row">

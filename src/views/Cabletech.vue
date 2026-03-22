@@ -52,9 +52,17 @@
           @click="onHelpClick('micro', toggleMicroMode)"
         >Micro</button>
         <button
+          v-if="hasCompany"
           class="special-btn ctype-btn"
-          :class="{ active: ctMode }"
-          @click="onHelpClick('ctype', toggleCtMode)"
+          :class="{ active: ctMode, editing: ctEditMode, disabled: !hasCtContent && !isMaster }"
+          :disabled="!hasCtContent && !isMaster"
+          @mousedown.prevent="startCtBtnPress"
+          @mouseup.prevent="endCtBtnPress"
+          @mouseleave="cancelCtBtnPress"
+          @touchstart.prevent="startCtBtnPress"
+          @touchend.prevent="endCtBtnPress"
+          @touchcancel="cancelCtBtnPress"
+          style="user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;"
         >Caisse-type</button>
       </div>
 
@@ -190,12 +198,13 @@
       <div v-if="ctMode" class="table-scroll" ref="ctBodyScroll" @scroll="syncScroll('ctBodyScroll','ctHeaderScroll')" style="width:100%">
         <CtypeList
           :cables="ctFilteredCables"
-          :active-cable-id="activeCableId"
+          :active-cable-id="ctEditMode ? activeCableId : null"
           :subtract-mode="subtractMode"
           :solo-mode="ctSolo"
           :solo-filter="ctSoloFilter"
           :increment-step="incrementStep"
           :counts="ctAllCounts"
+          :read-only="!ctEditMode"
           @updated="onCtCableUpdated"
           @select="onCableSelect"
           @longpress="onCableLongPress"
@@ -314,6 +323,24 @@ import { useMfcStore } from '../stores/mfc'
 
 const helpMode = inject('helpMode', ref(false))
 const helpTarget = ref(null)
+const hasCompany = computed(() => {
+  const catId = parseInt(localStorage.getItem('cablemaster-catalogid')) || 0
+  return catId > 1
+})
+const hasCtContent = ref(false)
+
+async function checkCtContent() {
+  if (!hasCompany.value) { hasCtContent.value = false; return }
+  const mfcs = mfcStore.mfcs
+  if (!mfcs || mfcs.length === 0) { hasCtContent.value = false; return }
+  for (const mfc of mfcs) {
+    const { data } = await mfcStore.getMfcCables(mfc.mfcid)
+    if (data?.length > 0) { hasCtContent.value = true; return }
+  }
+  hasCtContent.value = false
+}
+const userRole = inject('userRole', ref('technician'))
+const isMaster = computed(() => userRole.value === 'master')
 
 function onHelpClick(id, action) {
   if (helpMode.value) {
@@ -333,8 +360,9 @@ const orderStore = useOrderStore()
 const settingsStore = useSettingsStore()
 const mfcStore = useMfcStore()
 
-onMounted(() => {
-  mfcStore.fetchMfcs()
+onMounted(async () => {
+  await mfcStore.fetchMfcs()
+  checkCtContent()
 })
 
 const affairIsOpen = ref(false)
@@ -378,17 +406,10 @@ const fcSoloFilter = ref(null)  // null = tous, 1-7 = FC spécifique
 const fcSolo = ref(false)
 
 function onCtHeaderClick(i) {
-  // Clic = solo sur cette colonne, tous types
-  if (ctSoloFilter.value === i) {
-    // Déjà filtré sur ce CT, on désactive
-    ctSolo.value = false
-    ctSoloFilter.value = null
-    typeChoose.value = 'speaker'
-  } else {
-    ctSolo.value = true
-    ctSoloFilter.value = i
-    typeChoose.value = ''  // tous les types
-  }
+  // Clic = changer de CT (toujours une sélectionnée)
+  ctSolo.value = true
+  ctSoloFilter.value = i
+  typeChoose.value = ''
 }
 
 function onFcHeaderClick(i) {
@@ -440,15 +461,59 @@ function cancelHeaderPress() {
   clearTimeout(headerPressTimer)
 }
 
+const ctEditMode = ref(false)
+let ctBtnTimer = null
+let ctBtnDidLong = false
+
+function startCtBtnPress() {
+  ctBtnDidLong = false
+  ctBtnTimer = setTimeout(() => {
+    ctBtnDidLong = true
+    // Long clic : éditer (seulement Cable Master)
+    if (isMaster.value) {
+      if (!ctMode.value) {
+        ctMode.value = true
+        microMode.value = false
+        directMode.value = false
+        typeChoose.value = 'speaker'
+        loadAllCtCables()
+      }
+      ctEditMode.value = true
+    }
+  }, 800)
+}
+
+function endCtBtnPress() {
+  clearTimeout(ctBtnTimer)
+  if (!ctBtnDidLong) {
+    // Clic court : voir / toggle
+    if (ctMode.value && ctEditMode.value) {
+      // Sortir du mode édition, rester en lecture
+      ctEditMode.value = false
+    } else {
+      toggleCtMode()
+      ctEditMode.value = false
+    }
+  }
+}
+
+function cancelCtBtnPress() {
+  clearTimeout(ctBtnTimer)
+}
+
 function toggleCtMode() {
   ctMode.value = !ctMode.value
   if (ctMode.value) {
     microMode.value = false
     directMode.value = false
-    typeChoose.value = 'speaker'
+    typeChoose.value = ''
+    ctSolo.value = true
+    ctSoloFilter.value = 1
     loadAllCtCables()
   } else {
     typeChoose.value = 'speaker'
+    ctSolo.value = false
+    ctSoloFilter.value = null
   }
 }
 
@@ -825,8 +890,9 @@ async function onAffairSelected(affair) {
   microGroupLabels.mg4 = (affair.mg4 && affair.mg4.trim()) || ''
   microGroupLabels.mg5 = (affair.mg5 && affair.mg5.trim()) || ''
 
-  // Charger les câbles du catalogue de l'affaire
-  await cableStore.fetchCables(affair.catalog_id || null)
+  // Charger les câbles du catalogue de l'affaire ou de l'entreprise connectée
+  const catalogId = affair.catalog_id || localStorage.getItem('cablemaster-catalogid') || null
+  await cableStore.fetchCables(catalogId ? parseInt(catalogId) : null)
 
   const { data: orders } = await orderStore.fetchOrders({ affairid: affair.affairid })
   buildJoinedData(orders || [], cableStore.cables)
@@ -1455,6 +1521,11 @@ button {
 .ctype-btn {
   background: #06b6d4;
   color: #fff;
+}
+.ctype-btn.disabled {
+  background: #999;
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 .ctype-btn.active {
   background: #0891b2;

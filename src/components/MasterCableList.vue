@@ -62,38 +62,15 @@ function toggleActive(cable) {
 
 <style scoped>
 .list_container {
-  width: 375px;
+  width: 100%;
+  padding: 0 8px;
 }
 .cable-row {
   display: flex;
   align-items: center;
-  margin: 2px 0;
-  border-bottom: 1px solid #eee;
-  padding: 2px 0;
-}
-.cable-name {
-  width: 120px;
-  text-align: left;
-  font-size: 12px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.cable-fields {
-  display: flex;
-  gap: 4px;
-}
-.cable-fields input {
-  width: 40px;
-  text-align: center;
-  font-size: 12px;
-}
-.cable-active {
-  width: 16px;
-  height: 16px;
-  margin-right: 4px;
-  flex-shrink: 0;
-  cursor: pointer;
+  margin: 1px 0;
+  border-bottom: 1px solid var(--border-light, #eee);
+  padding: 4px 0;
 }
 .cable-row.inactive {
   opacity: 0.4;
@@ -101,13 +78,49 @@ function toggleActive(cable) {
 .cable-row.inactive .cable-name {
   text-decoration: line-through;
 }
+.cable-name {
+  width: 100px;
+  min-width: 100px;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text, #333);
+}
+.cable-fields {
+  display: flex;
+  gap: 2px;
+  flex: 1;
+}
+.cable-fields input {
+  width: 44px;
+  text-align: center;
+  font-size: 13px;
+  padding: 4px 2px;
+  border: 1px solid var(--border-light, #ddd);
+  border-radius: 4px;
+  background: var(--bg-input, #fff);
+  color: var(--text, #333);
+}
+.cable-active {
+  width: 18px;
+  height: 18px;
+  margin-right: 4px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
 .btn-delete {
   cursor: pointer;
-  margin-left: 5px;
+  margin-left: 4px;
   background: transparent;
-  border: 1px solid #ccc;
-  border-radius: 3px;
-  font-size: 10px;
-  padding: 2px 5px;
+  border: 1px solid var(--border-light, #ccc);
+  border-radius: 4px;
+  font-size: 11px;
+  padding: 3px 6px;
+  color: var(--text-muted, #999);
+  box-shadow: none;
+  min-width: auto;
 }
 </style>
