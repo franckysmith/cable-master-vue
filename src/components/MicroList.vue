@@ -1,7 +1,14 @@
 <template>
   <div class="micro-list">
+    <template v-for="([brand, cables]) in groupedMics" :key="brand">
+      <div class="brand-header" @click="toggleGroup(brand)">
+        <span class="brand-arrow">{{ closedGroups[brand] ? '▶' : '▼' }}</span>
+        <span class="brand-name">{{ brand }}</span>
+        <span class="brand-count">{{ cables.length }}</span>
+      </div>
+      <template v-if="!closedGroups[brand]">
     <div
-      v-for="(cable, rowIdx) in microCables"
+      v-for="(cable, rowIdx) in cables"
       :key="cable.cableid"
       class="cable-row"
       :class="{ 'row-active': cable.cableid == activeCableId, 'row-band': rowIdx % 2 === 0 }"
@@ -59,27 +66,131 @@
         </div>
       </div>
     </div>
-    <div v-if="microCables.length === 0" class="empty">Aucun micro</div>
+      </template>
+    </template>
+    <!-- Séparateur + micros inactifs en mode solo -->
+    <template v-if="soloMode && inactiveMics.length > 0">
+      <div class="solo-separator"></div>
+      <template v-for="([brand, cables]) in groupedInactive" :key="'i_'+brand">
+        <div class="brand-header brand-inactive" @click="toggleGroup('i_'+brand)">
+          <span class="brand-arrow">{{ closedGroups['i_'+brand] ? '▶' : '▼' }}</span>
+          <span class="brand-name">{{ brand }}</span>
+          <span class="brand-count">{{ cables.length }}</span>
+        </div>
+        <template v-if="!closedGroups['i_'+brand]">
+      <div
+        v-for="(cable, rowIdx) in cables"
+        :key="cable.cableid"
+        class="cable-row row-inactive"
+        :class="{ 'row-active': cable.cableid == activeCableId, 'row-band': rowIdx % 2 === 0 }"
+      >
+        <div
+          class="cable-name"
+          :style="{ borderLeft: '4px solid #eb910a' }"
+          @mousedown="startNamePress(cable, $event)"
+          @mouseup="endNamePress(cable, $event)"
+          @mouseleave="cancelNamePress"
+          @touchstart="startNamePress(cable, $event)"
+          @touchend="endNamePress(cable, $event)"
+          @touchcancel="cancelNamePress"
+        >
+          {{ cable.name }}
+        </div>
+        <div class="cable-cols">
+          <div
+            class="mic-cell col-spare"
+            :class="{ disabled: cable.cableid !== activeCableId }"
+            @mousedown="startPress(cable, 'spare_count', $event)"
+            @mouseup="endPress(cable, 'spare_count', $event)"
+            @mouseleave="cancelPress"
+            @touchstart="startPress(cable, 'spare_count', $event)"
+            @touchend="endPress(cable, 'spare_count', $event)"
+            @touchcancel="cancelPress"
+          >
+            <span class="mic-value" :class="{ active: cable.spare_count > 0 }">
+              {{ cable.spare_count > 0 ? cable.spare_count : '--' }}
+            </span>
+          </div>
+          <div
+            v-for="g in 5"
+            :key="'g'+g"
+            class="mic-cell"
+            :class="{ disabled: cable.cableid !== activeCableId }"
+            @mousedown="startPress(cable, `tfc${g}`, $event)"
+            @mouseup="endPress(cable, `tfc${g}`, $event)"
+            @mouseleave="cancelPress"
+            @touchstart="startPress(cable, `tfc${g}`, $event)"
+            @touchend="endPress(cable, `tfc${g}`, $event)"
+            @touchcancel="cancelPress"
+          >
+            <span class="mic-value" :class="{ active: cable[`tfc${g}`] > 0 }">
+              {{ cable[`tfc${g}`] > 0 ? cable[`tfc${g}`] : '--' }}
+            </span>
+          </div>
+          <div class="mic-cell mic-qty">
+            <span class="mic-value active">
+              {{ getQty(cable) || '--' }}
+            </span>
+          </div>
+        </div>
+      </div>
+        </template>
+      </template>
+    </template>
+
+    <div v-if="microCables.length === 0 && (!soloMode || inactiveMics.length === 0)" class="empty">Aucun micro</div>
   </div>
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 
 const props = defineProps({
   cables: { type: Array, default: () => [] },
   activeCableId: { default: null },
   subtractMode: { type: Boolean, default: false },
   soloMode: { type: Boolean, default: false },
+  incrementStep: { type: Number, default: 1 },
 })
 
 const emit = defineEmits(['updated', 'select', 'longpress'])
 
+const allMics = computed(() => props.cables.filter(c => c.type === 'microphone'))
+const activeMics = computed(() => allMics.value.filter(c => getQty(c) > 0))
+const inactiveMics = computed(() => allMics.value.filter(c => getQty(c) === 0))
 const microCables = computed(() => {
-  const mics = props.cables.filter(c => c.type === 'microphone')
-  if (!props.soloMode) return mics
-  return mics.filter(c => getQty(c) > 0)
+  if (!props.soloMode) return allMics.value
+  return activeMics.value
 })
+
+function getBrand(cable) {
+  return cable.brand || cable.name.split(' ')[0] || 'Autre'
+}
+
+const groupedMics = computed(() => {
+  const groups = {}
+  for (const cable of microCables.value) {
+    const brand = getBrand(cable)
+    if (!groups[brand]) groups[brand] = []
+    groups[brand].push(cable)
+  }
+  return Object.entries(groups).sort((a, b) => a[0].localeCompare(b[0]))
+})
+
+const groupedInactive = computed(() => {
+  const groups = {}
+  for (const cable of inactiveMics.value) {
+    const brand = getBrand(cable)
+    if (!groups[brand]) groups[brand] = []
+    groups[brand].push(cable)
+  }
+  return Object.entries(groups).sort((a, b) => a[0].localeCompare(b[0]))
+})
+
+const closedGroups = ref({})
+function toggleGroup(brand) {
+  closedGroups.value[brand] = !closedGroups.value[brand]
+}
 
 function getQty(cable) {
   const maxGroup = Math.max(
@@ -104,7 +215,7 @@ function startNamePress(cable, e) {
   namePressTimer = setTimeout(() => {
     nameDidLongPress = true
     emit('longpress', cable)
-  }, 500)
+  }, 800)
 }
 
 function endNamePress(cable, e) {
@@ -129,7 +240,11 @@ let didLongPress = false
 function startPress(cable, field, e) {
   if (e?.type?.startsWith('mouse') && usedTouch) return
   if (e?.type?.startsWith('touch')) usedTouch = true
-  if (!isEditable(cable)) return
+  if (!isEditable(cable)) {
+    emit('select', cable.cableid)
+    didLongPress = true
+    return
+  }
   didLongPress = false
 }
 
@@ -139,12 +254,11 @@ function endPress(cable, field, e) {
 
   if (!didLongPress) {
     if (props.subtractMode) {
-      if ((cable[field] || 0) > 0) {
-        cable[field] = cable[field] - 1
-        emit('updated', cable)
-      }
+      const newVal = (cable[field] || 0) - props.incrementStep
+      cable[field] = Math.max(0, newVal)
+      emit('updated', cable)
     } else {
-      cable[field] = (cable[field] || 0) + 1
+      cable[field] = (cable[field] || 0) + props.incrementStep
       emit('updated', cable)
     }
   }
@@ -169,10 +283,11 @@ function cancelPress() {
   box-shadow: 0 2px 3px rgba(0, 0, 0, 0.12);
 }
 .cable-row.row-band .cable-name {
-  background: #d5d5d5;
+  background: var(--color1);
   border-radius: 6px;
   padding-top: 4px;
   padding-bottom: 4px;
+  color: #fff;
 }
 .cable-row.row-active .mic-cell {
   border: 1.5px solid var(--color1);
@@ -242,6 +357,48 @@ function cancelPress() {
 .mic-value.active {
   color: #2c3e50;
   font-weight: bold;
+}
+.brand-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  background: transparent;
+  color: var(--text, #222);
+  border: 2px solid #eb910a;
+  cursor: pointer;
+  border-radius: 6px;
+  margin: 4px 2px 2px;
+  user-select: none;
+}
+.brand-header.brand-inactive {
+  border-color: #888;
+  opacity: 0.5;
+}
+.brand-arrow {
+  font-size: 10px;
+  width: 12px;
+}
+.brand-name {
+  font-size: 14px;
+  font-weight: 700;
+  flex: 1;
+}
+.brand-count {
+  font-size: 12px;
+  font-weight: 600;
+  background: #eb910a;
+  color: #fff;
+  padding: 1px 6px;
+  border-radius: 10px;
+}
+.solo-separator {
+  height: 2px;
+  background: #ddd;
+  margin: 10px 0;
+}
+.row-inactive {
+  opacity: 0.5;
 }
 .empty {
   padding: 15px;

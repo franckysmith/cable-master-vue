@@ -9,8 +9,39 @@
           <span class="label-num">FC{{ i }}</span>
           <input
             v-model="settingsStore.defaultFcLabels[`lfc${i}`]"
-            :placeholder="`Flycase ${i}`"
+            :placeholder="`FC ${i}`"
             class="label-input"
+            maxlength="12"
+          />
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h3>Noms par défaut des caisses type</h3>
+      <div class="label-grid">
+        <div v-for="i in 7" :key="'ct'+i" class="label-row">
+          <span class="label-num">CT{{ i }}</span>
+          <input
+            v-model="settingsStore.defaultCtLabels[`ct${i}`]"
+            :placeholder="`Caisse ${i}`"
+            class="label-input"
+            maxlength="12"
+          />
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h3>Catégories de câbles</h3>
+      <div class="label-grid">
+        <div v-for="i in 10" :key="'type'+i" class="label-row">
+          <span class="label-num">{{ i }}</span>
+          <input
+            v-model="settingsStore.defaultTypeLabels[`type${i}`]"
+            :placeholder="`Type ${i}`"
+            class="label-input"
+            maxlength="12"
           />
         </div>
       </div>
@@ -20,11 +51,12 @@
       <h3>Noms par défaut des zones</h3>
       <div class="label-grid">
         <div v-for="i in 6" :key="'z'+i" class="label-row">
-          <span class="label-num">Zone {{ i }}</span>
+          <span class="label-num">Z{{ i }}</span>
           <input
             v-model="settingsStore.defaultZoneLabels[`lz${i}`]"
             :placeholder="`Zone ${i}`"
             class="label-input"
+            maxlength="12"
           />
         </div>
       </div>
@@ -82,24 +114,26 @@ h2 {
   color: #555;
 }
 .label-grid {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 6px;
 }
 .label-row {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 4px;
 }
 .label-num {
-  width: 60px;
-  font-size: 13px;
+  width: 28px;
+  min-width: 28px;
+  font-size: 12px;
   font-weight: 600;
   color: #666;
 }
 .label-input {
-  flex: 1;
-  padding: 8px 10px;
+  width: 80px;
+  max-width: 80px;
+  padding: 6px 6px;
   border: 1px solid #ccc;
   border-radius: 6px;
   font-size: 14px;

@@ -51,6 +51,7 @@
 import { reactive, computed, onMounted, watch } from 'vue'
 import { useAffairStore } from '../stores/affairs'
 import { useCatalogStore } from '../stores/catalogs'
+import { useSettingsStore } from '../stores/settings'
 
 const props = defineProps({
   affair: { type: Object, default: null },
@@ -59,6 +60,7 @@ const props = defineProps({
 const emit = defineEmits(['close', 'created'])
 const affairStore = useAffairStore()
 const catalogStore = useCatalogStore()
+const settingsStore = useSettingsStore()
 
 const isEditing = computed(() => !!props.affair)
 
@@ -113,6 +115,14 @@ async function submit() {
   const payload = { ...form }
   if (!payload.catalog_id) payload.catalog_id = null
   if (!payload.prep_date) payload.prep_date = null
+
+  // Pour une nouvelle affaire, inclure les noms par défaut des zones/FC
+  if (!isEditing.value) {
+    const dz = settingsStore.defaultZoneLabels
+    const df = settingsStore.defaultFcLabels
+    for (let i = 1; i <= 6; i++) payload[`lz${i}`] = dz[`lz${i}`] || ''
+    for (let i = 1; i <= 7; i++) payload[`lfc${i}`] = df[`lfc${i}`] || ''
+  }
 
   if (isEditing.value) {
     const { error } = await affairStore.updateAffair(props.affair.affairid, payload)

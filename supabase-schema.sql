@@ -22,6 +22,8 @@ CREATE TABLE cable (
   reserved INT DEFAULT 0,
   info VARCHAR(255) DEFAULT '',
   link TEXT DEFAULT '',
+  brand VARCHAR(30) DEFAULT '',
+  active BOOLEAN DEFAULT TRUE,
   catalog_id BIGINT REFERENCES catalog(catalogid) ON DELETE SET NULL,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );

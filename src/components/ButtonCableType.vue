@@ -15,21 +15,32 @@
 </template>
 
 <script setup>
-defineProps({
+import { computed } from 'vue'
+import { useSettingsStore } from '../stores/settings'
+
+const props = defineProps({
   modelValue: { type: String, default: 'speaker' },
   distributedTypes: { type: Object, default: () => ({}) },
+  showAll: { type: Boolean, default: false },
 })
 defineEmits(['select'])
 
-const types = [
-  { value: 'speaker', label: 'HP' },
-  { value: 'electrical', label: 'Elec' },
-  { value: 'module', label: 'Modules' },
-  { value: 'special', label: 'Spéciaux' },
-  { value: 'other', label: 'Autres' },
-  { value: 'accessory', label: 'Accessoires' },
-  { value: 'digital', label: 'Numériques' },
-]
+const settingsStore = useSettingsStore()
+
+const typeKeys = ['speaker', 'electrical', 'module', 'special', 'other', 'accessory', 'digital', 'type8', 'type9', 'type10']
+const defaultLabels = ['HP', 'Elec', 'Modules', 'Spéciaux', 'Autres', 'Accessoires', 'Numériques', '', '', '']
+
+const types = computed(() => {
+  const list = typeKeys.map((value, i) => {
+    const label = settingsStore.defaultTypeLabels[`type${i + 1}`] || defaultLabels[i]
+    return { value, label }
+  }).filter(t => t.label)
+  if (props.showAll) {
+    list.push({ value: 'microphone', label: 'Micros' })
+    list.push({ value: 'c_type', label: 'Caisses-type' })
+  }
+  return list
+})
 </script>
 
 <style scoped>

@@ -4,17 +4,25 @@
     <router-link to="/Cablemaster">Cablemaster</router-link> |
     <router-link to="/MasterAffaire">MasterAffaire</router-link> |
     <router-link to="/CaisseType">CaisseType</router-link> |
+    <span class="refresh-btn" @click="refreshPage" title="Actualiser">↻</span>
     <router-link to="/about">About</router-link> |
     <router-link to="/">CableTech</router-link> |
     <router-link to="/settings" class="settings-link" title="Réglages">&#9881;</router-link>
+    <span class="help-btn" :class="{ active: helpMode }" @click="helpMode = !helpMode" title="Aide">?</span>
   </div>
   <router-view />
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, provide } from 'vue'
 
 const online = ref(navigator.onLine)
+const helpMode = ref(false)
+provide('helpMode', helpMode)
+
+function refreshPage() {
+  window.location.reload()
+}
 function onOnline() { online.value = true }
 function onOffline() { online.value = false }
 
@@ -99,5 +107,43 @@ select {
   padding: 4px;
   font-size: 12px;
   font-weight: bold;
+}
+.refresh-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  font-size: 24px;
+  font-weight: bold;
+  color: var(--text);
+  cursor: pointer;
+  margin: 0 4px;
+  vertical-align: middle;
+  user-select: none;
+}
+.refresh-btn:active {
+  transform: rotate(180deg);
+  transition: transform 0.3s;
+}
+.help-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #3b82f6;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  margin-left: 6px;
+  vertical-align: middle;
+  transition: all 0.2s;
+}
+.help-btn.active {
+  background: #ef4444;
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
 }
 </style>

@@ -4,7 +4,7 @@
       v-for="(cable, rowIdx) in selectedCables"
       :key="cable.cableid"
       class="cable-row"
-      :class="{ 'row-active': cable.cableid == activeCableId, 'row-band': rowIdx % 2 === 0 }"
+      :class="{ 'row-active': cable.cableid == activeCableId, 'row-band': rowIdx % 2 === 0, 'flash-red': overLimitCableId === cable.cableid }"
     >
       <div
         class="cable-name"
@@ -57,7 +57,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 
 const props = defineProps({
   cables: { type: Array, default: () => [] },
@@ -65,6 +65,9 @@ const props = defineProps({
   directMode: { type: Boolean, default: false },
   visibleFc: { type: Number, default: 6 },
   subtractMode: { type: Boolean, default: false },
+  incrementStep: { type: Number, default: 1 },
+  soloMode: { type: Boolean, default: false },
+  soloFilter: { type: Number, default: null },
 })
 
 const emit = defineEmits(['updated', 'select', 'longpress'])
@@ -80,7 +83,7 @@ function startNamePress(cable, e) {
   namePressTimer = setTimeout(() => {
     nameDidLongPress = true
     emit('longpress', cable)
-  }, 500)
+  }, 800)
 }
 
 function endNamePress(cable, e) {
@@ -107,8 +110,16 @@ function getZoneTotal(cable) {
     (cable.z4 || 0) + (cable.z5 || 0) + (cable.z6 || 0)
 }
 
+function hasFcValue(cable) {
+  if (props.soloFilter) {
+    return (cable[`tfc${props.soloFilter}`] || 0) > 0
+  }
+  return fcFields.reduce((sum, f) => sum + (cable[f] || 0), 0) > 0
+}
+
 const selectedCables = computed(() => {
   if (props.directMode) {
+    if (props.soloMode) return props.cables.filter(c => hasFcValue(c))
     return props.cables
   }
   return props.cables.filter(c => getZoneTotal(c) > 0 || c.count > 0)
@@ -148,7 +159,11 @@ let didLongPress = false
 function startPress(cable, field, e) {
   if (e?.type?.startsWith('mouse') && usedTouch) return
   if (e?.type?.startsWith('touch')) usedTouch = true
-  if (!isEditable(cable)) return
+  if (!isEditable(cable)) {
+    emit('select', cable.cableid)
+    didLongPress = true
+    return
+  }
   didLongPress = false
   pressTimer = setTimeout(() => {
     didLongPress = true
@@ -179,15 +194,27 @@ function endPress(cable, field, e) {
 
   if (!didLongPress) {
     if (props.subtractMode) {
-      if ((cable[field] || 0) > 0) {
-        cable[field] = cable[field] - 1
-        emit('updated', cable)
-      }
+      const newVal = (cable[field] || 0) - props.incrementStep
+      cable[field] = Math.max(0, newVal)
+      emit('updated', cable)
     } else {
-      cable[field] = (cable[field] || 0) + 1
+      // Vérifier si on a atteint la limite (mode non-direct)
+      if (!props.directMode && getRemaining(cable) <= 0) {
+        flashOverLimit(cable)
+        return
+      }
+      cable[field] = (cable[field] || 0) + props.incrementStep
       emit('updated', cable)
     }
   }
+}
+
+const overLimitCableId = ref(null)
+function flashOverLimit(cable) {
+  overLimitCableId.value = cable.cableid
+  setTimeout(() => {
+    overLimitCableId.value = null
+  }, 500)
 }
 
 function cancelPress() {
@@ -222,10 +249,11 @@ function colorForType(type) {
   box-shadow: 0 2px 3px rgba(0, 0, 0, 0.12);
 }
 .cable-row.row-band .cable-name {
-  background: #d5d5d5;
+  background: var(--color1);
   border-radius: 6px;
   padding-top: 4px;
   padding-bottom: 4px;
+  color: #fff;
 }
 .cable-row:not(.row-band) .fc-cell {
   background: #ebebeb;
@@ -325,5 +353,33 @@ function colorForType(type) {
 .allDone {
   color: var(--color1);
   font-weight: bold;
+}
+.flash-red {
+  animation: flashRed 0.5s ease;
+}
+@keyframes flashRed {
+  0% { background: #fff; }
+  25% { background: #fecaca; }
+  50% { background: #ef4444; }
+  75% { background: #fecaca; }
+  100% { background: #fff; }
+}
+@media (min-width: 768px) {
+  .cable-name {
+    min-width: 200px;
+    font-size: 17px;
+  }
+  .fc-cell {
+    width: 44px;
+    height: 40px;
+  }
+  .fc-value {
+    font-size: 18px;
+  }
+  .cable-total {
+    width: 40px;
+    min-width: 40px;
+    font-size: 17px;
+  }
 }
 </style>

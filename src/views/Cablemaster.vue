@@ -12,7 +12,7 @@
 
     <AddCable v-if="showAddCable" @close="showAddCable = false" />
 
-    <ButtonCableType :model-value="typeChoose" @select="typeChoose = $event" />
+    <ButtonCableType :model-value="typeChoose" :show-all="true" @select="typeChoose = $event" />
 
     <div class="ajouter">
       <button class="button3" v-if="!showAddCable" @click="showAddCable = true">
@@ -24,6 +24,7 @@
 
     <div class="home">
       <div class="head">
+        <div class="head-active">✓</div>
         <div>seuil</div>
         <div>total</div>
         <div>poids</div>

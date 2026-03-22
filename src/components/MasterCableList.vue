@@ -1,6 +1,12 @@
 <template>
   <div class="list_container">
-    <div v-for="cable in cables" :key="cable.cableid" class="cable-row">
+    <div v-for="cable in cables" :key="cable.cableid" class="cable-row" :class="{ inactive: cable.active === false }">
+      <input
+        type="checkbox"
+        :checked="cable.active !== false"
+        @change="toggleActive(cable)"
+        class="cable-active"
+      />
       <div class="cable-name">{{ cable.name }}</div>
       <div class="cable-fields">
         <input
@@ -46,6 +52,12 @@ function update(cable, field, event) {
   const value = parseInt(event.target.value) || 0
   cableStore.updateCable(cable.cableid, { [field]: value })
 }
+
+function toggleActive(cable) {
+  const newVal = cable.active === false ? true : false
+  cableStore.updateCable(cable.cableid, { active: newVal })
+  cable.active = newVal
+}
 </script>
 
 <style scoped>
@@ -75,6 +87,19 @@ function update(cable, field, event) {
   width: 40px;
   text-align: center;
   font-size: 12px;
+}
+.cable-active {
+  width: 16px;
+  height: 16px;
+  margin-right: 4px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+.cable-row.inactive {
+  opacity: 0.4;
+}
+.cable-row.inactive .cable-name {
+  text-decoration: line-through;
 }
 .btn-delete {
   cursor: pointer;

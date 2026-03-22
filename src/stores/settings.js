@@ -71,6 +71,30 @@ export const useSettingsStore = defineStore('settings', () => {
     lfc7: stored.lfc7 || '',
   })
 
+  const defaultCtLabels = ref({
+    ct1: stored.ct1 || '',
+    ct2: stored.ct2 || '',
+    ct3: stored.ct3 || '',
+    ct4: stored.ct4 || '',
+    ct5: stored.ct5 || '',
+    ct6: stored.ct6 || '',
+    ct7: stored.ct7 || '',
+    ct8: stored.ct8 || '',
+  })
+
+  const defaultTypeLabels = ref({
+    type1: stored.type1 || 'HP',
+    type2: stored.type2 || 'Elec',
+    type3: stored.type3 || 'Modules',
+    type4: stored.type4 || 'Spéciaux',
+    type5: stored.type5 || 'Autres',
+    type6: stored.type6 || 'Accessoires',
+    type7: stored.type7 || 'Numériques',
+    type8: stored.type8 || '',
+    type9: stored.type9 || '',
+    type10: stored.type10 || '',
+  })
+
   const colorTheme = ref(stored.colorTheme || 'green')
   const darkMode = ref(stored.darkMode || false)
   const visibleZones = ref(stored.visibleZones || 4)
@@ -84,6 +108,8 @@ export const useSettingsStore = defineStore('settings', () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
       ...defaultZoneLabels.value,
       ...defaultFcLabels.value,
+      ...defaultCtLabels.value,
+      ...defaultTypeLabels.value,
       colorTheme: colorTheme.value,
       darkMode: darkMode.value,
       visibleZones: visibleZones.value,
@@ -102,7 +128,7 @@ export const useSettingsStore = defineStore('settings', () => {
   })
 
   watch([visibleZones, visibleFc], save)
-  watch([defaultZoneLabels, defaultFcLabels], save, { deep: true })
+  watch([defaultZoneLabels, defaultFcLabels, defaultCtLabels, defaultTypeLabels], save, { deep: true })
 
-  return { defaultZoneLabels, defaultFcLabels, colorTheme, darkMode, visibleZones, visibleFc, COLOR_THEMES }
+  return { defaultZoneLabels, defaultFcLabels, defaultCtLabels, defaultTypeLabels, colorTheme, darkMode, visibleZones, visibleFc, COLOR_THEMES }
 })

@@ -72,6 +72,70 @@ input[type="text"], input[type="date"], input[type="number"], input[type="search
 .dark .fcase-list {
   border-color: var(--border);
 }
+.dark .total-badge {
+  background: var(--bg-card);
+  color: var(--text);
+}
+.dark .total-badge strong {
+  color: var(--text);
+}
+.dark .print-all-bar .action-btn {
+  background: var(--bg-card);
+  color: var(--text);
+  border-color: var(--border);
+}
+.dark .mode-bar button {
+  background: var(--bg-card);
+  color: var(--text);
+  border-color: var(--border-light);
+}
+.dark .search {
+  background: var(--bg-input);
+  color: var(--text);
+  border-color: var(--border-light);
+}
+.dark .save-status {
+  color: var(--text-light);
+}
+.dark .mode-separator {
+  color: var(--text-muted);
+}
+.dark .status-bar span {
+  color: var(--text-light);
+}
+.dark .post button {
+  background: var(--bg-card);
+  color: var(--text);
+  border-color: var(--border-light);
+}
+.dark .post button.selectedtype {
+  background: #555;
+  color: #fff;
+}
+.dark .special-btn {
+  color: #fff !important;
+}
+.dark .quick-add-input {
+  background: var(--bg-input);
+  color: var(--text);
+  border-color: var(--border-light);
+}
+.dark .cable-edit-panel {
+  background: var(--bg-card);
+  border-color: var(--border);
+}
+.dark .edit-header {
+  color: var(--text);
+}
+.dark .edit-fields label {
+  color: var(--text-light);
+}
+.dark .edit-fields input,
+.dark .edit-fields select {
+  background: var(--bg-input);
+  color: var(--text);
+  border-color: var(--border-light);
+}
 .dark .cable-row {
   box-shadow: none !important;
   border-bottom-color: var(--border) !important;

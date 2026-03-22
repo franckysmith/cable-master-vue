@@ -45,6 +45,56 @@
         {{ getTotal(cable) || '' }}
       </div>
     </div>
+
+    <!-- Séparateur + câbles inactifs en mode solo -->
+    <template v-if="soloMode && inactiveCables.length > 0">
+      <div class="solo-separator"></div>
+      <div
+        v-for="(cable, rowIdx) in inactiveCables"
+        :key="cable.cableid"
+        class="cable-row row-inactive"
+        :class="{ 'row-active': cable.cableid == activeCableId, 'row-band': rowIdx % 2 === 0 }"
+      >
+        <div
+          class="cable-name"
+          :style="{ borderLeft: `4px solid ${colorForType(cable.type)}` }"
+          @mousedown="startNamePress(cable, $event)"
+          @mouseup="endNamePress(cable, $event)"
+          @mouseleave="cancelNamePress"
+          @touchstart="startNamePress(cable, $event)"
+          @touchend="endNamePress(cable, $event)"
+          @touchcancel="cancelNamePress"
+        >
+          {{ cable.name }}
+        </div>
+        <div class="cable-zones">
+          <div
+            v-for="(field, idx) in fields"
+            :key="field"
+            class="zone-cell"
+            :class="{
+              pressing: isDecrementing,
+              disabled: cable.cableid !== activeCableId,
+              'col-even': idx % 2 === 1,
+              'col-spare': field === 'spare_count'
+            }"
+            @mousedown="startPress(cable, field, $event)"
+            @mouseup="endPress(cable, field, $event)"
+            @mouseleave="cancelPress"
+            @touchstart="startPress(cable, field, $event)"
+            @touchend="endPress(cable, field, $event)"
+            @touchcancel="cancelPress"
+          >
+            <span class="zone-value" :class="{ active: cable[field] > 0 }">
+              {{ cable[field] > 0 ? cable[field] : '--' }}
+            </span>
+          </div>
+        </div>
+        <div class="cable-total">
+          {{ getTotal(cable) || '' }}
+        </div>
+      </div>
+    </template>
   </div>
 </template>
 
@@ -57,11 +107,14 @@ const props = defineProps({
   visibleZones: { type: Number, default: 6 },
   subtractMode: { type: Boolean, default: false },
   soloMode: { type: Boolean, default: false },
+  incrementStep: { type: Number, default: 1 },
 })
 
+const activeCables = computed(() => props.cables.filter(c => getTotal(c) > 0))
+const inactiveCables = computed(() => props.cables.filter(c => getTotal(c) === 0))
 const displayedCables = computed(() => {
   if (!props.soloMode) return props.cables
-  return props.cables.filter(c => getTotal(c) > 0)
+  return activeCables.value
 })
 
 const emit = defineEmits(['updated', 'select', 'longpress'])
@@ -76,7 +129,7 @@ function startNamePress(cable, e) {
   namePressTimer = setTimeout(() => {
     nameDidLongPress = true
     emit('longpress', cable)
-  }, 500)
+  }, 800)
 }
 
 function endNamePress(cable, e) {
@@ -109,7 +162,12 @@ function isEditable(cable) {
 function startPress(cable, field, e) {
   if (e?.type?.startsWith('mouse') && usedTouch) return
   if (e?.type?.startsWith('touch')) usedTouch = true
-  if (!isEditable(cable)) return
+  if (!isEditable(cable)) {
+    // Premier clic : sélectionner le câble
+    emit('select', cable.cableid)
+    didLongPress = true // empêcher l'incrément sur ce clic
+    return
+  }
   didLongPress = false
   isDecrementing.value = false
 
@@ -144,12 +202,11 @@ function endPress(cable, field, e) {
 
   if (!didLongPress) {
     if (props.subtractMode) {
-      if ((cable[field] || 0) > 0) {
-        cable[field] = cable[field] - 1
-        emit('updated', cable)
-      }
+      const newVal = (cable[field] || 0) - props.incrementStep
+      cable[field] = Math.max(0, newVal)
+      emit('updated', cable)
     } else {
-      cable[field] = (cable[field] || 0) + 1
+      cable[field] = (cable[field] || 0) + props.incrementStep
       emit('updated', cable)
     }
   }
@@ -198,10 +255,11 @@ function colorForType(type) {
   box-shadow: 0 2px 3px rgba(0, 0, 0, 0.12);
 }
 .cable-row.row-band .cable-name {
-  background: #d5d5d5;
+  background: var(--color1);
   border-radius: 6px;
   padding-top: 4px;
   padding-bottom: 4px;
+  color: #fff;
 }
 .cable-row:not(.row-band) .zone-cell {
   background: #ebebeb;
@@ -287,5 +345,31 @@ function colorForType(type) {
 .zone-value.active {
   color: #2c3e50;
   font-weight: bold;
+}
+.solo-separator {
+  height: 2px;
+  background: #ddd;
+  margin: 10px 0;
+}
+.row-inactive {
+  opacity: 0.5;
+}
+@media (min-width: 768px) {
+  .cable-name {
+    min-width: 200px;
+    font-size: 17px;
+  }
+  .zone-cell {
+    width: 44px;
+    height: 40px;
+  }
+  .zone-value {
+    font-size: 18px;
+  }
+  .cable-total {
+    width: 40px;
+    min-width: 40px;
+    font-size: 17px;
+  }
 }
 </style>
