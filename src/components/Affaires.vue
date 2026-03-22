@@ -14,10 +14,21 @@
           <span v-if="affairStore.selectedAffair.monitor" class="tag tag-monitor">Monitor</span>
           <span v-if="affairStore.selectedAffair.stage" class="tag tag-stage">Stage</span>
         </div>
+        <button class="btn-note-sel" @click="showNote = !showNote">📝</button>
         <span class="sel-catalog">{{ getCatalogName(affairStore.selectedAffair) }}</span>
         <button class="btn-materiel-sel" @click="showMateriel = !showMateriel">
           {{ showMateriel ? '▲ Matériel' : '▼ Matériel' }}
         </button>
+        <button class="btn-share-sel" @click="shareAffair">📤</button>
+      </div>
+
+      <!-- Note -->
+      <div v-if="showNote" class="note-panel">
+        <textarea v-model="techNote" rows="3" placeholder="Écrire une note..."></textarea>
+        <div class="note-actions">
+          <button class="btn-save-note" @click="saveNote">Enregistrer</button>
+          <button class="btn-send-note" @click="sendNote">📩 Envoyer par mail</button>
+        </div>
       </div>
       <div v-if="showMateriel" class="materiel-panel">
         <div class="materiel-section" v-if="affairStore.selectedAffair.front">
@@ -101,6 +112,69 @@ const search = ref('')
 const searchInput = ref(null)
 const editMode = ref(false)
 const showMateriel = ref(false)
+const showNote = ref(false)
+const techNote = ref('')
+
+// Charger la note quand on sélectionne une affaire
+import { watch } from 'vue'
+watch(() => affairStore.selectedAffair, (a) => {
+  if (a) techNote.value = a.tech_note || ''
+  showNote.value = false
+  showMateriel.value = false
+})
+
+async function saveNote() {
+  if (!affairStore.selectedAffair) return
+  const { supabase } = await import('../lib/supabase')
+  await supabase.from('affair').update({ tech_note: techNote.value }).eq('affairid', affairStore.selectedAffair.affairid)
+  affairStore.selectedAffair.tech_note = techNote.value
+  showNote.value = false
+}
+
+async function sendNote() {
+  if (!affairStore.selectedAffair) return
+  await saveNote()
+  const a = affairStore.selectedAffair
+  const subject = encodeURIComponent(`Note - ${a.name}`)
+  const body = encodeURIComponent(`Note concernant l'affaire "${a.name}" (${formatDate(a.receipt_date)}) :\n\n${techNote.value}\n\nCordialement`)
+  window.location.href = `mailto:?subject=${subject}&body=${body}`
+}
+
+async function shareAffair() {
+  const a = affairStore.selectedAffair
+  if (!a) return
+
+  const catalogName = getCatalogName(a)
+  const zones = [a.front && 'Front', a.monitor && 'Monitor', a.stage && 'Stage'].filter(Boolean).join(', ')
+
+  const subject = encodeURIComponent(`Câblage - ${a.name} - ${formatDate(a.receipt_date)}`)
+  const body = encodeURIComponent(
+`Bonjour,
+
+Concernant l'affaire "${a.name}"
+📅 Date : ${formatDate(a.receipt_date)}
+${a.return_date ? '📅 Retour : ' + formatDate(a.return_date) : ''}
+${a.prep_date ? '📅 Prépa : ' + formatDate(a.prep_date) : ''}
+🏢 Matériel : ${catalogName}
+🎯 Zones : ${zones || 'Non définies'}
+
+${a.description ? '📋 Description :\n' + a.description + '\n' : ''}
+${a.tech_note ? '📝 Note :\n' + a.tech_note + '\n' : ''}
+
+Cordialement`)
+
+  // Essayer le partage natif (mobile), sinon mailto
+  if (navigator.share) {
+    try {
+      await navigator.share({
+        title: `Câblage - ${a.name}`,
+        text: decodeURIComponent(body),
+      })
+    } catch {}
+  } else {
+    window.location.href = `mailto:?subject=${subject}&body=${body}`
+  }
+}
 const catalogs = ref({})
 
 onMounted(async () => {
@@ -214,7 +288,7 @@ function deselectAffair() {
 .sel-name {
   font-size: 16px;
   font-weight: 700;
-  color: #000;
+  color: var(--text, #333);
   flex: 1;
   min-width: 0;
   overflow: hidden;
@@ -248,6 +322,64 @@ function deselectAffair() {
   font-size: 11px;
   color: var(--color1);
   font-weight: 600;
+}
+.btn-note-sel, .btn-share-sel {
+  font-size: 16px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 2px 4px;
+  min-width: auto;
+  box-shadow: none;
+}
+.note-panel {
+  margin: 4px 12px 8px;
+  padding: 8px;
+  border: 2px solid var(--color3);
+  border-radius: 8px;
+}
+.note-panel textarea {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid var(--border-light, #ccc);
+  border-radius: 6px;
+  font-size: 14px;
+  resize: vertical;
+  background: var(--bg-input, #fff);
+  color: var(--text, #333);
+  outline: none;
+}
+.note-panel textarea:focus {
+  border-color: var(--color1);
+}
+.note-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+.btn-save-note {
+  padding: 6px 12px;
+  background: var(--color1);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: none;
+  min-width: auto;
+}
+.btn-send-note {
+  padding: 6px 12px;
+  background: #3b82f6;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: none;
+  min-width: auto;
 }
 .btn-materiel-sel {
   font-size: 10px;

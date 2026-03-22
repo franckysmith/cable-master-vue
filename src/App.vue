@@ -10,7 +10,6 @@
       <router-link to="/MasterAffaire">MasterAffaire</router-link> |
       <router-link to="/CaisseType">CaisseType</router-link> |
     </template>
-    <span class="refresh-btn" @click="refreshPage" title="Actualiser">↻</span>
     <router-link to="/about">About</router-link> |
     <router-link to="/">CableTech</router-link> |
     <router-link to="/micros" class="mic-link" title="Bibliothèque Micros">🎤</router-link>
