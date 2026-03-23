@@ -366,12 +366,14 @@ function colorForType(type) {
 }
 @media (min-width: 768px) {
   .cable-name {
+    width: 200px;
     min-width: 200px;
     font-size: 17px;
   }
   .fc-cell {
     width: 44px;
     height: 40px;
+    margin: 0 1px;
   }
   .fc-value {
     font-size: 18px;

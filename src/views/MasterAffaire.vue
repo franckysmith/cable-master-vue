@@ -27,9 +27,9 @@
         <div class="card-bottom">
           <span class="card-tech">{{ affair.tech_name || 'Pas de technicien' }}</span>
           <div class="card-tags">
-            <span v-if="affair.front" class="tag-sm front">F</span>
-            <span v-if="affair.monitor" class="tag-sm monitor">M</span>
-            <span v-if="affair.stage" class="tag-sm stage">S</span>
+            <span v-if="affair.front" class="tag-sm front">Faç</span>
+            <span v-if="affair.monitor" class="tag-sm monitor">Ret</span>
+            <span v-if="affair.stage" class="tag-sm stage">Scn</span>
           </div>
         </div>
       </div>

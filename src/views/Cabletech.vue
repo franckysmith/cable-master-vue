@@ -11,6 +11,7 @@
       @selected="onAffairSelected"
       @openNew="affairIsOpen = true; editingAffair = null"
       @edit="onAffairEdit"
+      @share="shareAllFc"
     />
 
     <div class="content-liste" v-if="selectedAffair">
@@ -226,22 +227,29 @@
         <FcaseManagement :cables="filteredJoinedData" :active-cable-id="activeCableId" :direct-mode="directMode" :visible-fc="7" :subtract-mode="subtractMode" :increment-step="incrementStep" :solo-mode="fcSolo" :solo-filter="fcSoloFilter" @updated="onCableUpdated" @select="onCableSelect" @longpress="onCableLongPress" />
       </div>
 
-      <!-- Bouton imprimer la caisse sélectionnée -->
+      <!-- Boutons caisse sélectionnée -->
       <div class="print-all-bar" v-if="fcSolo && fcSoloFilter">
         <button class="action-btn" @click="openFcDetail(`tfc${fcSoloFilter}`, fcLabels[`lfc${fcSoloFilter}`] || `FC${fcSoloFilter}`)">
-          Imprimer {{ fcLabels[`lfc${fcSoloFilter}`] || `FC${fcSoloFilter}` }}
+          🖨 {{ fcLabels[`lfc${fcSoloFilter}`] || `FC${fcSoloFilter}` }}
+        </button>
+        <button class="action-btn" @click="shareFcCaisse(fcSoloFilter)">
+          📤 Partager
         </button>
       </div>
 
-      <!-- Bouton imprimer la caisse-type sélectionnée -->
+      <!-- Boutons caisse-type sélectionnée -->
       <div class="print-all-bar" v-if="ctSolo && ctSoloFilter">
         <button class="action-btn" @click="printCtCaisse(ctSoloFilter)">
-          Imprimer {{ settingsStore.defaultCtLabels[`ct${ctSoloFilter}`] || `CT${ctSoloFilter}` }}
+          🖨 {{ settingsStore.defaultCtLabels[`ct${ctSoloFilter}`] || `CT${ctSoloFilter}` }}
+        </button>
+        <button class="action-btn" @click="shareCtCaisse(ctSoloFilter)">
+          📤 Partager
         </button>
       </div>
 
       <div class="print-all-bar" v-if="!fcDetailVisible && !fcSoloFilter && !ctSoloFilter">
-        <button class="action-btn" @click="printAllFc">Imprimer toutes les caisses</button>
+        <button class="action-btn" @click="printAllFc">🖨 Toutes les caisses</button>
+        <button class="action-btn" @click="shareAllFc">📤 Partager</button>
       </div>
 
       <FcaseDetail
@@ -300,6 +308,28 @@
         <h4>❓ Mode Aide</h4>
         <p>Cliquez sur n'importe quel bouton pour voir son explication. Cliquez sur <strong>?</strong> pour quitter l'aide.</p>
       </div>
+
+      <!-- QR Code / Partage -->
+      <div v-if="showQrCode" class="qr-overlay" @click="showQrCode = false">
+        <div class="qr-panel" @click.stop>
+          <div class="qr-header">
+            <h4>📤 Partager</h4>
+            <button class="qr-close" @click="showQrCode = false">✕</button>
+          </div>
+          <div v-if="shareUrl" class="qr-image">
+            <img :src="'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + encodeURIComponent(shareUrl)" alt="QR Code" />
+          </div>
+          <div v-else class="qr-loading">Génération du lien...</div>
+          <div v-if="shareUrl" class="qr-link" @click="copyToClipboard">
+            {{ shareUrl }}
+          </div>
+          <pre class="qr-text">{{ qrContent }}</pre>
+          <div class="qr-actions">
+            <button class="qr-btn" @click="copyToClipboard">📋 Copier le lien</button>
+            <button class="qr-btn" @click="shareNative">📩 Email</button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -308,6 +338,7 @@
 import { ref, reactive, computed, watch, onMounted, inject } from 'vue'
 import { onBeforeRouteLeave } from 'vue-router'
 import { useCableStore } from '../stores/cables'
+import { supabase } from '../lib/supabase'
 import { useAffairStore } from '../stores/affairs'
 import { useOrderStore } from '../stores/orders'
 import Affaires from '../components/Affaires.vue'
@@ -784,6 +815,120 @@ function printCtCaisse(ctIndex) {
   w.document.write(html)
   w.document.close()
   w.print()
+}
+
+function buildFcText(fcIndex) {
+  const field = `tfc${fcIndex}`
+  const label = fcLabels[`lfc${fcIndex}`] || `FC${fcIndex}`
+  const cables = joinedData.value
+    .filter(c => (c[field] || 0) > 0)
+    .map(c => `  ${c.name} x${c[field]}`)
+  if (cables.length === 0) return ''
+  return `${label}\n${cables.join('\n')}`
+}
+
+function buildAllFcText() {
+  const affairName = selectedAffair.value?.name || ''
+  let text = `Câblage - ${affairName}\n\n`
+  for (let i = 1; i <= 7; i++) {
+    const section = buildFcText(i)
+    if (section) text += section + '\n\n'
+  }
+  return text.trim()
+}
+
+async function shareFcCaisse(fcIndex) {
+  const text = buildFcText(fcIndex)
+  if (!text) return
+  qrContent.value = text
+  shareUrl.value = ''
+  showQrCode.value = true
+  await generateShareLink()
+}
+
+const showQrCode = ref(false)
+const qrContent = ref('')
+
+async function shareAllFc() {
+  const text = buildAllFcText()
+  if (!text) return
+  qrContent.value = text
+  shareUrl.value = ''
+  showQrCode.value = true
+  await generateShareLink()
+}
+
+async function shareCtCaisse(ctIndex) {
+  const ctName = settingsStore.defaultCtLabels[`ct${ctIndex}`] || `CT${ctIndex}`
+  const counts = ctAllCounts.value
+  const cables = cableStore.cables
+    .filter(c => (counts[c.cableid]?.[ctIndex] || 0) > 0)
+    .map(c => `  ${c.name} x${counts[c.cableid][ctIndex]}`)
+  if (cables.length === 0) return
+  qrContent.value = `${ctName}\n${cables.join('\n')}`
+  shareUrl.value = ''
+  showQrCode.value = true
+  await generateShareLink()
+}
+
+const shareUrl = ref('')
+
+async function generateShareLink() {
+  const affairName = selectedAffair.value?.name || 'Câblage'
+  const token = Date.now().toString(36) + Math.random().toString(36).substr(2, 6)
+
+  // Stocker dans Supabase
+  const { error } = await supabase
+    .from('share')
+    .insert({
+      token,
+      affair_name: affairName,
+      content: qrContent.value,
+      created_at: new Date().toISOString(),
+    })
+
+  if (!error) {
+    shareUrl.value = `${window.location.origin}/share/${token}`
+  } else {
+    // Fallback : URL avec le contenu encodé
+    shareUrl.value = ''
+  }
+}
+
+async function copyToClipboard() {
+  const textToCopy = shareUrl.value || qrContent.value
+  try {
+    await navigator.clipboard.writeText(textToCopy)
+    alert('Lien copié !')
+  } catch {
+    const ta = document.createElement('textarea')
+    ta.value = textToCopy
+    document.body.appendChild(ta)
+    ta.select()
+    document.execCommand('copy')
+    document.body.removeChild(ta)
+    alert('Lien copié !')
+  }
+}
+
+function shareNative() {
+  const affair = selectedAffair.value
+  const affairName = affair?.name || 'Câblage'
+  const link = shareUrl.value || ''
+  const techNote = affair?.tech_note || ''
+  const subject = encodeURIComponent(`Câblage - ${affairName}`)
+  const body = encodeURIComponent(
+`Bonjour,
+
+Voici le câblage pour "${affairName}" :
+
+${link}
+
+${qrContent.value}
+${techNote ? '\n--- Note du technicien ---\n' + techNote + '\n' : ''}
+Cordialement`)
+  window.location.href = `mailto:?subject=${subject}&body=${body}`
+  showQrCode.value = false
 }
 
 function onCableSelect(cableid) {
@@ -1658,18 +1803,119 @@ button {
 .print-all-bar {
   margin: 10px 0;
   text-align: center;
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
 }
 .print-all-bar .action-btn {
-  background: #f5f5f5;
-  border: 1px solid #ccc;
+  background: var(--color3);
+  border: none;
+  color: #000;
   font-size: 13px;
   padding: 8px 16px;
-  font-weight: 600;
+  font-weight: 700;
   box-shadow: none;
+  border-radius: 8px;
+  transition: transform 0.1s, opacity 0.1s;
 }
-.print-all-bar .action-btn:hover {
-  background: var(--color1-light);
-  border-color: var(--color1);
+.qr-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 200;
+}
+.qr-panel {
+  background: var(--bg, #fff);
+  border-radius: 14px;
+  padding: 16px;
+  max-width: 320px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+.qr-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.qr-header h4 {
+  margin: 0;
+  font-size: 16px;
+  color: var(--text, #333);
+}
+.qr-close {
+  background: #ef4444;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: none;
+  min-width: auto;
+}
+.qr-image {
+  text-align: center;
+  margin: 10px 0;
+}
+.qr-image img {
+  border-radius: 8px;
+}
+.qr-loading {
+  text-align: center;
+  padding: 20px;
+  color: var(--text-muted, #999);
+  font-size: 13px;
+}
+.qr-link {
+  background: var(--color1);
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  text-align: center;
+  cursor: pointer;
+  word-break: break-all;
+  margin: 8px 0;
+}
+.qr-text {
+  background: var(--bg-card, #f5f5f5);
+  color: var(--text, #333);
+  border-radius: 8px;
+  padding: 10px;
+  font-size: 11px;
+  max-height: 150px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 8px 0;
+}
+.qr-actions {
+  display: flex;
+  gap: 8px;
+}
+.qr-btn {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: none;
+  min-width: auto;
+  background: var(--color1);
+  color: #fff;
+}
+.print-all-bar .action-btn:active {
+  transform: scale(0.93);
+  opacity: 0.7;
 }
 .ct-tabs-bar {
   display: flex;
@@ -1826,13 +2072,13 @@ button {
   .head-label-angled-fc input {
     font-size: 14px;
   }
-  .fc-label-btn {
-    width: 50px;
-    height: 24px;
-    font-size: 13px;
+  .fc-label-btn,
+  .ct-label-btn {
+    width: 44px;
+    height: 22px;
+    font-size: 11px;
   }
-  .head-spacer,
-  .head-spacer-fc {
+  .head-spacer-sticky {
     width: 200px;
     min-width: 200px;
   }

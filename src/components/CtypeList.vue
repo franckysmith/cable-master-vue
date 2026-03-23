@@ -288,4 +288,19 @@ function colorForType(type) {
 .row-inactive {
   opacity: 0.5;
 }
+@media (min-width: 768px) {
+  .cable-name {
+    width: 200px;
+    min-width: 200px;
+    font-size: 17px;
+  }
+  .ct-cell {
+    width: 44px;
+    height: 40px;
+    margin: 0 1px;
+  }
+  .ct-value {
+    font-size: 18px;
+  }
+}
 </style>

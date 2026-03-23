@@ -8,18 +8,18 @@
         <span class="sel-date">{{ formatDate(affairStore.selectedAffair.receipt_date) }}</span>
         <span class="sel-change">▼</span>
       </div>
-      <div class="sel-details">
+      <div class="sel-details" @click.stop>
         <div class="sel-tags">
-          <span v-if="affairStore.selectedAffair.front" class="tag tag-front">Front</span>
-          <span v-if="affairStore.selectedAffair.monitor" class="tag tag-monitor">Monitor</span>
-          <span v-if="affairStore.selectedAffair.stage" class="tag tag-stage">Stage</span>
+          <span v-if="affairStore.selectedAffair.front" class="tag tag-front">Façade</span>
+          <span v-if="affairStore.selectedAffair.monitor" class="tag tag-monitor">Retours</span>
+          <span v-if="affairStore.selectedAffair.stage" class="tag tag-stage">Scène</span>
         </div>
-        <button class="btn-note-sel" @click="showNote = !showNote">📝</button>
         <span class="sel-catalog">{{ getCatalogName(affairStore.selectedAffair) }}</span>
-        <button class="btn-materiel-sel" @click="showMateriel = !showMateriel">
-          {{ showMateriel ? '▲ Matériel' : '▼ Matériel' }}
+        <button class="btn-action-sel" @click.stop="showNote = !showNote" title="Note">📝</button>
+        <button class="btn-action-sel" @click.stop="showMateriel = !showMateriel" title="Matériel">
+          {{ showMateriel ? '▲' : '▼' }} 🔧
         </button>
-        <button class="btn-share-sel" @click="shareAffair">📤</button>
+        <button class="btn-action-sel" @click.stop="$emit('share')" title="Partager">📤</button>
       </div>
 
       <!-- Note -->
@@ -32,19 +32,22 @@
       </div>
       <div v-if="showMateriel" class="materiel-panel">
         <div class="materiel-section" v-if="affairStore.selectedAffair.front">
-          <div class="materiel-title">🔊 Front</div>
-          <div class="materiel-content">Enceintes, subs, amplis...</div>
+          <div class="materiel-title">🔊 Façade</div>
+          <textarea v-model="materielFront" rows="2" class="materiel-input" placeholder="Enceintes, subs, amplis..."></textarea>
         </div>
         <div class="materiel-section" v-if="affairStore.selectedAffair.monitor">
-          <div class="materiel-title">🎧 Monitor</div>
-          <div class="materiel-content">Retours, wedges, ears, amplis...</div>
+          <div class="materiel-title">🎧 Retour</div>
+          <textarea v-model="materielMonitor" rows="2" class="materiel-input" placeholder="Wedges, ears, amplis..."></textarea>
         </div>
         <div class="materiel-section" v-if="affairStore.selectedAffair.stage">
-          <div class="materiel-title">🎸 Stage</div>
-          <div class="materiel-content">Front-fills, side-fills, DI...</div>
+          <div class="materiel-title">🎸 Scène</div>
+          <textarea v-model="materielStage" rows="2" class="materiel-input" placeholder="Front-fills, side-fills, DI..."></textarea>
         </div>
         <div v-if="!affairStore.selectedAffair.front && !affairStore.selectedAffair.monitor && !affairStore.selectedAffair.stage" class="materiel-empty">
           Aucune zone définie
+        </div>
+        <div class="materiel-actions">
+          <button class="btn-save-note" @click="saveMateriel">Enregistrer</button>
         </div>
       </div>
     </div>
@@ -86,12 +89,35 @@
             </div>
             <div class="card-line3">
               <div class="card-tags">
-                <span v-if="affair.front" class="tag tag-front">Front</span>
-                <span v-if="affair.monitor" class="tag tag-monitor">Monitor</span>
-                <span v-if="affair.stage" class="tag tag-stage">Stage</span>
+                <span v-if="affair.front" class="tag tag-front">Façade</span>
+                <span v-if="affair.monitor" class="tag tag-monitor">Retours</span>
+                <span v-if="affair.stage" class="tag tag-stage">Scène</span>
                 <span v-if="!affair.front && !affair.monitor && !affair.stage" class="tag tag-none">—</span>
               </div>
-              <button class="btn-materiel" @click.stop="$emit('materiel', affair)">Matériel</button>
+              <button class="btn-materiel" @click.stop="toggleCardMateriel(affair.affairid)">
+                {{ openMaterielId === affair.affairid ? '▲ Matériel' : '▼ Matériel' }}
+              </button>
+            </div>
+            <!-- Matériel dépliable dans la liste -->
+            <div v-if="openMaterielId === affair.affairid" class="card-materiel" @click.stop>
+              <div v-if="affair.front" class="materiel-section">
+                <div class="materiel-title">🔊 Façade</div>
+                <textarea v-model="affair.materiel_front" rows="2" class="materiel-input" placeholder="Enceintes, subs, amplis..."></textarea>
+              </div>
+              <div v-if="affair.monitor" class="materiel-section">
+                <div class="materiel-title">🎧 Retours</div>
+                <textarea v-model="affair.materiel_monitor" rows="2" class="materiel-input" placeholder="Wedges, ears, amplis..."></textarea>
+              </div>
+              <div v-if="affair.stage" class="materiel-section">
+                <div class="materiel-title">🎸 Scène</div>
+                <textarea v-model="affair.materiel_stage" rows="2" class="materiel-input" placeholder="Front-fills, side-fills, DI..."></textarea>
+              </div>
+              <div v-if="!affair.front && !affair.monitor && !affair.stage" class="materiel-empty">
+                Aucune zone définie
+              </div>
+              <div class="materiel-actions">
+                <button class="btn-save-note" @click.stop="saveCardMateriel(affair)">Enregistrer</button>
+              </div>
             </div>
           </div>
         </div>
@@ -105,23 +131,60 @@
 import { ref, computed, onMounted } from 'vue'
 import { useAffairStore } from '../stores/affairs'
 
-const emit = defineEmits(['selected', 'edit', 'openNew', 'materiel'])
+const emit = defineEmits(['selected', 'edit', 'openNew', 'materiel', 'share'])
 const affairStore = useAffairStore()
 
 const search = ref('')
 const searchInput = ref(null)
 const editMode = ref(false)
 const showMateriel = ref(false)
+const openMaterielId = ref(null)
+
+function toggleCardMateriel(affairId) {
+  openMaterielId.value = openMaterielId.value === affairId ? null : affairId
+}
+
+async function saveCardMateriel(affair) {
+  const { supabase } = await import('../lib/supabase')
+  await supabase.from('affair').update({
+    materiel_front: affair.materiel_front || '',
+    materiel_monitor: affair.materiel_monitor || '',
+    materiel_stage: affair.materiel_stage || '',
+  }).eq('affairid', affair.affairid)
+  openMaterielId.value = null
+}
 const showNote = ref(false)
 const techNote = ref('')
+const materielFront = ref('')
+const materielMonitor = ref('')
+const materielStage = ref('')
 
-// Charger la note quand on sélectionne une affaire
+// Charger la note et le matériel quand on sélectionne une affaire
 import { watch } from 'vue'
 watch(() => affairStore.selectedAffair, (a) => {
-  if (a) techNote.value = a.tech_note || ''
+  if (a) {
+    techNote.value = a.tech_note || ''
+    materielFront.value = a.materiel_front || ''
+    materielMonitor.value = a.materiel_monitor || ''
+    materielStage.value = a.materiel_stage || ''
+  }
   showNote.value = false
   showMateriel.value = false
 })
+
+async function saveMateriel() {
+  if (!affairStore.selectedAffair) return
+  const { supabase } = await import('../lib/supabase')
+  await supabase.from('affair').update({
+    materiel_front: materielFront.value,
+    materiel_monitor: materielMonitor.value,
+    materiel_stage: materielStage.value,
+  }).eq('affairid', affairStore.selectedAffair.affairid)
+  affairStore.selectedAffair.materiel_front = materielFront.value
+  affairStore.selectedAffair.materiel_monitor = materielMonitor.value
+  affairStore.selectedAffair.materiel_stage = materielStage.value
+  showMateriel.value = false
+}
 
 async function saveNote() {
   if (!affairStore.selectedAffair) return
@@ -276,9 +339,6 @@ function deselectAffair() {
   align-items: center;
   gap: 8px;
   padding: 10px 12px;
-  background: var(--bg-card, #f5f5f5);
-  border: 2px solid var(--color1);
-  border-radius: 8px;
   cursor: pointer;
 }
 .sel-dot {
@@ -306,6 +366,10 @@ function deselectAffair() {
 }
 .selected-panel {
   margin-bottom: 4px;
+  background: var(--bg, #fff);
+  border-radius: 10px;
+  border: 2px solid var(--color1);
+  overflow: hidden;
 }
 .sel-details {
   display: flex;
@@ -323,20 +387,24 @@ function deselectAffair() {
   color: var(--color1);
   font-weight: 600;
 }
-.btn-note-sel, .btn-share-sel {
-  font-size: 16px;
-  background: transparent;
-  border: none;
+.btn-action-sel {
+  font-size: 14px;
+  background: var(--bg-card, #f0f0f0);
+  border: 1px solid var(--border-light, #ddd);
+  border-radius: 6px;
   cursor: pointer;
-  padding: 2px 4px;
+  padding: 4px 8px;
   min-width: auto;
   box-shadow: none;
+  transition: transform 0.1s;
+}
+.btn-action-sel:active {
+  transform: scale(0.9);
 }
 .note-panel {
-  margin: 4px 12px 8px;
-  padding: 8px;
-  border: 2px solid var(--color3);
-  border-radius: 8px;
+  margin: 0;
+  padding: 8px 12px;
+  border-top: 1px solid var(--border-light, #eee);
 }
 .note-panel textarea {
   width: 100%;
@@ -382,23 +450,17 @@ function deselectAffair() {
   min-width: auto;
 }
 .btn-materiel-sel {
-  font-size: 10px;
-  font-weight: 700;
-  padding: 3px 8px;
-  background: transparent;
-  border: 1px solid var(--color3);
-  color: var(--color3);
-  border-radius: 4px;
-  cursor: pointer;
-  box-shadow: none;
-  min-width: auto;
-  white-space: nowrap;
+  display: none;
+}
+.card-materiel {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border-light, #eee);
 }
 .materiel-panel {
-  margin: 4px 12px 8px;
-  border: 2px solid var(--color1);
-  border-radius: 8px;
-  overflow: hidden;
+  margin: 0;
+  padding: 4px 12px 8px;
+  border-top: 1px solid var(--border-light, #eee);
 }
 .materiel-section {
   padding: 8px 12px;
@@ -416,6 +478,25 @@ function deselectAffair() {
   font-size: 12px;
   color: var(--text-light, #888);
   font-style: italic;
+}
+.materiel-input {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--border-light, #ccc);
+  border-radius: 6px;
+  font-size: 13px;
+  resize: vertical;
+  background: var(--bg-input, #fff);
+  color: var(--text, #333);
+  outline: none;
+  font-family: inherit;
+}
+.materiel-input:focus {
+  border-color: var(--color1);
+}
+.materiel-actions {
+  padding: 8px 12px;
+  text-align: right;
 }
 .materiel-empty {
   padding: 12px;
@@ -471,17 +552,15 @@ function deselectAffair() {
   padding: 8px 10px;
   margin: 2px 4px;
   border-radius: 6px;
-  border: 1px solid #e8e8e8;
-  background: #fafafa;
+  border: 1px solid var(--border, #e8e8e8);
+  background: var(--bg-card, #fafafa);
   cursor: pointer;
   transition: background 0.1s, border-color 0.1s;
 }
 .affair-card:hover {
-  background: var(--color1-hover);
-  border-color: var(--color1-border);
+  border-color: var(--color1);
 }
 .affair-card.selected {
-  background: var(--color1-light);
   border-color: var(--color1);
 }
 .card-line1 {

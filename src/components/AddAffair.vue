@@ -2,22 +2,34 @@
   <div class="add-affair q-pa-md">
     <h3 class="text-h6 q-mb-md">{{ isEditing ? 'Modifier l\'affaire' : 'Nouvelle Affaire' }}</h3>
     <q-form @submit.prevent="submit" class="q-gutter-sm">
-      <q-input v-model="form.name" label="Nom" dense outlined :rules="[val => !!val || 'Requis']" />
-      <q-input v-model="form.tech_name" label="Technicien" dense outlined :rules="[val => !!val || 'Requis']" />
+      <q-input v-model="form.name" label="Nom de l'affaire / Artiste" dense outlined :rules="[val => !!val || 'Requis']" />
+      <div class="row q-col-gutter-sm">
+        <div class="col-6">
+          <q-input v-model="form.tech_name" label="Nom du technicien" dense outlined :rules="[val => !!val || 'Requis']" />
+        </div>
+        <div class="col-6">
+          <q-input v-model="form.tech_firstname" label="Prénom" dense outlined />
+        </div>
+      </div>
+      <div class="row q-col-gutter-sm">
+        <div class="col-6">
+          <q-input v-model="form.tech_email" label="Email" type="email" dense outlined />
+        </div>
+        <div class="col-6">
+          <q-input v-model="form.tech_phone" label="Téléphone" dense outlined />
+        </div>
+      </div>
 
-      <q-select
-        v-model="form.catalog_id"
-        :options="catalogOptions"
+      <q-input
+        :model-value="activeCatalogName"
         label="Liste de câbles"
         dense
         outlined
-        emit-value
-        map-options
-        option-value="value"
-        option-label="label"
+        disable
+        readonly
       />
 
-      <q-input v-model="form.ref" label="Référence" dense outlined />
+      <q-input v-model="form.ref" label="Référence" dense outlined disable readonly />
       <q-input v-model="form.description" label="Description" type="textarea" dense outlined autogrow />
 
       <div class="row q-col-gutter-xs">
@@ -33,9 +45,9 @@
       </div>
 
       <div class="row q-gutter-md q-mt-xs">
-        <q-checkbox v-model="form.front" label="Front" dense />
-        <q-checkbox v-model="form.monitor" label="Monitor" dense />
-        <q-checkbox v-model="form.stage" label="Stage" dense />
+        <q-checkbox v-model="form.front" label="Façade" dense />
+        <q-checkbox v-model="form.monitor" label="Retour" dense />
+        <q-checkbox v-model="form.stage" label="Scène" dense />
       </div>
 
       <div class="row q-gutter-sm q-mt-md">
@@ -64,13 +76,11 @@ const settingsStore = useSettingsStore()
 
 const isEditing = computed(() => !!props.affair)
 
-const catalogOptions = computed(() => [
-  { label: '-- Toutes les listes --', value: '' },
-  ...catalogStore.catalogs.map(cat => ({
-    label: cat.name + (cat.owner_name ? ` (${cat.owner_name})` : ''),
-    value: cat.catalogid,
-  })),
-])
+const activeCatalogId = parseInt(localStorage.getItem('cablemaster-catalogid')) || 1
+const activeCatalogName = computed(() => {
+  const cat = catalogStore.catalogs.find(c => c.catalogid === activeCatalogId)
+  return cat ? cat.name : 'Ma liste'
+})
 
 onMounted(() => {
   catalogStore.fetchCatalogs()
@@ -79,13 +89,16 @@ onMounted(() => {
 const form = reactive({
   name: '',
   tech_name: '',
+  tech_firstname: '',
+  tech_email: '',
+  tech_phone: '',
   tech_id: 1,
   ref: '',
   description: '',
   receipt_date: '',
   return_date: '',
   prep_date: '',
-  front: false,
+  front: true,
   monitor: false,
   stage: false,
   done: false,
@@ -97,6 +110,9 @@ watch(() => props.affair, (affair) => {
   if (affair) {
     form.name = affair.name || ''
     form.tech_name = affair.tech_name || ''
+    form.tech_firstname = affair.tech_firstname || ''
+    form.tech_email = affair.tech_email || ''
+    form.tech_phone = affair.tech_phone || ''
     form.tech_id = affair.tech_id || 1
     form.ref = affair.ref || ''
     form.description = affair.description || ''
@@ -113,7 +129,7 @@ watch(() => props.affair, (affair) => {
 
 async function submit() {
   const payload = { ...form }
-  if (!payload.catalog_id) payload.catalog_id = null
+  payload.catalog_id = activeCatalogId
   if (!payload.prep_date) payload.prep_date = null
 
   // Pour une nouvelle affaire, inclure les noms par défaut des zones/FC

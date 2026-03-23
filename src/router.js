@@ -7,6 +7,7 @@ import About from './views/About.vue'
 import Settings from './views/Settings.vue'
 import MicLibrary from './views/MicLibrary.vue'
 import CompanySetup from './views/CompanySetup.vue'
+import ShareView from './views/ShareView.vue'
 
 const routes = [
   { path: '/', component: Cabletech },
@@ -16,6 +17,7 @@ const routes = [
   { path: '/micros', component: MicLibrary },
   { path: '/company', component: CompanySetup },
   { path: '/settings', component: Settings },
+  { path: '/share/:token', component: ShareView },
   { path: '/about', component: About },
 ]
 

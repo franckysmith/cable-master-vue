@@ -406,4 +406,19 @@ function cancelPress() {
   font-size: 14px;
   text-align: center;
 }
+@media (min-width: 768px) {
+  .cable-name {
+    width: 200px;
+    min-width: 200px;
+    font-size: 17px;
+  }
+  .mic-cell {
+    width: 44px;
+    height: 40px;
+    margin: 0 1px;
+  }
+  .mic-value {
+    font-size: 18px;
+  }
+}
 </style>
