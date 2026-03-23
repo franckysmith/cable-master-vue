@@ -79,13 +79,17 @@
         <button class="quick-add-btn" @click="quickAddCable">Ajouter</button>
       </div>
 
-      <!-- Édition de câble -->
+      <!-- Édition de câble (seulement si c'est ma liste ou si je suis master) -->
       <div v-if="editingCable" class="cable-edit-panel">
         <div class="edit-header">
-          <span>Modifier : {{ editingCable.name }}</span>
+          <span>{{ canEditCables ? 'Modifier' : '' }} {{ editingCable.name }}</span>
           <button class="close-btn" @click="editingCable = null">x</button>
         </div>
-        <div class="edit-fields">
+        <div v-if="!canEditCables" class="edit-readonly">
+          <p>{{ editForm.brand ? editForm.brand + ' — ' : '' }}{{ editForm.type }}</p>
+          <p class="readonly-hint">Liste de l'entreprise — modification non autorisée</p>
+        </div>
+        <div v-else class="edit-fields">
           <label>Nom<input v-model="editForm.name" /></label>
           <label>Type
             <select v-model="editForm.type">
@@ -95,7 +99,7 @@
           <label>Marque<input v-model="editForm.brand" placeholder="ex: Shure, Audix..." /></label>
           <label>Poids<input v-model.number="editForm.weight" type="number" /></label>
         </div>
-        <div class="edit-actions">
+        <div v-if="canEditCables" class="edit-actions">
           <button class="edit-save" @click="saveEditCable">Enregistrer</button>
           <button class="edit-delete" @click="deleteEditCable">Supprimer</button>
         </div>
@@ -372,6 +376,14 @@ async function checkCtContent() {
 }
 const userRole = inject('userRole', ref('technician'))
 const isMaster = computed(() => userRole.value === 'master')
+const canEditCables = computed(() => {
+  // On peut modifier si c'est sa propre liste ou si on est Cable Master
+  if (isMaster.value) return true
+  const affairCatalog = selectedAffair.value?.catalog_id
+  const myCatalog = parseInt(localStorage.getItem('cablemaster-catalogid')) || 1
+  // Pas de catalogue d'affaire ou même catalogue que le mien = ma liste
+  return !affairCatalog || affairCatalog === myCatalog || affairCatalog === 1
+})
 
 function onHelpClick(id, action) {
   if (helpMode.value) {
@@ -684,6 +696,7 @@ async function saveEditCable() {
 
 async function deleteEditCable() {
   if (!editingCable.value) return
+  if (!confirm(`Supprimer "${editingCable.value.name}" ?`)) return
   await cableStore.deleteCable(editingCable.value.cableid)
   joinedData.value = joinedData.value.filter(c => c.cableid !== editingCable.value.cableid)
   editingCable.value = null
@@ -1753,6 +1766,17 @@ button {
   cursor: pointer;
   box-shadow: none;
   min-width: auto;
+}
+.edit-readonly {
+  padding: 4px 0;
+  font-size: 13px;
+  color: var(--text, #333);
+}
+.readonly-hint {
+  font-size: 11px;
+  color: var(--text-muted, #999);
+  font-style: italic;
+  margin-top: 4px;
 }
 .edit-fields {
   display: flex;

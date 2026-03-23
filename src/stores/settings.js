@@ -1,7 +1,9 @@
 import { defineStore } from 'pinia'
 import { ref, watch, computed } from 'vue'
+import { supabase } from '../lib/supabase'
 
 const STORAGE_KEY = 'cablemaster-settings'
+const SYNC_KEY = 'default' // clé unique pour user_settings
 
 function loadFromStorage() {
   try {
@@ -95,17 +97,19 @@ export const useSettingsStore = defineStore('settings', () => {
     type10: stored.type10 || '',
   })
 
-  const colorTheme = ref(stored.colorTheme || 'green')
-  const darkMode = ref(stored.darkMode || false)
+  const colorTheme = ref(stored.colorTheme || 'purple')
+  const darkMode = ref(stored.darkMode !== undefined ? stored.darkMode : true)
   const visibleZones = ref(stored.visibleZones || 4)
   const visibleFc = ref(stored.visibleFc || 4)
+  const userRole = ref(stored.userRole || 'technician')
+  const isMaster = computed(() => userRole.value === 'master')
 
   // Appliquer le thème au chargement
   applyTheme(colorTheme.value)
   if (darkMode.value) document.documentElement.classList.add('dark')
 
-  function save() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+  function getSettingsData() {
+    return {
       ...defaultZoneLabels.value,
       ...defaultFcLabels.value,
       ...defaultCtLabels.value,
@@ -115,26 +119,93 @@ export const useSettingsStore = defineStore('settings', () => {
       visibleZones: visibleZones.value,
       visibleFc: visibleFc.value,
       userRole: userRole.value,
-    }))
+    }
   }
 
-  watch(colorTheme, (val) => {
-    applyTheme(val)
-    save()
-  })
+  // Sauvegarder en local ET dans Supabase
+  let saveTimeout = null
+  function save() {
+    const data = getSettingsData()
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
 
-  watch(darkMode, (val) => {
-    document.documentElement.classList.toggle('dark', val)
-    save()
-  })
+    // Debounce la synchro Supabase (éviter trop de requêtes)
+    clearTimeout(saveTimeout)
+    saveTimeout = setTimeout(() => {
+      syncToSupabase(data)
+    }, 1000)
+  }
 
+  async function syncToSupabase(data) {
+    try {
+      await supabase
+        .from('user_settings')
+        .upsert({
+          device_key: SYNC_KEY,
+          settings: data,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'device_key' })
+    } catch {}
+  }
+
+  // Charger depuis Supabase au démarrage
+  async function loadFromSupabase() {
+    try {
+      const { data } = await supabase
+        .from('user_settings')
+        .select('settings, updated_at')
+        .eq('device_key', SYNC_KEY)
+        .limit(1)
+
+      if (!data?.[0]?.settings) return
+
+      const remote = data[0].settings
+      const localRaw = localStorage.getItem(STORAGE_KEY)
+      const local = localRaw ? JSON.parse(localRaw) : {}
+
+      // Si les données distantes sont plus récentes, les appliquer
+      const remoteTime = new Date(data[0].updated_at).getTime()
+      const localTime = parseInt(localStorage.getItem('cablemaster-settings-time')) || 0
+
+      if (remoteTime > localTime) {
+        applyRemoteSettings(remote)
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(remote))
+        localStorage.setItem('cablemaster-settings-time', remoteTime.toString())
+      }
+    } catch {}
+  }
+
+  function applyRemoteSettings(s) {
+    // Zones
+    for (let i = 1; i <= 6; i++) {
+      if (s[`lz${i}`] !== undefined) defaultZoneLabels.value[`lz${i}`] = s[`lz${i}`]
+    }
+    // FC
+    for (let i = 1; i <= 7; i++) {
+      if (s[`lfc${i}`] !== undefined) defaultFcLabels.value[`lfc${i}`] = s[`lfc${i}`]
+    }
+    // CT
+    for (let i = 1; i <= 8; i++) {
+      if (s[`ct${i}`] !== undefined) defaultCtLabels.value[`ct${i}`] = s[`ct${i}`]
+    }
+    // Types
+    for (let i = 1; i <= 10; i++) {
+      if (s[`type${i}`] !== undefined) defaultTypeLabels.value[`type${i}`] = s[`type${i}`]
+    }
+    // Theme
+    if (s.colorTheme) { colorTheme.value = s.colorTheme; applyTheme(s.colorTheme) }
+    if (s.darkMode !== undefined) { darkMode.value = s.darkMode; document.documentElement.classList.toggle('dark', s.darkMode) }
+    if (s.visibleZones) visibleZones.value = s.visibleZones
+    if (s.visibleFc) visibleFc.value = s.visibleFc
+  }
+
+  // Charger depuis Supabase au démarrage
+  loadFromSupabase()
+
+  // Watchers pour sauvegarder
+  watch(colorTheme, (val) => { applyTheme(val); save() })
+  watch(darkMode, (val) => { document.documentElement.classList.toggle('dark', val); save() })
   watch([visibleZones, visibleFc], save)
   watch([defaultZoneLabels, defaultFcLabels, defaultCtLabels, defaultTypeLabels], save, { deep: true })
-
-  const userRole = ref(stored.userRole || 'technician') // 'technician' ou 'master'
-
-  const isMaster = computed(() => userRole.value === 'master')
-
   watch(userRole, save)
 
   return { defaultZoneLabels, defaultFcLabels, defaultCtLabels, defaultTypeLabels, colorTheme, darkMode, visibleZones, visibleFc, userRole, isMaster, COLOR_THEMES }

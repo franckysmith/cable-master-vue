@@ -11,6 +11,10 @@
     >
       {{ t.label }}
     </button>
+    <button
+      @click="$emit('select', '')"
+      :class="{ selectedtype: modelValue === '' }"
+    >All</button>
   </div>
 </template>
 

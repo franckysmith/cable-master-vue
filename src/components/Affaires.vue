@@ -10,16 +10,36 @@
       </div>
       <div class="sel-details" @click.stop>
         <div class="sel-tags">
+          <span v-if="hasUnreadMessage" class="unread-dot">★</span>
           <span v-if="affairStore.selectedAffair.front" class="tag tag-front">Façade</span>
           <span v-if="affairStore.selectedAffair.monitor" class="tag tag-monitor">Retours</span>
           <span v-if="affairStore.selectedAffair.stage" class="tag tag-stage">Scène</span>
         </div>
         <span class="sel-catalog">{{ getCatalogName(affairStore.selectedAffair) }}</span>
+        <button v-if="isLinkedToCompany" class="btn-action-sel btn-chat" :class="{ 'has-unread': hasUnreadMessage }" @click.stop="toggleChat" title="Question">❓</button>
         <button class="btn-action-sel" @click.stop="showNote = !showNote" title="Note">📝</button>
         <button class="btn-action-sel" @click.stop="showMateriel = !showMateriel" title="Matériel">
           {{ showMateriel ? '▲' : '▼' }} 🔧
         </button>
         <button class="btn-action-sel" @click.stop="$emit('share')" title="Partager">📤</button>
+      </div>
+
+      <!-- Chat avec l'entreprise -->
+      <div v-if="showChat" class="chat-panel" @click.stop>
+        <div class="chat-messages">
+          <div v-for="msg in chatMessages" :key="msg.messageid" class="chat-msg" :class="msg.sender_role">
+            <span class="msg-role">{{ msg.sender_role === 'tech' ? '🧑‍🔧' : '🏢' }}</span>
+            <div class="msg-bubble">
+              <p>{{ msg.text }}</p>
+              <span class="msg-time">{{ formatTime(msg.created_at) }}</span>
+            </div>
+          </div>
+          <div v-if="chatMessages.length === 0" class="chat-empty">Pas encore de messages</div>
+        </div>
+        <div class="chat-input">
+          <input v-model="chatText" placeholder="Poser une question..." @keydown.enter="sendChat" />
+          <button @click="sendChat" :disabled="!chatText.trim()">Envoyer</button>
+        </div>
       </div>
 
       <!-- Note -->
@@ -138,6 +158,73 @@ const search = ref('')
 const searchInput = ref(null)
 const editMode = ref(false)
 const showMateriel = ref(false)
+const showChat = ref(false)
+const chatMessages = ref([])
+const chatText = ref('')
+const hasUnreadMessage = ref(false)
+
+const isLinkedToCompany = computed(() => {
+  const a = affairStore.selectedAffair
+  return a?.catalog_id && a.catalog_id > 1
+})
+
+async function toggleChat() {
+  showChat.value = !showChat.value
+  if (showChat.value) {
+    await loadChatMessages()
+    // Marquer comme lu par le technicien
+    await markReadByTech()
+  }
+}
+
+async function loadChatMessages() {
+  const a = affairStore.selectedAffair
+  if (!a) return
+  const { supabase } = await import('../lib/supabase')
+  const { data } = await supabase
+    .from('message')
+    .select('*')
+    .eq('affairid', a.affairid)
+    .order('created_at', { ascending: true })
+  chatMessages.value = data || []
+  // Vérifier s'il y a des messages non lus du master
+  hasUnreadMessage.value = (data || []).some(m => m.sender_role === 'master' && !m.read_by_tech)
+}
+
+async function sendChat() {
+  if (!chatText.value.trim()) return
+  const a = affairStore.selectedAffair
+  if (!a) return
+  const { supabase } = await import('../lib/supabase')
+  await supabase.from('message').insert({
+    affairid: a.affairid,
+    sender_role: 'tech',
+    text: chatText.value.trim(),
+    read_by_tech: true,
+    read_by_master: false,
+  })
+  chatText.value = ''
+  await loadChatMessages()
+}
+
+async function markReadByTech() {
+  const a = affairStore.selectedAffair
+  if (!a) return
+  const { supabase } = await import('../lib/supabase')
+  await supabase
+    .from('message')
+    .update({ read_by_tech: true })
+    .eq('affairid', a.affairid)
+    .eq('sender_role', 'master')
+    .eq('read_by_tech', false)
+  hasUnreadMessage.value = false
+}
+
+function formatTime(dateStr) {
+  if (!dateStr) return ''
+  const d = new Date(dateStr)
+  return d.toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+}
 const openMaterielId = ref(null)
 
 function toggleCardMateriel(affairId) {
@@ -167,9 +254,12 @@ watch(() => affairStore.selectedAffair, (a) => {
     materielFront.value = a.materiel_front || ''
     materielMonitor.value = a.materiel_monitor || ''
     materielStage.value = a.materiel_stage || ''
+    // Vérifier messages non lus
+    if (a.catalog_id && a.catalog_id > 1) loadChatMessages()
   }
   showNote.value = false
   showMateriel.value = false
+  showChat.value = false
 })
 
 async function saveMateriel() {
@@ -400,6 +490,104 @@ function deselectAffair() {
 }
 .btn-action-sel:active {
   transform: scale(0.9);
+}
+.btn-chat.has-unread {
+  animation: pulse-red 1.5s infinite;
+}
+@keyframes pulse-red {
+  0%, 100% { background: var(--bg-card, #f0f0f0); }
+  50% { background: #ef4444; }
+}
+.unread-dot {
+  color: #ef4444;
+  font-size: 14px;
+  animation: pulse-red-text 1.5s infinite;
+}
+@keyframes pulse-red-text {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+.chat-panel {
+  margin: 0;
+  padding: 8px 12px;
+  border-top: 1px solid var(--border-light, #eee);
+}
+.chat-messages {
+  max-height: 200px;
+  overflow-y: auto;
+  margin-bottom: 8px;
+}
+.chat-msg {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 6px;
+  align-items: flex-start;
+}
+.chat-msg.tech {
+  flex-direction: row;
+}
+.chat-msg.master {
+  flex-direction: row-reverse;
+}
+.msg-role {
+  font-size: 16px;
+  flex-shrink: 0;
+}
+.msg-bubble {
+  background: var(--bg-card, #f0f0f0);
+  padding: 6px 10px;
+  border-radius: 10px;
+  max-width: 80%;
+}
+.chat-msg.master .msg-bubble {
+  background: var(--color1-light);
+}
+.msg-bubble p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text, #333);
+}
+.msg-time {
+  font-size: 10px;
+  color: var(--text-muted, #999);
+}
+.chat-empty {
+  text-align: center;
+  color: var(--text-muted, #999);
+  font-size: 12px;
+  padding: 10px;
+}
+.chat-input {
+  display: flex;
+  gap: 6px;
+}
+.chat-input input {
+  flex: 1;
+  padding: 8px;
+  border: 1px solid var(--border-light, #ccc);
+  border-radius: 6px;
+  font-size: 14px;
+  background: var(--bg-input, #fff);
+  color: var(--text, #333);
+  outline: none;
+}
+.chat-input input:focus {
+  border-color: var(--color1);
+}
+.chat-input button {
+  padding: 8px 12px;
+  background: var(--color1);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: none;
+  min-width: auto;
+}
+.chat-input button:disabled {
+  opacity: 0.4;
 }
 .note-panel {
   margin: 0;
