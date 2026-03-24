@@ -4,8 +4,22 @@
     🏢 {{ companyName }}
   </div>
   <div id="nav">
-    <template v-if="userRole === 'master'">
+    <!-- Super admin (T) : accès à tout -->
+    <template v-if="currentUserObj?.superadmin && userRole === 'technician'">
       <router-link to="/company">Entreprise</router-link> |
+      <router-link to="/Cablemaster">Cablemaster</router-link> |
+      <router-link to="/MasterAffaire">MasterAffaire</router-link> |
+      <router-link to="/CaisseType">CaisseType</router-link> |
+    </template>
+    <!-- Super admin master (M) : accès à tout -->
+    <template v-if="currentUserObj?.superadmin && userRole === 'master'">
+      <router-link to="/company">Entreprise</router-link> |
+      <router-link to="/Cablemaster">Cablemaster</router-link> |
+      <router-link to="/MasterAffaire">MasterAffaire</router-link> |
+      <router-link to="/CaisseType">CaisseType</router-link> |
+    </template>
+    <!-- Masters normaux (M1/M2/M3) : Cablemaster, MasterAffaire, CaisseType -->
+    <template v-if="!currentUserObj?.superadmin && userRole === 'master'">
       <router-link to="/Cablemaster">Cablemaster</router-link> |
       <router-link to="/MasterAffaire">MasterAffaire</router-link> |
       <router-link to="/CaisseType">CaisseType</router-link> |

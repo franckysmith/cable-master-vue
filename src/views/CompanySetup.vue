@@ -83,6 +83,90 @@
       </form>
     </div>
 
+    <!-- Gestion des employés -->
+    <div v-if="activeCompanyId" class="employees-section">
+      <h3>Employés de {{ companies.find(c => c.companyid === activeCompanyId)?.name }}</h3>
+
+      <!-- Liste des employés -->
+      <div v-for="emp in employees" :key="emp.techid" class="employee-card" :class="{ inactive: emp.active === false }">
+        <div class="emp-top">
+          <div class="emp-info">
+            <div class="emp-name">{{ emp.name }}</div>
+            <div class="emp-contact">{{ emp.email }} {{ emp.phone ? '· ' + emp.phone : '' }}</div>
+          </div>
+          <label class="active-toggle" title="Actif">
+            <input type="checkbox" :checked="emp.active !== false" @change="togglePermission(emp, 'active', $event)" />
+            {{ emp.active !== false ? '🟢' : '🔴' }}
+          </label>
+        </div>
+        <div class="emp-bottom">
+          <div class="emp-permissions">
+            <label class="perm-toggle">
+              <input type="checkbox" :checked="emp.can_manage_mics" @change="togglePermission(emp, 'can_manage_mics', $event)" />
+              🎤 Micros
+            </label>
+            <label class="perm-toggle">
+              <input type="checkbox" :checked="emp.can_manage_ct" @change="togglePermission(emp, 'can_manage_ct', $event)" />
+              📦 Caisses
+            </label>
+          </div>
+          <div class="emp-actions">
+            <button class="emp-pwd-btn" @click="generatePassword(emp)" title="Générer mot de passe">🔑</button>
+            <button class="emp-delete-btn" @click="deleteEmployee(emp)">✕</button>
+          </div>
+        </div>
+        <div v-if="emp._password" class="emp-password">
+          Mot de passe : <strong>{{ emp._password }}</strong>
+          <button class="copy-pwd-btn" @click="copyPassword(emp._password)">📋</button>
+        </div>
+      </div>
+
+      <div v-if="employees.length === 0" class="emp-empty">Aucun employé</div>
+
+      <!-- Ajouter un employé -->
+      <button v-if="!showAddEmployee" class="btn-add-employee" @click="showAddEmployee = true">+ Ajouter un employé</button>
+
+      <div v-if="showAddEmployee" class="add-employee-form">
+        <div class="form-grid">
+          <div class="form-row half">
+            <label>Prénom *</label>
+            <input v-model="newEmployee.firstname" placeholder="Prénom" />
+          </div>
+          <div class="form-row half">
+            <label>Nom *</label>
+            <input v-model="newEmployee.lastname" placeholder="Nom" />
+          </div>
+        </div>
+        <div class="form-grid">
+          <div class="form-row half">
+            <label>Email</label>
+            <input v-model="newEmployee.email" type="email" placeholder="email@..." />
+          </div>
+          <div class="form-row half">
+            <label>Téléphone</label>
+            <input v-model="newEmployee.phone" placeholder="+33..." />
+          </div>
+        </div>
+        <div class="form-row">
+          <label>Permissions</label>
+          <div class="perm-list">
+            <label class="perm-item">
+              <input type="checkbox" v-model="newEmployee.can_manage_mics" />
+              🎤 Gérer les micros
+            </label>
+            <label class="perm-item">
+              <input type="checkbox" v-model="newEmployee.can_manage_ct" />
+              📦 Gérer les caisses type
+            </label>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn-save" @click="addEmployee" :disabled="!newEmployee.firstname && !newEmployee.lastname">Ajouter</button>
+          <button class="btn-cancel" @click="showAddEmployee = false">Annuler</button>
+        </div>
+      </div>
+    </div>
+
     <div v-if="message" class="message" :class="messageType">{{ message }}</div>
   </div>
 </template>
@@ -101,6 +185,16 @@ const editing = ref(false)
 const message = ref('')
 const messageType = ref('')
 const activeCompanyId = ref(parseInt(localStorage.getItem('cablemaster-companyid')) || null)
+const employees = ref([])
+const showAddEmployee = ref(false)
+const newEmployee = reactive({
+  firstname: '',
+  lastname: '',
+  email: '',
+  phone: '',
+  can_manage_mics: false,
+  can_manage_ct: false,
+})
 
 const domains = [
   { value: 'sound', label: 'Son', icon: '🔊' },
@@ -124,7 +218,10 @@ function toggleDepartment(d) {
   else form.departments.push(d)
 }
 
-onMounted(loadCompanies)
+onMounted(async () => {
+  await loadCompanies()
+  if (activeCompanyId.value) loadEmployees()
+})
 
 async function loadCompanies() {
   const { data } = await supabase
@@ -293,6 +390,71 @@ async function connectAs(company) {
   }
 
   showMessage(`Connecté à ${company.name}`, 'success')
+  await loadEmployees()
+}
+
+// --- Employés ---
+
+async function loadEmployees() {
+  if (!activeCompanyId.value) return
+  const { data } = await supabase
+    .from('technician')
+    .select('*')
+    .eq('company_id', activeCompanyId.value)
+    .order('name')
+  employees.value = data || []
+}
+
+async function addEmployee() {
+  if (!newEmployee.firstname && !newEmployee.lastname) return
+  const name = `${newEmployee.firstname} ${newEmployee.lastname}`.trim()
+  const { error } = await supabase.from('technician').insert({
+    name,
+    email: newEmployee.email,
+    phone: newEmployee.phone,
+    company_id: activeCompanyId.value,
+    can_manage_mics: newEmployee.can_manage_mics,
+    can_manage_ct: newEmployee.can_manage_ct,
+  })
+  if (error) {
+    showMessage('Erreur: ' + error.message, 'error')
+  } else {
+    Object.assign(newEmployee, { firstname: '', lastname: '', email: '', phone: '', can_manage_mics: false, can_manage_ct: false })
+    showAddEmployee.value = false
+    showMessage(`${name} ajouté`, 'success')
+    await loadEmployees()
+  }
+}
+
+async function togglePermission(emp, field, event) {
+  const value = event.target.checked
+  await supabase.from('technician').update({ [field]: value }).eq('techid', emp.techid)
+  emp[field] = value
+}
+
+function generatePassword(emp) {
+  const chars = 'abcdefghjkmnpqrstuvwxyz23456789'
+  let pwd = ''
+  for (let i = 0; i < 8; i++) pwd += chars[Math.floor(Math.random() * chars.length)]
+  emp._password = pwd
+  // Sauvegarder le mot de passe hashé (pour l'instant en clair)
+  supabase.from('technician').update({ role: pwd }).eq('techid', emp.techid)
+}
+
+async function copyPassword(pwd) {
+  try {
+    await navigator.clipboard.writeText(pwd)
+    showMessage('Mot de passe copié', 'success')
+  } catch {
+    showMessage(pwd, 'success')
+  }
+}
+
+async function deleteEmployee(emp) {
+  if (!confirm(`Retirer ${emp.name} ?`)) return
+  await supabase.from('technician').delete().eq('techid', emp.techid)
+  await loadEmployees()
+  showMessage(`${emp.name} retiré`, 'success')
 }
 
 function showMessage(msg, type) {
@@ -499,4 +661,140 @@ h3 {
   background: #fecaca;
   color: #dc2626;
 }
+.employees-section {
+  margin-top: 20px;
+}
+.employees-section h3 {
+  font-size: 15px;
+  margin-bottom: 10px;
+  color: var(--text, #333);
+}
+.employee-card {
+  border: 1px solid var(--border, #e0e0e0);
+  border-radius: 8px;
+  padding: 10px;
+  margin-bottom: 6px;
+  background: var(--bg-card, #fafafa);
+}
+.employee-card.inactive {
+  opacity: 0.5;
+}
+.emp-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+.emp-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text, #333);
+}
+.emp-contact {
+  font-size: 12px;
+  color: var(--text-light, #888);
+}
+.active-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+  cursor: pointer;
+}
+.active-toggle input { display: none; }
+.emp-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.emp-permissions {
+  display: flex;
+  gap: 10px;
+}
+.perm-toggle {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 12px;
+  cursor: pointer;
+  color: var(--text, #333);
+}
+.perm-toggle input { width: 14px; height: 14px; }
+.emp-actions {
+  display: flex;
+  gap: 4px;
+}
+.emp-pwd-btn, .emp-delete-btn {
+  background: transparent;
+  border: 1px solid var(--border-light, #ccc);
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 2px 6px;
+  box-shadow: none;
+  min-width: auto;
+}
+.emp-password {
+  margin-top: 6px;
+  padding: 6px 8px;
+  background: var(--color1-light);
+  border-radius: 6px;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.emp-password strong {
+  font-family: monospace;
+  font-size: 15px;
+  letter-spacing: 1px;
+}
+.copy-pwd-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 0;
+  box-shadow: none;
+  min-width: auto;
+}
+.emp-empty {
+  text-align: center;
+  color: var(--text-muted, #999);
+  font-size: 13px;
+  padding: 15px;
+}
+.btn-add-employee {
+  width: 100%;
+  padding: 10px;
+  background: var(--color3);
+  color: #000;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: none;
+  margin-top: 8px;
+}
+.add-employee-form {
+  border: 2px solid var(--color3);
+  border-radius: 10px;
+  padding: 12px;
+  margin-top: 8px;
+}
+.perm-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.perm-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  color: var(--text, #333);
+}
+.perm-item input { width: 16px; height: 16px; }
 </style>

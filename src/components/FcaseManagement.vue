@@ -36,8 +36,12 @@
           </span>
         </div>
       </div>
-      <div class="cable-total" :class="{ done: !directMode && getRemaining(cable) <= 0 }">
-        {{ directMode ? getDistributed(cable) || '' : getRemaining(cable) }}
+      <div class="cable-total" :class="{ done: !directMode && getRemaining(cable) <= 0, extra: !directMode && getRemaining(cable) < 0 }">
+        <template v-if="directMode">{{ getDistributed(cable) || '' }}</template>
+        <template v-else-if="getRemaining(cable) < 0">
+          <span class="extra-label">0 +{{ Math.abs(getRemaining(cable)) }}</span>
+        </template>
+        <template v-else>{{ getRemaining(cable) }}</template>
       </div>
     </div>
     <div v-if="selectedCables.length === 0" class="empty">
@@ -198,12 +202,18 @@ function endPress(cable, field, e) {
       cable[field] = Math.max(0, newVal)
       emit('updated', cable)
     } else {
-      // Vérifier si on a atteint la limite (mode non-direct)
-      if (!props.directMode && getRemaining(cable) <= 0) {
-        flashOverLimit(cable)
-        return
+      if (!props.directMode) {
+        const remaining = getRemaining(cable)
+        if (remaining <= 0) {
+          // Tout est rangé — on ajoute des extras (flash orange)
+          flashOverLimit(cable)
+        }
+        // Limiter au remaining si positif, sinon ajouter 1 à la fois pour les extras
+        const step = remaining > 0 ? Math.min(props.incrementStep, remaining) : 1
+        cable[field] = (cable[field] || 0) + step
+      } else {
+        cable[field] = (cable[field] || 0) + props.incrementStep
       }
-      cable[field] = (cable[field] || 0) + props.incrementStep
       emit('updated', cable)
     }
   }
@@ -355,14 +365,21 @@ function colorForType(type) {
   font-weight: bold;
 }
 .flash-red {
-  animation: flashRed 0.5s ease;
+  animation: flashOrange 0.5s ease;
 }
-@keyframes flashRed {
+@keyframes flashOrange {
   0% { background: #fff; }
-  25% { background: #fecaca; }
-  50% { background: #ef4444; }
-  75% { background: #fecaca; }
+  25% { background: #fef3c7; }
+  50% { background: #f59e0b; }
+  75% { background: #fef3c7; }
   100% { background: #fff; }
+}
+.cable-total.extra {
+  font-size: 11px;
+}
+.extra-label {
+  color: #f59e0b;
+  font-weight: 800;
 }
 @media (min-width: 768px) {
   .cable-name {

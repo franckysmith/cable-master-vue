@@ -14,30 +14,64 @@
       @share="shareAllFc"
     />
 
-    <div class="content-liste" v-if="selectedAffair">
-      <!-- Mode toggle + status -->
-      <div class="mode-bar" v-if="!ctMode && !microMode">
-        <template v-if="!directMode">
-          <button
-            @click="onHelpClick('select', () => layout = 'cableTechBase')"
-            :class="{ button3: layout === 'cableTechBase' }"
-          >sélectionner</button>
-          <button
-            @click="onHelpClick('fc', () => layout = 'flightcase')"
-            :class="{ button3: layout === 'flightcase' }"
-          >flight-case</button>
-        </template>
-        <template v-else>
-          <span class="direct-label">Direct dans Flight-case</span>
-        </template>
-        <span class="mode-separator">ou</span>
+
+    <!-- Vue toutes les caisses -->
+    <div v-if="selectedAffair && allCasesMode" class="all-cases-view">
+      <template v-for="i in 7" :key="'fc-section-'+i">
+        <div v-if="getFcCables(i).length > 0" class="case-section">
+          <div class="case-header" @click="openCase = openCase === 'fc'+i ? '' : 'fc'+i">
+            <span>{{ openCase === 'fc'+i ? '▼' : '▶' }}</span>
+            <span v-if="isCaseComplete('fc' + i, getFcCables(i))" class="case-done">✅</span>
+            <span class="case-title fc-color">{{ fcLabels[`lfc${i}`] || `FC${i}` }}</span>
+            <span class="case-count">{{ getFcCables(i).length }}</span>
+          </div>
+          <div v-if="openCase === 'fc'+i" class="case-content">
+            <div v-for="c in getFcCables(i)" :key="c.cableid" class="case-cable">
+              <input type="checkbox" :checked="checkedCables[c.cableid + '_fc' + i]" @change="toggleCableCheck(c.cableid, 'fc' + i)" class="case-check" />
+              <span class="case-cable-qty">{{ c[`tfc${i}`] }}</span>
+              <span class="case-cable-name">{{ c.name }}</span>
+            </div>
+          </div>
+        </div>
+      </template>
+      <div v-if="getMicroCables().length > 0" class="case-section">
+        <div class="case-header" @click="openCase = openCase === 'micro' ? '' : 'micro'">
+          <span>{{ openCase === 'micro' ? '▼' : '▶' }}</span>
+          <span v-if="isCaseComplete('micro', getMicroCables())" class="case-done">✅</span>
+          <span class="case-title micro-color">🎤 Micros</span>
+          <span class="case-count">{{ getMicroCables().length }}</span>
+        </div>
+        <div v-if="openCase === 'micro'" class="case-content">
+          <div v-for="c in getMicroCables()" :key="c.cableid" class="case-cable">
+            <input type="checkbox" :checked="checkedCables[c.cableid + '_micro']" @change="toggleCableCheck(c.cableid, 'micro')" class="case-check" />
+            <span class="case-cable-qty">{{ getMicroQty(c) }}</span>
+            <span class="case-cable-name">{{ c.name }}</span>
+          </div>
+        </div>
+      </div>
+      <div v-if="allCasesReady" class="all-ready-banner">✅ Tout est prêt !</div>
+      <div class="all-cases-actions">
+        <button class="action-btn" @click="printAllCasesSummary">🖨 Imprimer</button>
+        <button class="action-btn" @click="shareAllCasesSummary">📤 Partager</button>
+      </div>
+    </div>
+
+    <div class="content-liste" v-if="selectedAffair && !allCasesMode">
+      <!-- Mode toggle -->
+      <div class="mode-bar" v-if="!ctMode && !microMode && !allCasesMode">
         <button
-          class="direct-btn"
-          :class="{ active: directMode }"
-          @click="onHelpClick('direct', toggleDirectMode)"
-        >
-          {{ directMode ? 'Classique' : 'Direct dans Flight-case' }}
-        </button>
+          @click="onHelpClick('select', () => layout = 'cableTechBase')"
+          :class="{ button3: layout === 'cableTechBase' }"
+        >sélectionner</button>
+        <button
+          @click="onHelpClick('fc', () => layout = 'flightcase')"
+          :class="{ button3: layout === 'flightcase' }"
+        >flight-case</button>
+        <button
+          class="allcases-mode-btn"
+          :class="{ active: allCasesMode }"
+          @click="toggleAllCases"
+        >👁 flight-cases</button>
       </div>
       <div class="content-button2">
         <span class="sync-dot" :class="{ saving: saving, synced: !saving }" :title="saving ? 'Synchronisation...' : 'Synchronisé'"></span>
@@ -438,6 +472,95 @@ const microSolo = ref(false)
 const soloMode = ref(false)
 const incrementStep = ref(1)
 const ctMode = ref(false)
+const allCasesMode = ref(false)
+const openCase = ref('')
+
+function toggleAllCases() {
+  allCasesMode.value = !allCasesMode.value
+  if (allCasesMode.value) {
+    microMode.value = false
+    ctMode.value = false
+    directMode.value = false
+  }
+}
+
+function getZoneCables() {
+  return joinedData.value.filter(c => {
+    return (c.spare_count || 0) + (c.z1 || 0) + (c.z2 || 0) + (c.z3 || 0) + (c.z4 || 0) + (c.z5 || 0) + (c.z6 || 0) > 0
+  })
+}
+
+function getZoneTotalForCase(cable) {
+  return (cable.spare_count || 0) + (cable.z1 || 0) + (cable.z2 || 0) + (cable.z3 || 0) + (cable.z4 || 0) + (cable.z5 || 0) + (cable.z6 || 0)
+}
+
+function getFcCables(fcIndex) {
+  return joinedData.value.filter(c => (c[`tfc${fcIndex}`] || 0) > 0)
+}
+
+function getMicroCables() {
+  return joinedData.value.filter(c => c.type === 'microphone' && (
+    (c.spare_count || 0) + (c.tfc1 || 0) + (c.tfc2 || 0) + (c.tfc3 || 0) + (c.tfc4 || 0) + (c.tfc5 || 0) > 0
+  ))
+}
+
+function getMicroQty(cable) {
+  const max = Math.max(cable.tfc1 || 0, cable.tfc2 || 0, cable.tfc3 || 0, cable.tfc4 || 0, cable.tfc5 || 0)
+  return max + (cable.spare_count || 0)
+}
+
+function printAllCasesSummary() {
+  let html = `<html><head><title>Caisses - ${selectedAffair.value?.name || ''}</title><style>
+    body { font-family: sans-serif; padding: 20px; }
+    h1 { font-size: 20px; }
+    .section { margin-bottom: 15px; page-break-inside: avoid; }
+    .section-title { font-size: 16px; font-weight: bold; padding: 6px; border-bottom: 2px solid #333; }
+    .cable { display: flex; justify-content: space-between; padding: 3px 10px; border-bottom: 1px solid #eee; font-size: 13px; }
+  </style></head><body>`
+  html += `<h1>${selectedAffair.value?.name || 'Caisses'}</h1>`
+
+  for (let i = 1; i <= 7; i++) {
+    const cables = getFcCables(i)
+    if (cables.length === 0) continue
+    const label = fcLabels[`lfc${i}`] || `FC${i}`
+    html += `<div class="section"><div class="section-title">${label}</div>`
+    for (const c of cables) html += `<div class="cable"><span>${c.name}</span><span>x${c[`tfc${i}`]}</span></div>`
+    html += `</div>`
+  }
+
+  const mics = getMicroCables()
+  if (mics.length > 0) {
+    html += `<div class="section"><div class="section-title">🎤 Micros</div>`
+    for (const c of mics) html += `<div class="cable"><span>${c.name}</span><span>x${getMicroQty(c)}</span></div>`
+    html += `</div>`
+  }
+
+  html += `</body></html>`
+  const w = window.open('', '_blank', 'width=500,height=700')
+  w.document.write(html)
+  w.document.close()
+  w.print()
+}
+
+async function shareAllCasesSummary() {
+  let text = `Caisses - ${selectedAffair.value?.name || ''}\n\n`
+  for (let i = 1; i <= 7; i++) {
+    const cables = getFcCables(i)
+    if (cables.length === 0) continue
+    text += `${fcLabels[`lfc${i}`] || `FC${i}`}\n`
+    for (const c of cables) text += `  ${c.name} x${c[`tfc${i}`]}\n`
+    text += '\n'
+  }
+  const mics = getMicroCables()
+  if (mics.length > 0) {
+    text += `🎤 Micros\n`
+    for (const c of mics) text += `  ${c.name} x${getMicroQty(c)}\n`
+  }
+  qrContent.value = text
+  shareUrl.value = ''
+  showQrCode.value = true
+  await generateShareLink()
+}
 const ctSolo = ref(false)
 const ctSoloFilter = ref(null)  // null = tous, 1-7 = CT spécifique
 const fcSoloFilter = ref(null)  // null = tous, 1-7 = FC spécifique
@@ -1009,6 +1132,39 @@ function onCableUpdated() {
 
 const selectedAffair = computed(() => affairStore.selectedAffair)
 
+// --- Checks des caisses ---
+const checkedCables = ref({})
+const affairChecksKey = computed(() => selectedAffair.value ? `cablemaster-checks-${selectedAffair.value.affairid}` : '')
+watch(affairChecksKey, (key) => {
+  if (key) {
+    try { checkedCables.value = JSON.parse(localStorage.getItem(key) || '{}') } catch { checkedCables.value = {} }
+  }
+}, { immediate: true })
+
+function toggleCableCheck(cableid, caseKey) {
+  const key = cableid + '_' + caseKey
+  checkedCables.value[key] = !checkedCables.value[key]
+  checkedCables.value = { ...checkedCables.value }
+  if (affairChecksKey.value) {
+    localStorage.setItem(affairChecksKey.value, JSON.stringify(checkedCables.value))
+  }
+}
+
+function isCaseComplete(caseKey, cables) {
+  if (cables.length === 0) return false
+  return cables.every(c => checkedCables.value[c.cableid + '_' + caseKey])
+}
+
+const allCasesReady = computed(() => {
+  for (let i = 1; i <= 7; i++) {
+    const cables = getFcCables(i)
+    if (cables.length > 0 && !isCaseComplete('fc' + i, cables)) return false
+  }
+  const mics = getMicroCables()
+  if (mics.length > 0 && !isCaseComplete('micro', mics)) return false
+  return true
+})
+
 // Confirmation avant navigation
 onBeforeRouteLeave(() => {
   if (autoSaveTimer) {
@@ -1266,6 +1422,148 @@ function colorForType(type) {
   background: #3b82f6;
   color: white;
   border-color: #3b82f6;
+}
+.top-tabs {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  margin: 6px 0;
+}
+.top-tab {
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 700;
+  border: 2px solid var(--border-light, #ccc);
+  border-radius: 8px;
+  background: var(--bg-card, #f5f5f5);
+  color: var(--text, #333);
+  cursor: pointer;
+  box-shadow: none;
+  min-width: auto;
+  transition: all 0.15s;
+}
+.top-tab.active {
+  border-color: var(--color1);
+  background: var(--color1);
+  color: #fff;
+}
+.top-tab.caisses-tab.active {
+  background: #8b5cf6;
+  border-color: #8b5cf6;
+}
+.allcases-mode-btn {
+  cursor: pointer;
+  margin: 3px;
+  padding: 5px 10px;
+  min-width: 50px;
+  background: #8b5cf6;
+  color: #fff;
+  border: 1px solid #7c3aed;
+  box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.allcases-mode-btn.active {
+  background: #7c3aed;
+  border-color: #fff;
+  box-shadow: 0 0 0 2px #8b5cf6;
+}
+.allcases-btn {
+  background: #8b5cf6;
+  color: #fff;
+}
+.allcases-btn.active {
+  background: #7c3aed;
+  border-color: #fff;
+  box-shadow: 0 0 0 3px #8b5cf6, 0 0 12px rgba(139, 92, 246, 0.5);
+  transform: scale(1.05);
+}
+.all-cases-view {
+  width: 100%;
+  max-width: 500px;
+  margin: 10px auto;
+}
+.case-section {
+  margin-bottom: 4px;
+}
+.case-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 2px solid var(--border, #e0e0e0);
+  border-radius: 8px;
+  cursor: pointer;
+  background: var(--bg-card, #fafafa);
+  user-select: none;
+  transition: border-color 0.15s;
+}
+.case-header:active {
+  transform: scale(0.98);
+}
+.case-title {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 700;
+}
+.case-title.fc-color { color: var(--color1); }
+.case-title.micro-color { color: #eb910a; }
+.case-count {
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--color1);
+  color: #fff;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+.case-content {
+  padding: 4px 0 4px 20px;
+}
+.case-done {
+  font-size: 14px;
+}
+.case-check {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+.all-ready-banner {
+  text-align: center;
+  padding: 12px;
+  background: var(--color1);
+  color: #fff;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 700;
+  margin: 10px 0;
+}
+.case-cable {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  font-size: 14px;
+  border-bottom: 1px solid var(--border-light, #eee);
+}
+.case-cable-name {
+  color: var(--text, #333);
+  font-weight: 600;
+  flex: 1;
+}
+.case-cable-qty {
+  color: var(--text-light, #888);
+  font-weight: 700;
+  width: 30px;
+  text-align: center;
+  flex-shrink: 0;
+}
+.all-cases-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 12px;
 }
 .sync-dot {
   width: 8px;

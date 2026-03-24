@@ -1059,6 +1059,29 @@ h2 {
   overflow: hidden;
   transition: border-color 0.15s, transform 0.1s;
   position: relative;
+  animation: cardFadeIn 0.4s ease both;
+}
+.gallery-card:nth-child(1) { animation-delay: 0s; }
+.gallery-card:nth-child(2) { animation-delay: 0.05s; }
+.gallery-card:nth-child(3) { animation-delay: 0.1s; }
+.gallery-card:nth-child(4) { animation-delay: 0.15s; }
+.gallery-card:nth-child(5) { animation-delay: 0.2s; }
+.gallery-card:nth-child(6) { animation-delay: 0.25s; }
+.gallery-card:nth-child(7) { animation-delay: 0.3s; }
+.gallery-card:nth-child(8) { animation-delay: 0.35s; }
+.gallery-card:nth-child(9) { animation-delay: 0.4s; }
+.gallery-card:nth-child(10) { animation-delay: 0.45s; }
+.gallery-card:nth-child(n+11) { animation-delay: 0.5s; }
+
+@keyframes cardFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 .gallery-card:active {
   transform: scale(0.97);
