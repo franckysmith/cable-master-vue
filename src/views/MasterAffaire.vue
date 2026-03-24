@@ -79,27 +79,23 @@
               >{{ affair.status === 'sent' ? '✓' : '✉' }}</button>
             </div>
           </div>
+          <!-- Boutons d'action -->
+          <div class="card-action-btns">
+            <button class="action-tab-btn" :class="{ active: expandedTab === 'chat' && selected?.affairid === affair.affairid }" @click.stop="toggleTab(affair, 'chat')">
+              💬
+              <span v-if="unreadAffairs[affair.affairid]" class="tab-dot"></span>
+            </button>
+            <button class="action-tab-btn" :class="{ active: expandedTab === 'fiche' && selected?.affairid === affair.affairid }" @click.stop="toggleTab(affair, 'fiche')">📋</button>
+            <button class="action-tab-btn" :class="{ active: expandedTab === 'materiel' && selected?.affairid === affair.affairid }" @click.stop="toggleTab(affair, 'materiel')">🔧</button>
+          </div>
         </div>
         <!-- Aperçu message non lu -->
-        <div v-if="unreadAffairs[affair.affairid]" class="card-unread-msg">
+        <div v-if="unreadAffairs[affair.affairid] && expandedTab !== 'chat'" class="card-unread-msg">
           💬 {{ unreadAffairs[affair.affairid] }}
         </div>
 
-        <!-- Fiche développée -->
-        <div v-if="selected?.affairid === affair.affairid" class="card-expanded" @click.stop>
-          <div class="expanded-tech">
-            <div class="tech-info">
-              <strong>{{ affair.tech_name }} {{ affair.tech_firstname || '' }}</strong>
-              <span v-if="affair.tech_email" class="tech-contact">{{ affair.tech_email }}</span>
-              <span v-if="affair.tech_phone" class="tech-contact">{{ affair.tech_phone }}</span>
-            </div>
-            <div class="tech-actions">
-              <a v-if="affair.tech_phone" :href="'tel:' + affair.tech_phone" class="tech-btn">📞</a>
-              <a v-if="affair.tech_email" :href="'mailto:' + affair.tech_email" class="tech-btn">📩</a>
-            </div>
-          </div>
-
-          <!-- Chat master -->
+        <!-- Panneau Chat -->
+        <div v-if="selected?.affairid === affair.affairid && expandedTab === 'chat'" class="card-expanded" @click.stop>
           <div class="master-chat">
             <div class="chat-messages-master">
               <div v-for="msg in affairMessages" :key="msg.messageid" class="chat-msg-m" :class="msg.sender_role">
@@ -119,6 +115,46 @@
               ✓ Marquer comme traité
             </button>
           </div>
+        </div>
+
+        <!-- Panneau Fiche -->
+        <div v-if="selected?.affairid === affair.affairid && expandedTab === 'fiche'" class="card-expanded" @click.stop>
+          <div class="expanded-tech">
+            <div class="tech-info">
+              <strong>{{ affair.tech_name }} {{ affair.tech_firstname || '' }}</strong>
+              <span v-if="affair.tech_email" class="tech-contact">{{ affair.tech_email }}</span>
+              <span v-if="affair.tech_phone" class="tech-contact">{{ affair.tech_phone }}</span>
+            </div>
+            <div class="tech-actions">
+              <a v-if="affair.tech_phone" :href="'tel:' + affair.tech_phone" class="tech-btn">📞</a>
+              <a v-if="affair.tech_email" :href="'mailto:' + affair.tech_email" class="tech-btn">📩</a>
+            </div>
+          </div>
+          <div v-if="affair.description" class="fiche-description">
+            <strong>Notes :</strong> {{ affair.description }}
+          </div>
+          <div class="fiche-dates">
+            <div v-if="affair.prep_date">🔧 Prépa : {{ formatDate(affair.prep_date) }}</div>
+            <div>📦 Sortie : {{ formatDate(affair.receipt_date) }}</div>
+            <div v-if="affair.return_date">↩ Retour : {{ formatDate(affair.return_date) }}</div>
+          </div>
+        </div>
+
+        <!-- Panneau Matériel -->
+        <div v-if="selected?.affairid === affair.affairid && expandedTab === 'materiel'" class="card-expanded" @click.stop>
+          <div v-if="affair.front" class="materiel-zone">
+            <div class="materiel-zone-header facade">🔵 Façade — {{ affair.tech_name || '?' }}</div>
+            <div class="materiel-zone-content">{{ affair.materiel_front || 'Pas de matériel renseigné' }}</div>
+          </div>
+          <div v-if="affair.monitor" class="materiel-zone">
+            <div class="materiel-zone-header retour">🟠 Retours — {{ affair.tech_name_monitor || '?' }}</div>
+            <div class="materiel-zone-content">{{ affair.materiel_monitor || 'Pas de matériel renseigné' }}</div>
+          </div>
+          <div v-if="affair.stage" class="materiel-zone">
+            <div class="materiel-zone-header scene">🟢 Scène — {{ affair.tech_name_stage || '?' }}</div>
+            <div class="materiel-zone-content">{{ affair.materiel_stage || 'Pas de matériel renseigné' }}</div>
+          </div>
+          <button class="btn-print-materiel" @click.stop="printMateriel(affair)">🖨 Imprimer</button>
         </div>
       </div>
       <div v-if="filteredAffairs.length === 0" class="empty">Aucune affaire</div>
@@ -242,6 +278,51 @@ const unreadAffairs = ref({})
 const affairMessages = ref([])
 const masterReply = ref('')
 const showChatOnly = ref(false)
+const expandedTab = ref('')
+
+async function toggleTab(affair, tab) {
+  if (selected.value?.affairid === affair.affairid && expandedTab.value === tab) {
+    expandedTab.value = ''
+    return
+  }
+  selected.value = affair
+  editing.value = affair
+  expandedTab.value = tab
+  showForm.value = false
+
+  if (tab === 'chat') {
+    const { data } = await supabase
+      .from('message')
+      .select('*')
+      .eq('affairid', affair.affairid)
+      .order('created_at', { ascending: true })
+    affairMessages.value = data || []
+  }
+}
+
+function printMateriel(affair) {
+  const zones = []
+  if (affair.front) zones.push({ title: '🔵 Façade — ' + (affair.tech_name || '?'), content: affair.materiel_front || 'Pas de matériel' })
+  if (affair.monitor) zones.push({ title: '🟠 Retours — ' + (affair.tech_name_monitor || '?'), content: affair.materiel_monitor || 'Pas de matériel' })
+  if (affair.stage) zones.push({ title: '🟢 Scène — ' + (affair.tech_name_stage || '?'), content: affair.materiel_stage || 'Pas de matériel' })
+
+  let html = `<html><head><title>${affair.name} - Matériel</title><style>
+    body { font-family: sans-serif; padding: 20px; }
+    h1 { font-size: 20px; margin-bottom: 15px; }
+    .zone { margin-bottom: 20px; page-break-inside: avoid; }
+    .zone-title { font-size: 16px; font-weight: bold; padding: 8px; border-bottom: 2px solid #333; margin-bottom: 8px; }
+    .zone-content { white-space: pre-wrap; font-size: 14px; padding: 8px; }
+  </style></head><body>`
+  html += `<h1>${affair.name}</h1>`
+  for (const z of zones) {
+    html += `<div class="zone"><div class="zone-title">${z.title}</div><div class="zone-content">${z.content}</div></div>`
+  }
+  html += `</body></html>`
+  const w = window.open('', '_blank', 'width=500,height=700')
+  w.document.write(html)
+  w.document.close()
+  w.print()
+}
 
 onMounted(() => {
   loadAffairs()
@@ -670,6 +751,21 @@ h3 { font-size: 16px; margin: 0; }
 .invite-btn.scene { background: #10b981; }
 .invite-btn.sent { background: #ccc; color: #666; }
 .invite-btn:active { transform: scale(0.85); }
+.card-action-btns { display: flex; gap: 4px; margin-left: auto; }
+.action-tab-btn { width: 30px; height: 30px; border-radius: 6px; border: 1px solid var(--border-light, #ccc); background: var(--bg-card, #f5f5f5); font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; min-width: auto; box-shadow: none; position: relative; transition: all 0.15s; }
+.action-tab-btn.active { background: var(--color1); border-color: var(--color1); }
+.action-tab-btn:active { transform: scale(0.9); }
+.tab-dot { position: absolute; top: -2px; right: -2px; width: 8px; height: 8px; border-radius: 50%; background: #ef4444; }
+.fiche-description { font-size: 13px; color: var(--text, #333); padding: 6px 0; border-bottom: 1px solid var(--border-light, #eee); margin-bottom: 6px; }
+.fiche-dates { font-size: 12px; color: var(--text-light, #888); }
+.fiche-dates div { padding: 2px 0; }
+.materiel-zone { margin-bottom: 10px; }
+.materiel-zone-header { font-size: 14px; font-weight: 700; padding: 6px 8px; border-radius: 6px; margin-bottom: 4px; }
+.materiel-zone-header.facade { background: rgba(59,130,246,0.15); color: #3b82f6; }
+.materiel-zone-header.retour { background: rgba(245,158,11,0.15); color: #f59e0b; }
+.materiel-zone-header.scene { background: rgba(16,185,129,0.15); color: #10b981; }
+.materiel-zone-content { font-size: 13px; color: var(--text, #333); padding: 4px 8px; white-space: pre-wrap; }
+.btn-print-materiel { width: 100%; padding: 8px; background: var(--color3); color: #000; border: none; border-radius: 6px; font-size: 13px; font-weight: 700; cursor: pointer; box-shadow: none; min-width: auto; margin-top: 8px; }
 .unread-star { color: #ef4444; font-size: 14px; animation: blink-star 1.5s infinite; }
 @keyframes blink-star { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
 .card-unread-msg { padding: 4px 8px 4px 22px; font-size: 12px; color: #ef4444; font-style: italic; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

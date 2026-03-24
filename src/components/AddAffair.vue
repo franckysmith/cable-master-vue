@@ -1,24 +1,8 @@
 <template>
   <div class="add-affair q-pa-md">
     <h3 class="text-h6 q-mb-md">{{ isEditing ? 'Modifier l\'affaire' : 'Nouvelle Affaire' }}</h3>
-    <q-form @submit.prevent="submit" class="q-gutter-sm">
+    <q-form class="q-gutter-sm" @submit.prevent>
       <q-input v-model="form.name" label="Nom de l'affaire / Artiste" dense outlined :rules="[val => !!val || 'Requis']" />
-      <div class="row q-col-gutter-sm">
-        <div class="col-6">
-          <q-input v-model="form.tech_name" label="Nom du technicien" dense outlined :rules="[val => !!val || 'Requis']" />
-        </div>
-        <div class="col-6">
-          <q-input v-model="form.tech_firstname" label="Prénom" dense outlined />
-        </div>
-      </div>
-      <div class="row q-col-gutter-sm">
-        <div class="col-6">
-          <q-input v-model="form.tech_email" label="Email" type="email" dense outlined />
-        </div>
-        <div class="col-6">
-          <q-input v-model="form.tech_phone" label="Téléphone" dense outlined />
-        </div>
-      </div>
 
       <q-input
         :model-value="activeCatalogName"
@@ -34,7 +18,7 @@
 
       <div class="row q-col-gutter-xs">
         <div class="col-6">
-          <q-input v-model="form.receipt_date" label="Réception" type="date" dense outlined stack-label :rules="[val => !!val || 'Requis']" />
+          <q-input v-model="form.receipt_date" label="Sortie" type="date" dense outlined stack-label :rules="[val => !!val || 'Requis']" />
         </div>
         <div class="col-6">
           <q-input v-model="form.return_date" label="Retour" type="date" dense outlined stack-label :rules="[val => !!val || 'Requis']" />
@@ -51,7 +35,8 @@
       </div>
 
       <div class="row q-gutter-sm q-mt-md">
-        <q-btn type="submit" :label="isEditing ? 'Enregistrer' : 'Créer'" color="primary" unelevated />
+        <div v-if="submitError" style="color: #ef4444; font-size: 13px; font-weight: 600; margin-bottom: 6px;">{{ submitError }}</div>
+        <q-btn :label="isEditing ? 'Enregistrer' : 'Créer'" color="primary" unelevated @click="submit" />
         <q-btn label="Annuler" flat @click="$emit('close')" />
         <q-btn v-if="isEditing" label="Supprimer" color="negative" flat @click="deleteAffair" />
       </div>
@@ -60,7 +45,7 @@
 </template>
 
 <script setup>
-import { reactive, computed, onMounted, watch } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useAffairStore } from '../stores/affairs'
 import { useCatalogStore } from '../stores/catalogs'
 import { useSettingsStore } from '../stores/settings'
@@ -127,10 +112,32 @@ watch(() => props.affair, (affair) => {
   }
 }, { immediate: true })
 
+const submitError = ref('')
+
 async function submit() {
+  submitError.value = ''
+
+  if (!form.name) { submitError.value = 'Le nom est obligatoire'; return }
+  if (!form.receipt_date) { submitError.value = 'La date de sortie est obligatoire'; return }
+  if (!form.return_date) { submitError.value = 'La date de retour est obligatoire'; return }
+
   const payload = { ...form }
   payload.catalog_id = activeCatalogId
   if (!payload.prep_date) payload.prep_date = null
+
+  // Remplir les infos technicien depuis le profil
+  const userId = localStorage.getItem('cablemaster-userid') || 'T'
+  const techId = parseInt(localStorage.getItem('cablemaster-techid')) || 0
+  payload.tech_id = techId
+  try {
+    const profile = JSON.parse(localStorage.getItem(`cablemaster-profile-${userId}`) || '{}')
+    payload.tech_name = profile.lastname || profile.firstname || userId
+    payload.tech_firstname = profile.firstname || ''
+    payload.tech_email = profile.email || ''
+    payload.tech_phone = profile.phone || ''
+  } catch {
+    payload.tech_name = userId
+  }
 
   // Pour une nouvelle affaire, inclure les noms par défaut des zones/FC
   if (!isEditing.value) {
@@ -142,11 +149,11 @@ async function submit() {
 
   if (isEditing.value) {
     const { error } = await affairStore.updateAffair(props.affair.affairid, payload)
-    if (!error) {
-      emit('created', { ...props.affair, ...payload })
-    }
+    if (error) { submitError.value = 'Erreur: ' + error.message; return }
+    emit('created', { ...props.affair, ...payload })
   } else {
     const { data, error } = await affairStore.addAffair(payload)
+    if (error) { submitError.value = 'Erreur: ' + error.message; return }
     if (!error && data?.length) {
       emit('created', data[0])
     }

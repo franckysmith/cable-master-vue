@@ -148,11 +148,12 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, inject } from 'vue'
 import { useAffairStore } from '../stores/affairs'
 
 const emit = defineEmits(['selected', 'edit', 'openNew', 'materiel', 'share'])
 const affairStore = useAffairStore()
+const currentUser = inject('currentUser', ref('T'))
 
 const search = ref('')
 const searchInput = ref(null)
@@ -348,15 +349,29 @@ function getCatalogName(affair) {
 }
 
 
+const userAffairs = computed(() => {
+  const uid = currentUser.value
+  const techId = parseInt(localStorage.getItem('cablemaster-techid')) || 0
+
+  // Admin (T, M) voit tout
+  if (techId === 0) return affairStore.affairs
+
+  // Technicien voit seulement ses affaires (filtre par tech_id)
+  return affairStore.affairs.filter(a => a.tech_id === techId)
+})
+
 const filteredAffairs = computed(() => {
-  if (!search.value) return affairStore.affairs
-  const q = search.value.toLowerCase()
-  return affairStore.affairs.filter(a =>
-    (a.name || '').toLowerCase().includes(q) ||
-    (a.ref || '').toLowerCase().includes(q) ||
-    (a.tech_name || '').toLowerCase().includes(q) ||
-    (a.receipt_date || '').includes(q)
-  )
+  let list = userAffairs.value
+  if (search.value) {
+    const q = search.value.toLowerCase()
+    list = list.filter(a =>
+      (a.name || '').toLowerCase().includes(q) ||
+      (a.ref || '').toLowerCase().includes(q) ||
+      (a.tech_name || '').toLowerCase().includes(q) ||
+      (a.receipt_date || '').includes(q)
+    )
+  }
+  return list
 })
 
 const groupedAffairs = computed(() => {

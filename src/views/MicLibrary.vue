@@ -8,10 +8,10 @@
       <button class="view-toggle" @click="viewMode = viewMode === 'list' ? 'gallery' : 'list'">
         {{ viewMode === 'list' ? '🖼' : '📋' }}
       </button>
-      <button class="edit-toggle" :class="{ active: editListMode }" @click="editListMode = !editListMode">
+      <button v-if="!isMasterWorker" class="edit-toggle" :class="{ active: editListMode }" @click="editListMode = !editListMode">
         {{ editListMode ? '🔓' : '🔒' }}
       </button>
-      <button v-if="editListMode" class="upload-btn" @click="showUpload = !showUpload">+ Ajouter</button>
+      <button v-if="editListMode && !isMasterWorker" class="upload-btn" @click="showUpload = !showUpload">+ Ajouter</button>
     </div>
 
     <!-- Filtres par marque -->
@@ -111,7 +111,7 @@
           <div class="gallery-name">{{ mic.name }}</div>
           <div class="gallery-brand">{{ mic.brand }}</div>
           <a v-if="mic.link" :href="mic.link" target="_blank" class="gallery-pdf-link" @click.stop>📄</a>
-          <button v-if="editListMode" class="gallery-edit-btn" @click.stop="openEditMic(mic)">✏️</button>
+          <button v-if="editListMode && canEditMic(mic)" class="gallery-edit-btn" @click.stop="openEditMic(mic)">✏️</button>
         </div>
 
         <!-- Panneau édition inline -->
@@ -134,7 +134,7 @@
           </div>
           <div class="mic-edit-actions">
             <button class="btn-save-mic" @click="saveEditMic(mic)">Enregistrer</button>
-            <button class="btn-delete-mic" @click="deleteMic(mic)">Supprimer</button>
+            <button v-if="canDeleteMic(mic)" class="btn-delete-mic" @click="deleteMic(mic)">Supprimer</button>
             <button class="btn-cancel-mic" @click="editingMicId = null">Annuler</button>
           </div>
         </div>
@@ -608,7 +608,11 @@ async function addToMyList(mic) {
   }
 }
 
-const isSuperAdmin = localStorage.getItem('cablemaster-superadmin') === 'true'
+const currentUserId = localStorage.getItem('cablemaster-userid') || 'T'
+const isTAdmin = currentUserId === 'T' // seul vrai super admin
+const isMAdmin = currentUserId === 'M'
+const isMasterWorker = ['M1', 'M2', 'M3'].includes(currentUserId)
+const isTechWorker = ['T1', 'T2', 'T3'].includes(currentUserId)
 const editingMicId = ref(null)
 const editMic = ref({ brand: '', name: '', info: '', newPdf: null })
 
@@ -664,20 +668,35 @@ async function deleteMic(mic) {
   await loadAllMics()
 }
 
+function isWithinOneHour(dateStr) {
+  if (!dateStr) return false
+  return (Date.now() - new Date(dateStr).getTime()) < 60 * 60 * 1000
+}
+
 function canEditImage(mic) {
   if (!editListMode.value) return false
-  // Pas d'image = on peut toujours en ajouter une
+  // M1/M2/M3 : jamais
+  if (isMasterWorker) return false
+  // T (admin) : toujours
+  if (isTAdmin) return true
+  // M (admin) et T1/T2/T3 : 1h pour les leurs
   if (!mic.image_url) return true
-  // Superadmin peut toujours modifier
-  if (isSuperAdmin) return true
-  // Sinon : modifiable dans l'heure qui suit l'upload
-  if (mic.updated_at) {
-    const uploadTime = new Date(mic.updated_at).getTime()
-    const now = Date.now()
-    const oneHour = 60 * 60 * 1000
-    return (now - uploadTime) < oneHour
-  }
-  return false
+  return isWithinOneHour(mic.updated_at)
+}
+
+function canEditMic(mic) {
+  // M1/M2/M3 : jamais
+  if (isMasterWorker) return false
+  // T (admin) : toujours
+  if (isTAdmin) return true
+  // M (admin) : 1h pour ceux qu'il a ajoutés
+  // T1/T2/T3 : 1h pour ceux qu'ils ont ajoutés
+  return isWithinOneHour(mic.created_at)
+}
+
+function canDeleteMic(mic) {
+  // Seul T (super admin) peut supprimer
+  return isTAdmin
 }
 
 async function uploadMicImage(mic, e) {

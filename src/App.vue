@@ -15,33 +15,68 @@
     <router-link to="/micros" class="mic-link" title="Bibliothèque Micros">🎤</router-link>
     <router-link to="/settings" class="settings-link" title="Réglages">&#9881;</router-link>
     <span class="help-btn" :class="{ active: helpMode }" @click="helpMode = !helpMode" title="Aide">?</span>
-    <span class="role-toggle" :class="userRole" @click="toggleRole" :title="userRole === 'master' ? 'Mode Entreprise' : 'Mode Technicien'">
-      {{ userRole === 'master' ? 'M' : 'T' }}
+    <span class="user-selector" @click="showUserMenu = !showUserMenu">
+      {{ currentUserLabel }}
     </span>
+    <div v-if="showUserMenu" class="user-menu">
+      <div class="user-menu-title">Super Admin</div>
+      <div class="user-menu-group">
+        <button v-for="u in users" :key="u.id" class="user-btn" :class="[u.role, { active: currentUser === u.id }]" @click="switchUser(u)">
+          {{ u.label }}
+        </button>
+      </div>
+    </div>
   </div>
   <router-view />
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, provide } from 'vue'
+import { ref, computed, onMounted, onUnmounted, provide } from 'vue'
 import { supabase } from './lib/supabase'
 
 const online = ref(navigator.onLine)
 const helpMode = ref(false)
 provide('helpMode', helpMode)
 
+const users = [
+  { id: 'T', label: 'T', role: 'technician', name: 'Franck (Admin)', superadmin: true, techId: 0 },
+  { id: 'T1', label: 'T1', role: 'technician', name: 'Franck', techId: 1 },
+  { id: 'T2', label: 'T2', role: 'technician', name: 'Robert', techId: 2 },
+  { id: 'T3', label: 'T3', role: 'technician', name: 'Michel', techId: 3 },
+  { id: 'M', label: 'M', role: 'master', name: 'Super Admin Master', superadmin: true, techId: 0 },
+  { id: 'M1', label: 'M1', role: 'master', name: 'Pierre (TarPo)', techId: 11 },
+  { id: 'M2', label: 'M2', role: 'master', name: 'Sophie (TarPo)', techId: 12 },
+  { id: 'M3', label: 'M3', role: 'master', name: 'Jean (TarPo)', techId: 13 },
+]
+
+const currentUser = ref(localStorage.getItem('cablemaster-userid') || 'T')
+const showUserMenu = ref(false)
+
+const currentUserObj = computed(() => users.find(u => u.id === currentUser.value) || users[0])
+const currentUserLabel = computed(() => currentUserObj.value.label)
 const userRole = ref(localStorage.getItem('cablemaster-role') || 'technician')
 const companyName = ref(localStorage.getItem('cablemaster-company') || '')
 
-function toggleRole() {
-  userRole.value = userRole.value === 'technician' ? 'master' : 'technician'
-  localStorage.setItem('cablemaster-role', userRole.value)
-  if (userRole.value === 'master' && !companyName.value) {
+function switchUser(u) {
+  currentUser.value = u.id
+  userRole.value = u.role
+  localStorage.setItem('cablemaster-userid', u.id)
+  localStorage.setItem('cablemaster-role', u.role)
+  localStorage.setItem('cablemaster-techid', u.techId)
+  if (u.superadmin) {
+    localStorage.setItem('cablemaster-superadmin', 'true')
+  } else {
+    localStorage.removeItem('cablemaster-superadmin')
+  }
+  showUserMenu.value = false
+  if (u.role === 'master' && !companyName.value) {
     loadCompany()
   }
 }
+
 provide('userRole', userRole)
 provide('companyName', companyName)
+provide('currentUser', currentUser)
 
 async function loadCompany() {
   const { data } = await supabase.from('company').select('name').limit(1)
@@ -172,27 +207,76 @@ select {
   transform: rotate(180deg);
   transition: transform 0.3s;
 }
-.role-toggle {
+.user-selector {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
+  min-width: 24px;
   height: 24px;
-  border-radius: 50%;
-  font-size: 13px;
+  padding: 0 6px;
+  border-radius: 12px;
+  font-size: 12px;
   font-weight: 800;
   cursor: pointer;
   margin-left: 6px;
   vertical-align: middle;
-  transition: all 0.2s;
-}
-.role-toggle.technician {
   background: #3b82f6;
   color: #fff;
 }
-.role-toggle.master {
-  background: #ef4444;
+.user-menu {
+  position: absolute;
+  right: 10px;
+  top: 60px;
+  background: var(--bg, #fff);
+  border: 2px solid var(--color1);
+  border-radius: 10px;
+  padding: 10px;
+  z-index: 200;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  min-width: 200px;
+}
+.user-menu-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted, #999);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  text-align: center;
+}
+.user-menu-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  justify-content: center;
+}
+.user-btn {
+  padding: 6px 12px;
+  border: 2px solid #ccc;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  background: var(--bg-card, #f5f5f5);
+  color: var(--text, #333);
+  box-shadow: none;
+  min-width: auto;
+}
+.user-btn.technician {
+  border-color: #3b82f6;
+  color: #3b82f6;
+}
+.user-btn.master {
+  border-color: #ef4444;
+  color: #ef4444;
+}
+.user-btn.active {
   color: #fff;
+}
+.user-btn.active.technician {
+  background: #3b82f6;
+}
+.user-btn.active.master {
+  background: #ef4444;
 }
 .help-btn {
   display: inline-flex;

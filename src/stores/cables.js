@@ -14,9 +14,6 @@ export const useCableStore = defineStore('cables', () => {
       catalogId = parseInt(localStorage.getItem('cablemaster-catalogid')) || null
     }
     const cacheKey = catalogId ? `cables-${catalogId}` : 'cables'
-    // Charger le cache immédiatement
-    const cached = cacheGet(cacheKey)
-    if (cached) cables.value = cached
     try {
       let query = supabase
         .from('cable')

@@ -25,10 +25,10 @@
           <button
             @click="onHelpClick('fc', () => layout = 'flightcase')"
             :class="{ button3: layout === 'flightcase' }"
-          >flightcase</button>
+          >flight-case</button>
         </template>
         <template v-else>
-          <span class="direct-label">Direct dans Flycase</span>
+          <span class="direct-label">Direct dans Flight-case</span>
         </template>
         <span class="mode-separator">ou</span>
         <button
@@ -36,15 +36,11 @@
           :class="{ active: directMode }"
           @click="onHelpClick('direct', toggleDirectMode)"
         >
-          {{ directMode ? 'Classique' : 'Direct dans Flycase' }}
+          {{ directMode ? 'Classique' : 'Direct dans Flight-case' }}
         </button>
       </div>
-      <div class="status-bar" v-if="saving || (allDistributed && totalSelected > 0)">
-        <span v-if="saving" class="save-status saving">sauvegarde...</span>
-        <span v-else class="save-status done">Tout est rangé</span>
-      </div>
-
       <div class="content-button2">
+        <span class="sync-dot" :class="{ saving: saving, synced: !saving }" :title="saving ? 'Synchronisation...' : 'Synchronisé'"></span>
         <input class="search" type="text" v-model="searchKey" placeholder="Rechercher élément" @focus="onHelpClick('search', () => {})" />
         <button class="add-btn" @click="onHelpClick('add', () => showAddInput = !showAddInput)">+</button>
         <button
@@ -157,7 +153,7 @@
           </div>
         </div>
 
-        <!-- Sync-header Flycases -->
+        <!-- Sync-header Flight-cases -->
         <div v-if="!ctMode && !microMode && (directMode || layout === 'flightcase')" class="sync-header" ref="fcHeaderScroll" @scroll="syncScroll('fcHeaderScroll','fcBodyScroll')">
           <div class="sync-header-inner">
             <div class="head-spacer-sticky ct-btn-row">
@@ -291,8 +287,8 @@
           <p>Ranger les câbles sélectionnés dans des flightcases. Cliquez sur un titre FC pour voir son contenu. Appui long pour renommer.</p>
         </template>
         <template v-else-if="helpTarget === 'direct'">
-          <h4>⚡ Direct dans Flycase</h4>
-          <p>Ranger directement les câbles dans les flycases sans passer par la sélection par zone.</p>
+          <h4>⚡ Direct dans Flight-case</h4>
+          <p>Ranger directement les câbles dans les flight-cases sans passer par la sélection par zone.</p>
         </template>
         <template v-else-if="helpTarget === 'solo'">
           <h4>🔵 Solo (S)</h4>
@@ -971,11 +967,10 @@ async function autoSaveNow() {
   clearTimeout(autoSaveTimer)
   saving.value = true
 
-  // Sauvegarder labels + date de mise à jour
-  await affairStore.updateAffair(selectedAffair.value.affairid, {
-    ...zoneLabels, ...fcLabels, ...microGroupLabels,
-    updated_at: new Date().toISOString(),
-  })
+  // Sauvegarder labels
+  const labelUpdate = { ...zoneLabels, ...fcLabels, ...microGroupLabels }
+  const { error: labelError } = await affairStore.updateAffair(selectedAffair.value.affairid, labelUpdate)
+  if (labelError) console.error('Erreur save labels:', labelError.message)
 
   // Sauvegarder orders
   const toSave = joinedData.value
@@ -988,7 +983,7 @@ async function autoSaveNow() {
       count: getZoneTotal(c) > 0 ? getZoneTotal(c) : getTfcTotal(c),
       spare_count: c.spare_count,
       z1: c.z1, z2: c.z2, z3: c.z3, z4: c.z4, z5: c.z5, z6: c.z6,
-      tfc1: c.tfc1, tfc2: c.tfc2, tfc3: c.tfc3, tfc4: c.tfc4, tfc5: c.tfc5, tfc6: c.tfc6,
+      tfc1: c.tfc1, tfc2: c.tfc2, tfc3: c.tfc3, tfc4: c.tfc4, tfc5: c.tfc5, tfc6: c.tfc6, tfc7: c.tfc7,
       tfc_done: c.tfc_done,
     }))
 
@@ -1003,7 +998,7 @@ async function autoSaveNow() {
 }
 
 // Auto-save labels quand ils changent
-watch([zoneLabels, fcLabels], () => {
+watch([zoneLabels, fcLabels, microGroupLabels], () => {
   if (!selectedAffair.value) return
   scheduleAutoSave()
 }, { deep: true })
@@ -1246,10 +1241,7 @@ function colorForType(type) {
   background: var(--bg, #fff);
   width: 100%;
   padding-bottom: 2px;
-}
-.status-bar {
-  text-align: center;
-  margin: 2px 0 4px;
+  min-height: 90px;
 }
 .mode-bar {
   display: flex;
@@ -1275,20 +1267,22 @@ function colorForType(type) {
   color: white;
   border-color: #3b82f6;
 }
-.save-status {
-  font-size: 12px;
-  color: #888;
+.sync-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
-.save-status.saving {
-  color: var(--color3);
-  font-weight: bold;
+.sync-dot.synced {
+  background: var(--color1);
 }
-.save-status.done {
-  color: var(--color1);
-  font-weight: bold;
-  padding: 3px 10px;
-  background: var(--color1-light);
-  border-radius: 12px;
+.sync-dot.saving {
+  background: #ef4444;
+  animation: pulse-sync 0.8s infinite;
+}
+@keyframes pulse-sync {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
 }
 .content-button2 {
   display: flex;

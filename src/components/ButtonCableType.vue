@@ -48,6 +48,9 @@ const types = computed(() => {
 </script>
 
 <style scoped>
+.post {
+  min-height: 56px;
+}
 .post button {
   cursor: pointer;
   margin: 3px;
