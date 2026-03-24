@@ -16,40 +16,12 @@
 
 
     <!-- Vue toutes les caisses -->
-    <div v-if="selectedAffair && allCasesMode" class="all-cases-view">
-      <template v-for="i in 7" :key="'fc-section-'+i">
-        <div v-if="getFcCables(i).length > 0" class="case-section">
-          <div class="case-header" @click="openCase = openCase === 'fc'+i ? '' : 'fc'+i">
-            <span>{{ openCase === 'fc'+i ? '▼' : '▶' }}</span>
-            <span v-if="isCaseComplete('fc' + i, getFcCables(i))" class="case-done">✅</span>
-            <span class="case-title fc-color">{{ fcLabels[`lfc${i}`] || `FC${i}` }}</span>
-            <span class="case-count">{{ getFcCables(i).length }}</span>
-          </div>
-          <div v-if="openCase === 'fc'+i" class="case-content">
-            <div v-for="c in getFcCables(i)" :key="c.cableid" class="case-cable">
-              <input type="checkbox" :checked="checkedCables[c.cableid + '_fc' + i]" @change="toggleCableCheck(c.cableid, 'fc' + i)" class="case-check" />
-              <span class="case-cable-qty">{{ c[`tfc${i}`] }}</span>
-              <span class="case-cable-name">{{ c.name }}</span>
-            </div>
-          </div>
-        </div>
-      </template>
-      <div v-if="getMicroCables().length > 0" class="case-section">
-        <div class="case-header" @click="openCase = openCase === 'micro' ? '' : 'micro'">
-          <span>{{ openCase === 'micro' ? '▼' : '▶' }}</span>
-          <span v-if="isCaseComplete('micro', getMicroCables())" class="case-done">✅</span>
-          <span class="case-title micro-color">🎤 Micros</span>
-          <span class="case-count">{{ getMicroCables().length }}</span>
-        </div>
-        <div v-if="openCase === 'micro'" class="case-content">
-          <div v-for="c in getMicroCables()" :key="c.cableid" class="case-cable">
-            <input type="checkbox" :checked="checkedCables[c.cableid + '_micro']" @change="toggleCableCheck(c.cableid, 'micro')" class="case-check" />
-            <span class="case-cable-qty">{{ getMicroQty(c) }}</span>
-            <span class="case-cable-name">{{ c.name }}</span>
-          </div>
-        </div>
-      </div>
-      <div v-if="allCasesReady" class="all-ready-banner">✅ Tout est prêt !</div>
+    <div v-if="selectedAffair && allCasesMode">
+      <AllCasesView
+        :cables="joinedData"
+        :affair-id="selectedAffair.affairid"
+        :fc-labels="fcLabels"
+      />
       <div class="all-cases-actions">
         <button class="action-btn" @click="printAllCasesSummary">🖨 Imprimer</button>
         <button class="action-btn" @click="shareAllCasesSummary">📤 Partager</button>
@@ -63,6 +35,7 @@
           @click="onHelpClick('select', () => layout = 'cableTechBase')"
           :class="{ button3: layout === 'cableTechBase' }"
         >sélectionner</button>
+        <span class="mode-arrow">⮕</span>
         <button
           @click="onHelpClick('fc', () => layout = 'flightcase')"
           :class="{ button3: layout === 'flightcase' }"
@@ -71,7 +44,7 @@
           class="allcases-mode-btn"
           :class="{ active: allCasesMode }"
           @click="toggleAllCases"
-        >👁 flight-cases</button>
+        >🔍 flight-cases</button>
       </div>
       <div class="content-button2">
         <span class="sync-dot" :class="{ saving: saving, synced: !saving }" :title="saving ? 'Synchronisation...' : 'Synchronisé'"></span>
@@ -383,6 +356,7 @@ import FcaseDetail from '../components/FcaseDetail.vue'
 import MicroList from '../components/MicroList.vue'
 import CtypeList from '../components/CtypeList.vue'
 import ButtonCableType from '../components/ButtonCableType.vue'
+import AllCasesView from '../components/AllCasesView.vue'
 import { useSettingsStore } from '../stores/settings'
 import { useMfcStore } from '../stores/mfc'
 
@@ -473,7 +447,6 @@ const soloMode = ref(false)
 const incrementStep = ref(1)
 const ctMode = ref(false)
 const allCasesMode = ref(false)
-const openCase = ref('')
 
 function toggleAllCases() {
   allCasesMode.value = !allCasesMode.value
@@ -1133,37 +1106,6 @@ function onCableUpdated() {
 const selectedAffair = computed(() => affairStore.selectedAffair)
 
 // --- Checks des caisses ---
-const checkedCables = ref({})
-const affairChecksKey = computed(() => selectedAffair.value ? `cablemaster-checks-${selectedAffair.value.affairid}` : '')
-watch(affairChecksKey, (key) => {
-  if (key) {
-    try { checkedCables.value = JSON.parse(localStorage.getItem(key) || '{}') } catch { checkedCables.value = {} }
-  }
-}, { immediate: true })
-
-function toggleCableCheck(cableid, caseKey) {
-  const key = cableid + '_' + caseKey
-  checkedCables.value[key] = !checkedCables.value[key]
-  checkedCables.value = { ...checkedCables.value }
-  if (affairChecksKey.value) {
-    localStorage.setItem(affairChecksKey.value, JSON.stringify(checkedCables.value))
-  }
-}
-
-function isCaseComplete(caseKey, cables) {
-  if (cables.length === 0) return false
-  return cables.every(c => checkedCables.value[c.cableid + '_' + caseKey])
-}
-
-const allCasesReady = computed(() => {
-  for (let i = 1; i <= 7; i++) {
-    const cables = getFcCables(i)
-    if (cables.length > 0 && !isCaseComplete('fc' + i, cables)) return false
-  }
-  const mics = getMicroCables()
-  if (mics.length > 0 && !isCaseComplete('micro', mics)) return false
-  return true
-})
 
 // Confirmation avant navigation
 onBeforeRouteLeave(() => {
@@ -1198,6 +1140,23 @@ async function onAffairSelected(affair) {
   microGroupLabels.mg3 = (affair.mg3 && affair.mg3.trim()) || ''
   microGroupLabels.mg4 = (affair.mg4 && affair.mg4.trim()) || ''
   microGroupLabels.mg5 = (affair.mg5 && affair.mg5.trim()) || ''
+
+  // Patcher les infos technicien si manquantes
+  if (!affair.tech_phone || !affair.tech_email) {
+    const userId = localStorage.getItem('cablemaster-userid') || 'T'
+    try {
+      const profile = JSON.parse(localStorage.getItem(`cablemaster-profile-${userId}`) || '{}')
+      const patch = {}
+      if (!affair.tech_firstname && profile.firstname) patch.tech_firstname = profile.firstname
+      if (!affair.tech_phone && profile.phone) patch.tech_phone = profile.phone
+      if (!affair.tech_email && profile.email) patch.tech_email = profile.email
+      if (!affair.tech_name && (profile.lastname || profile.firstname)) patch.tech_name = profile.lastname || profile.firstname
+      if (Object.keys(patch).length > 0) {
+        Object.assign(affair, patch)
+        await supabase.from('affair').update(patch).eq('affairid', affair.affairid)
+      }
+    } catch { /* ignore */ }
+  }
 
   // Charger les câbles du catalogue de l'affaire ou de l'entreprise connectée
   const catalogId = affair.catalog_id || localStorage.getItem('cablemaster-catalogid') || null
@@ -1404,6 +1363,13 @@ function colorForType(type) {
   align-items: center;
   gap: 12px;
   margin: 8px 0;
+}
+.mode-arrow {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-muted, #999);
+  line-height: 1;
+  user-select: none;
 }
 .mode-separator {
   font-size: 12px;

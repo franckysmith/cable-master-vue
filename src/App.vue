@@ -179,7 +179,8 @@ select {
   color: var(--color1);
 }
 .settings-link {
-  font-size: 18px;
+  font-size: 24px;
+  padding: 0 4px;
 }
 .company-bar {
   background: var(--color3);

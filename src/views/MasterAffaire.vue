@@ -8,10 +8,127 @@
       <button :class="{ active: tab === 'draft' }" @click="tab = 'draft'">Brouillons</button>
       <button :class="{ active: tab === 'sent' }" @click="tab = 'sent'">Envoyées</button>
       <button :class="{ active: tab === 'done' }" @click="tab = 'done'">Terminées</button>
+      <button class="btn-create-inline" @click="showForm = true; editing = null">+</button>
     </div>
     <button v-if="selected" class="btn-back" @click="selected = null; showForm = false; showChatOnly = false">
       ← Retour aux affaires
     </button>
+
+    <!-- Formulaire création/édition -->
+    <div v-if="showForm && !selected" class="form-panel">
+      <div class="form-header">
+        <h3>{{ editing ? 'Modifier' : 'Nouvelle affaire' }}</h3>
+        <button class="close-btn" @click="showForm = false">✕</button>
+      </div>
+
+      <div class="form-row">
+        <label>Nom de l'affaire *</label>
+        <input v-model="form.name" placeholder="ex: Festival Été 2026" required />
+      </div>
+      <div class="form-row">
+        <label>Référence</label>
+        <input v-model="form.reference" placeholder="Code référence" />
+      </div>
+
+      <div class="form-grid three">
+        <div class="form-row">
+          <label>Prépa</label>
+          <input type="date" v-model="form.prep_date" />
+        </div>
+        <div class="form-row">
+          <label>Sortie *</label>
+          <input type="date" v-model="form.receipt_date" required />
+        </div>
+        <div class="form-row">
+          <label>Retour</label>
+          <input type="date" v-model="form.return_date" />
+        </div>
+      </div>
+
+      <div class="form-section-title">Zones & Techniciens</div>
+      <div class="zone-toggles">
+        <button :class="{ active: form.front }" @click="form.front = !form.front" class="zone-btn facade">Front</button>
+        <button :class="{ active: form.monitor }" @click="form.monitor = !form.monitor" class="zone-btn retour">Monitor</button>
+        <button :class="{ active: form.stage }" @click="form.stage = !form.stage" class="zone-btn scene">Stage</button>
+      </div>
+
+      <div v-if="form.front" class="zone-tech-block facade">
+        <div class="zone-tech-header">🔵 Front</div>
+        <div class="zone-tech-select">
+          <select v-model="form.tech_email" @change="onTechSelect('front')">
+            <option value="">-- Choisir --</option>
+            <option v-for="t in technicians" :key="t.techid" :value="t.email">{{ t.firstname || '' }} {{ t.name }}</option>
+          </select>
+          <button class="btn-new-tech" @click="openNewTech('front')">+</button>
+        </div>
+        <div v-if="newTechZone === 'front'" class="new-tech-form">
+          <input v-model="newTech.firstname" placeholder="Prénom" />
+          <input v-model="newTech.name" placeholder="Nom" />
+          <input v-model="newTech.phone" placeholder="Téléphone" />
+          <input v-model="newTech.email" placeholder="Email" />
+          <button @click="addTechForZone('front')">Ajouter</button>
+        </div>
+        <div v-if="form.tech_name" class="zone-tech-info">{{ form.tech_firstname || '' }} {{ form.tech_name }} <span v-if="form.tech_phone">· {{ form.tech_phone }}</span></div>
+      </div>
+
+      <div v-if="form.monitor" class="zone-tech-block retour">
+        <div class="zone-tech-header">🟠 Monitor</div>
+        <div class="zone-tech-select">
+          <select v-model="form.tech_email_monitor" @change="onTechSelect('monitor')">
+            <option value="">-- Choisir --</option>
+            <option v-for="t in technicians" :key="t.techid" :value="t.email">{{ t.firstname || '' }} {{ t.name }}</option>
+          </select>
+          <button class="btn-new-tech" @click="openNewTech('monitor')">+</button>
+        </div>
+        <div v-if="newTechZone === 'monitor'" class="new-tech-form">
+          <input v-model="newTech.firstname" placeholder="Prénom" />
+          <input v-model="newTech.name" placeholder="Nom" />
+          <input v-model="newTech.phone" placeholder="Téléphone" />
+          <input v-model="newTech.email" placeholder="Email" />
+          <button @click="addTechForZone('monitor')">Ajouter</button>
+        </div>
+        <div v-if="form.tech_name_monitor" class="zone-tech-info">{{ form.tech_firstname_monitor || '' }} {{ form.tech_name_monitor }} <span v-if="form.tech_phone_monitor">· {{ form.tech_phone_monitor }}</span></div>
+      </div>
+
+      <div v-if="form.stage" class="zone-tech-block scene">
+        <div class="zone-tech-header">🟢 Stage</div>
+        <div class="zone-tech-select">
+          <select v-model="form.tech_email_stage" @change="onTechSelect('stage')">
+            <option value="">-- Choisir --</option>
+            <option v-for="t in technicians" :key="t.techid" :value="t.email">{{ t.firstname || '' }} {{ t.name }}</option>
+          </select>
+          <button class="btn-new-tech" @click="openNewTech('stage')">+</button>
+        </div>
+        <div v-if="newTechZone === 'stage'" class="new-tech-form">
+          <input v-model="newTech.firstname" placeholder="Prénom" />
+          <input v-model="newTech.name" placeholder="Nom" />
+          <input v-model="newTech.phone" placeholder="Téléphone" />
+          <input v-model="newTech.email" placeholder="Email" />
+          <button @click="addTechForZone('stage')">Ajouter</button>
+        </div>
+        <div v-if="form.tech_name_stage" class="zone-tech-info">{{ form.tech_firstname_stage || '' }} {{ form.tech_name_stage }} <span v-if="form.tech_phone_stage">· {{ form.tech_phone_stage }}</span></div>
+      </div>
+
+      <div class="form-row">
+        <label>Matériel / Notes</label>
+        <textarea v-model="form.description" rows="5" placeholder="Systèmes K2, K3, wedge, subs, amplis..."></textarea>
+      </div>
+
+      <div class="form-row">
+        <label>Documents joints</label>
+        <input type="file" @change="onFileSelect" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" multiple class="file-input" />
+        <div v-for="(f, i) in attachmentFiles" :key="i" class="attachment-info">📎 {{ f.name }}</div>
+        <div v-for="(name, i) in existingAttachments" :key="'ex'+i" class="attachment-info">📎 {{ name }}</div>
+      </div>
+
+      <div class="form-actions">
+        <button class="btn-save" @click="saveAffair" :disabled="!form.name">
+          {{ editing ? 'Enregistrer' : 'Créer' }}
+        </button>
+        <button v-if="editing" class="btn-draft" @click="setStatus('draft')">📝 Brouillon</button>
+        <button v-if="editing" class="btn-delete" @click="deleteAffair">✕</button>
+      </div>
+    </div>
 
     <!-- Liste -->
     <div class="affair-list">
@@ -36,47 +153,14 @@
             <div v-if="affair.front" class="tech-zone-item">
               <span class="zone-dot facade"></span>
               <span class="tech-firstname">{{ affair.tech_name || '?' }}</span>
-              <button
-                class="invite-btn facade"
-                :class="{ sent: affair.status === 'sent' }"
-                @click.stop
-                @mousedown.stop="startInvite(affair, 'front')"
-                @mouseup.stop="cancelInvite"
-                @mouseleave.stop="cancelInvite"
-                @touchstart.stop="startInvite(affair, 'front')"
-                @touchend.stop="cancelInvite"
-                @touchcancel.stop="cancelInvite"
-              >{{ affair.status === 'sent' ? '✓' : '✉' }}</button>
             </div>
             <div v-if="affair.monitor" class="tech-zone-item">
               <span class="zone-dot retour"></span>
               <span class="tech-firstname">{{ affair.tech_name_monitor || '?' }}</span>
-              <button
-                class="invite-btn retour"
-                :class="{ sent: affair.status === 'sent' }"
-                @click.stop
-                @mousedown.stop="startInvite(affair, 'monitor')"
-                @mouseup.stop="cancelInvite"
-                @mouseleave.stop="cancelInvite"
-                @touchstart.stop="startInvite(affair, 'monitor')"
-                @touchend.stop="cancelInvite"
-                @touchcancel.stop="cancelInvite"
-              >{{ affair.status === 'sent' ? '✓' : '✉' }}</button>
             </div>
             <div v-if="affair.stage" class="tech-zone-item">
               <span class="zone-dot scene"></span>
               <span class="tech-firstname">{{ affair.tech_name_stage || '?' }}</span>
-              <button
-                class="invite-btn scene"
-                :class="{ sent: affair.status === 'sent' }"
-                @click.stop
-                @mousedown.stop="startInvite(affair, 'stage')"
-                @mouseup.stop="cancelInvite"
-                @mouseleave.stop="cancelInvite"
-                @touchstart.stop="startInvite(affair, 'stage')"
-                @touchend.stop="cancelInvite"
-                @touchcancel.stop="cancelInvite"
-              >{{ affair.status === 'sent' ? '✓' : '✉' }}</button>
             </div>
           </div>
           <!-- Boutons d'action -->
@@ -119,124 +203,67 @@
 
         <!-- Panneau Fiche -->
         <div v-if="selected?.affairid === affair.affairid && expandedTab === 'fiche'" class="card-expanded" @click.stop>
-          <div class="expanded-tech">
-            <div class="tech-info">
-              <strong>{{ affair.tech_name }} {{ affair.tech_firstname || '' }}</strong>
-              <span v-if="affair.tech_email" class="tech-contact">{{ affair.tech_email }}</span>
-              <span v-if="affair.tech_phone" class="tech-contact">{{ affair.tech_phone }}</span>
-            </div>
-            <div class="tech-actions">
-              <a v-if="affair.tech_phone" :href="'tel:' + affair.tech_phone" class="tech-btn">📞</a>
-              <a v-if="affair.tech_email" :href="'mailto:' + affair.tech_email" class="tech-btn">📩</a>
+          <!-- Contacter tous -->
+          <a v-if="getAllEmails(affair).length > 0" :href="'mailto:' + getAllEmails(affair).join(',')" class="fiche-contact-all">📩 Contacter tous</a>
+
+          <!-- Personnes par zone -->
+          <div v-for="zone in getAffairZones(affair)" :key="zone.key" class="fiche-person">
+            <div class="fiche-person-header" :class="zone.css">{{ zone.icon }} {{ zone.label }}</div>
+            <div class="fiche-person-body">
+              <div class="fiche-person-line">
+                <span class="fiche-person-name">{{ zone.firstname }} {{ zone.name }}</span>
+                <span v-if="zone.phone" class="fiche-person-phone">{{ zone.phone }}</span>
+                <span v-if="zone.email" class="fiche-person-email">{{ zone.email }}</span>
+              </div>
+              <div v-if="zone.phone || zone.email" class="fiche-person-actions">
+                <a v-if="zone.phone" :href="'tel:' + zone.phone" class="fiche-action-btn call">📞 Appeler</a>
+                <a v-if="zone.phone" :href="'sms:' + zone.phone" class="fiche-action-btn sms">💬 SMS</a>
+                <a v-if="zone.email" :href="'mailto:' + zone.email" class="fiche-action-btn email">📩 Email</a>
+              </div>
+              <div v-if="!zone.phone && !zone.email" class="fiche-no-contact">Pas de coordonnées renseignées</div>
             </div>
           </div>
-          <div v-if="affair.description" class="fiche-description">
-            <strong>Notes :</strong> {{ affair.description }}
-          </div>
+          <!-- Dates -->
           <div class="fiche-dates">
             <div v-if="affair.prep_date">🔧 Prépa : {{ formatDate(affair.prep_date) }}</div>
             <div>📦 Sortie : {{ formatDate(affair.receipt_date) }}</div>
             <div v-if="affair.return_date">↩ Retour : {{ formatDate(affair.return_date) }}</div>
           </div>
+          <div v-if="affair.description" class="fiche-description">
+            <strong>Notes :</strong> {{ affair.description }}
+          </div>
         </div>
 
-        <!-- Panneau Matériel -->
+        <!-- Panneau Matériel (vue flight-cases) -->
         <div v-if="selected?.affairid === affair.affairid && expandedTab === 'materiel'" class="card-expanded" @click.stop>
-          <div v-if="affair.front" class="materiel-zone">
-            <div class="materiel-zone-header facade">🔵 Façade — {{ affair.tech_name || '?' }}</div>
-            <div class="materiel-zone-content">{{ affair.materiel_front || 'Pas de matériel renseigné' }}</div>
-          </div>
-          <div v-if="affair.monitor" class="materiel-zone">
-            <div class="materiel-zone-header retour">🟠 Retours — {{ affair.tech_name_monitor || '?' }}</div>
-            <div class="materiel-zone-content">{{ affair.materiel_monitor || 'Pas de matériel renseigné' }}</div>
-          </div>
-          <div v-if="affair.stage" class="materiel-zone">
-            <div class="materiel-zone-header scene">🟢 Scène — {{ affair.tech_name_stage || '?' }}</div>
-            <div class="materiel-zone-content">{{ affair.materiel_stage || 'Pas de matériel renseigné' }}</div>
-          </div>
-          <button class="btn-print-materiel" @click.stop="printMateriel(affair)">🖨 Imprimer</button>
+          <div v-if="fcLoading" class="fc-loading">Chargement...</div>
+          <template v-else>
+            <!-- Façade -->
+            <div v-if="affair.front" class="zone-block">
+              <div class="zone-banner facade">🔵 Façade — {{ affair.tech_name || '?' }}</div>
+              <AllCasesView
+                v-if="allCables.length > 0"
+                :cables="allCables"
+                :affair-id="affair.affairid"
+                :fc-labels="{ lfc1: affair.lfc1, lfc2: affair.lfc2, lfc3: affair.lfc3, lfc4: affair.lfc4, lfc5: affair.lfc5, lfc6: affair.lfc6, lfc7: affair.lfc7 }"
+              />
+              <div v-else class="zone-empty">Aucun matériel préparé</div>
+            </div>
+            <!-- Retours -->
+            <div v-if="affair.monitor" class="zone-block">
+              <div class="zone-banner retour">🟠 Retours — {{ affair.tech_name_monitor || '?' }}</div>
+              <div class="zone-empty">Aucun matériel préparé</div>
+            </div>
+            <!-- Scène -->
+            <div v-if="affair.stage" class="zone-block">
+              <div class="zone-banner scene">🟢 Scène — {{ affair.tech_name_stage || '?' }}</div>
+              <div class="zone-empty">Aucun matériel préparé</div>
+            </div>
+          </template>
         </div>
       </div>
       <div v-if="filteredAffairs.length === 0" class="empty">Aucune affaire</div>
     </div>
-
-    <!-- Bouton créer -->
-    <button v-if="!selected" class="btn-create" @click="showForm = true; editing = null">+ Nouvelle affaire</button>
-
-    <!-- Formulaire création/édition -->
-    <div v-if="showForm" class="form-panel">
-      <div class="form-header">
-        <h3>{{ editing ? 'Modifier' : 'Nouvelle affaire' }}</h3>
-        <button class="close-btn" @click="showForm = false">✕</button>
-      </div>
-
-      <div class="form-row">
-        <label>Nom de l'affaire *</label>
-        <input v-model="form.name" placeholder="ex: Festival Été 2026" required />
-      </div>
-
-      <div class="form-row">
-        <label>Technicien</label>
-        <select v-model="form.tech_email">
-          <option value="">-- Choisir un technicien --</option>
-          <option v-for="t in technicians" :key="t.techid" :value="t.email">
-            {{ t.name }} ({{ t.email }})
-          </option>
-        </select>
-        <button class="btn-add-tech" @click="showAddTech = !showAddTech">+ Nouveau</button>
-      </div>
-
-      <!-- Ajout nouveau technicien -->
-      <div v-if="showAddTech" class="add-tech">
-        <input v-model="newTech.name" placeholder="Nom" />
-        <input v-model="newTech.email" placeholder="Email" />
-        <input v-model="newTech.phone" placeholder="Téléphone" />
-        <button @click="addTechnician">Ajouter</button>
-      </div>
-
-      <div class="form-grid">
-        <div class="form-row half">
-          <label>Prépa</label>
-          <input type="date" v-model="form.prep_date" />
-        </div>
-        <div class="form-row half">
-          <label>Réception *</label>
-          <input type="date" v-model="form.receipt_date" required />
-        </div>
-      </div>
-      <div class="form-row">
-        <label>Retour *</label>
-        <input type="date" v-model="form.return_date" required />
-      </div>
-
-      <div class="form-row">
-        <label>Zones</label>
-        <div class="zone-toggles">
-          <button :class="{ active: form.front }" @click="form.front = !form.front">Front</button>
-          <button :class="{ active: form.monitor }" @click="form.monitor = !form.monitor">Monitor</button>
-          <button :class="{ active: form.stage }" @click="form.stage = !form.stage">Stage</button>
-        </div>
-      </div>
-
-      <div class="form-row">
-        <label>Description / Notes</label>
-        <textarea v-model="form.description" rows="3" placeholder="Infos complémentaires..."></textarea>
-      </div>
-
-      <div class="form-actions">
-        <button class="btn-save" @click="saveAffair" :disabled="!form.name || !form.receipt_date">
-          {{ editing ? 'Enregistrer' : 'Créer' }}
-        </button>
-        <button v-if="editing" class="btn-draft" @click="setStatus('draft')">
-          📝 Brouillon
-        </button>
-        <button v-if="editing && form.tech_email" class="btn-send" @click="sendInvitation">
-          📩 Envoyer
-        </button>
-        <button v-if="editing" class="btn-delete" @click="deleteAffair">✕</button>
-      </div>
-    </div>
-
     <!-- Message -->
     <div v-if="message" class="message" :class="messageType">{{ message }}</div>
   </div>
@@ -245,6 +272,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { supabase } from '../lib/supabase'
+import AllCasesView from '../components/AllCasesView.vue'
 
 const tab = ref('all')
 const affairs = ref([])
@@ -261,8 +289,10 @@ const catalogId = parseInt(localStorage.getItem('cablemaster-catalogid')) || nul
 
 const form = reactive({
   name: '',
-  tech_name: '',
-  tech_email: '',
+  reference: '',
+  tech_name: '', tech_firstname: '', tech_email: '', tech_phone: '',
+  tech_name_monitor: '', tech_firstname_monitor: '', tech_email_monitor: '', tech_phone_monitor: '',
+  tech_name_stage: '', tech_firstname_stage: '', tech_email_stage: '', tech_phone_stage: '',
   prep_date: '',
   receipt_date: '',
   return_date: '',
@@ -270,15 +300,22 @@ const form = reactive({
   monitor: false,
   stage: false,
   description: '',
+  attachment_name: '',
+  attachment_url: '',
 })
 
-const newTech = reactive({ name: '', email: '', phone: '' })
+const newTech = reactive({ firstname: '', name: '', email: '', phone: '' })
+const newTechZone = ref('')
+const attachmentFiles = ref([])
+const existingAttachments = ref([])
 
 const unreadAffairs = ref({})
 const affairMessages = ref([])
 const masterReply = ref('')
 const showChatOnly = ref(false)
 const expandedTab = ref('')
+const allCables = ref([])
+const fcLoading = ref(false)
 
 async function toggleTab(affair, tab) {
   if (selected.value?.affairid === affair.affairid && expandedTab.value === tab) {
@@ -298,30 +335,27 @@ async function toggleTab(affair, tab) {
       .order('created_at', { ascending: true })
     affairMessages.value = data || []
   }
-}
 
-function printMateriel(affair) {
-  const zones = []
-  if (affair.front) zones.push({ title: '🔵 Façade — ' + (affair.tech_name || '?'), content: affair.materiel_front || 'Pas de matériel' })
-  if (affair.monitor) zones.push({ title: '🟠 Retours — ' + (affair.tech_name_monitor || '?'), content: affair.materiel_monitor || 'Pas de matériel' })
-  if (affair.stage) zones.push({ title: '🟢 Scène — ' + (affair.tech_name_stage || '?'), content: affair.materiel_stage || 'Pas de matériel' })
-
-  let html = `<html><head><title>${affair.name} - Matériel</title><style>
-    body { font-family: sans-serif; padding: 20px; }
-    h1 { font-size: 20px; margin-bottom: 15px; }
-    .zone { margin-bottom: 20px; page-break-inside: avoid; }
-    .zone-title { font-size: 16px; font-weight: bold; padding: 8px; border-bottom: 2px solid #333; margin-bottom: 8px; }
-    .zone-content { white-space: pre-wrap; font-size: 14px; padding: 8px; }
-  </style></head><body>`
-  html += `<h1>${affair.name}</h1>`
-  for (const z of zones) {
-    html += `<div class="zone"><div class="zone-title">${z.title}</div><div class="zone-content">${z.content}</div></div>`
+  if (tab === 'materiel') {
+    fcLoading.value = true
+    allCables.value = []
+    const { data } = await supabase
+      .from('order')
+      .select('*, cable(name, type)')
+      .eq('affairid', affair.affairid)
+    // Joindre les infos cable dans chaque order
+    allCables.value = (data || []).map(o => ({
+      ...o,
+      name: o.cable?.name || '?',
+      type: o.cable?.type || '',
+    })).filter(c =>
+      (c.spare_count || 0) + (c.z1 || 0) + (c.z2 || 0) + (c.z3 || 0) +
+      (c.z4 || 0) + (c.z5 || 0) + (c.z6 || 0) +
+      (c.tfc1 || 0) + (c.tfc2 || 0) + (c.tfc3 || 0) + (c.tfc4 || 0) +
+      (c.tfc5 || 0) + (c.tfc6 || 0) + (c.tfc7 || 0) > 0
+    )
+    fcLoading.value = false
   }
-  html += `</body></html>`
-  const w = window.open('', '_blank', 'width=500,height=700')
-  w.document.write(html)
-  w.document.close()
-  w.print()
 }
 
 onMounted(() => {
@@ -391,16 +425,44 @@ function formatDate(dateStr) {
   return `${d.getDate()} ${months[d.getMonth()]}`
 }
 
-let inviteTimer = null
-
-function startInvite(affair, zone) {
-  inviteTimer = setTimeout(() => {
-    sendZoneInvite(affair, zone)
-  }, 800)
+function getAffairZones(affair) {
+  const zones = []
+  if (affair.front) {
+    zones.push({
+      key: 'front', css: 'facade', icon: '🔵', label: 'Façade',
+      name: affair.tech_name || '?',
+      firstname: affair.tech_firstname || '',
+      phone: affair.tech_phone || '',
+      email: affair.tech_email || '',
+    })
+  }
+  if (affair.monitor) {
+    zones.push({
+      key: 'monitor', css: 'retour', icon: '🟠', label: 'Retours',
+      name: affair.tech_name_monitor || '?',
+      firstname: affair.tech_firstname_monitor || '',
+      phone: affair.tech_phone_monitor || '',
+      email: affair.tech_email_monitor || '',
+    })
+  }
+  if (affair.stage) {
+    zones.push({
+      key: 'stage', css: 'scene', icon: '🟢', label: 'Scène',
+      name: affair.tech_name_stage || '?',
+      firstname: affair.tech_firstname_stage || '',
+      phone: affair.tech_phone_stage || '',
+      email: affair.tech_email_stage || '',
+    })
+  }
+  return zones
 }
 
-function cancelInvite() {
-  clearTimeout(inviteTimer)
+function getAllEmails(affair) {
+  const emails = []
+  if (affair.tech_email) emails.push(affair.tech_email)
+  if (affair.tech_email_monitor && !emails.includes(affair.tech_email_monitor)) emails.push(affair.tech_email_monitor)
+  if (affair.tech_email_stage && !emails.includes(affair.tech_email_stage)) emails.push(affair.tech_email_stage)
+  return emails
 }
 
 async function sendZoneInvite(affair, zone) {
@@ -474,8 +536,13 @@ async function selectAffair(affair) {
   masterReply.value = ''
   Object.assign(form, {
     name: affair.name || '',
-    tech_name: affair.tech_name || '',
-    tech_email: affair.tech_email || '',
+    reference: affair.reference || '',
+    tech_name: affair.tech_name || '', tech_firstname: affair.tech_firstname || '',
+    tech_email: affair.tech_email || '', tech_phone: affair.tech_phone || '',
+    tech_name_monitor: affair.tech_name_monitor || '', tech_firstname_monitor: affair.tech_firstname_monitor || '',
+    tech_email_monitor: affair.tech_email_monitor || '', tech_phone_monitor: affair.tech_phone_monitor || '',
+    tech_name_stage: affair.tech_name_stage || '', tech_firstname_stage: affair.tech_firstname_stage || '',
+    tech_email_stage: affair.tech_email_stage || '', tech_phone_stage: affair.tech_phone_stage || '',
     prep_date: affair.prep_date || '',
     receipt_date: affair.receipt_date || '',
     return_date: affair.return_date || '',
@@ -483,7 +550,11 @@ async function selectAffair(affair) {
     monitor: affair.monitor || false,
     stage: affair.stage || false,
     description: affair.description || '',
+    attachment_name: affair.attachment_name || '',
+    attachment_url: affair.attachment_url || '',
   })
+  existingAttachments.value = affair.attachment_name ? affair.attachment_name.split(',') : []
+  attachmentFiles.value = []
   // Charger les messages
   const { data } = await supabase
     .from('message')
@@ -524,24 +595,53 @@ async function markReadByMaster(affair) {
 }
 
 async function saveAffair() {
-  // Trouver le nom du tech depuis l'email
-  if (form.tech_email) {
-    const tech = technicians.value.find(t => t.email === form.tech_email)
-    if (tech) form.tech_name = tech.name
+  console.log('saveAffair called', JSON.stringify(form))
+  // Upload fichiers
+  const uploadedNames = [...(existingAttachments.value || [])]
+  const uploadedUrls = form.attachment_url ? form.attachment_url.split(',') : []
+  for (const file of attachmentFiles.value) {
+    const path = `affairs/${Date.now()}_${file.name}`
+    const { error: upErr } = await supabase.storage.from('documents').upload(path, file)
+    if (!upErr) {
+      const { data: urlData } = supabase.storage.from('documents').getPublicUrl(path)
+      uploadedUrls.push(urlData?.publicUrl || '')
+      uploadedNames.push(file.name)
+    }
   }
+  attachmentFiles.value = []
+  form.attachment_name = uploadedNames.join(',')
+  form.attachment_url = uploadedUrls.join(',')
 
   const payload = {
     name: form.name,
-    tech_name: form.tech_name || '',
-    tech_id: 1,
+    tech_id: parseInt(localStorage.getItem('cablemaster-techid')) || 0,
     prep_date: form.prep_date || null,
-    receipt_date: form.receipt_date,
-    return_date: form.return_date,
+    receipt_date: form.receipt_date || null,
+    return_date: form.return_date || null,
     front: form.front,
     monitor: form.monitor,
     stage: form.stage,
     description: form.description || '',
     catalog_id: catalogId,
+    // Tech façade
+    tech_name: form.tech_name || '',
+    tech_firstname: form.tech_firstname || '',
+    tech_email: form.tech_email || '',
+    tech_phone: form.tech_phone || '',
+    // Tech retours
+    tech_name_monitor: form.tech_name_monitor || '',
+    tech_firstname_monitor: form.tech_firstname_monitor || '',
+    tech_email_monitor: form.tech_email_monitor || '',
+    tech_phone_monitor: form.tech_phone_monitor || '',
+    // Tech scène
+    tech_name_stage: form.tech_name_stage || '',
+    tech_firstname_stage: form.tech_firstname_stage || '',
+    tech_email_stage: form.tech_email_stage || '',
+    tech_phone_stage: form.tech_phone_stage || '',
+    // Nouvelles colonnes
+    reference: form.reference || '',
+    attachment_name: form.attachment_name || '',
+    attachment_url: form.attachment_url || '',
   }
 
   if (editing.value) {
@@ -549,8 +649,10 @@ async function saveAffair() {
     if (error) showMessage('Erreur: ' + error.message, 'error')
     else { showMessage('Affaire modifiée', 'success'); await loadAffairs(); showForm.value = false }
   } else {
-    const { error } = await supabase.from('affair').insert(payload)
-    if (error) showMessage('Erreur: ' + error.message, 'error')
+    console.log('Inserting payload:', JSON.stringify(payload))
+    const { data: insertData, error } = await supabase.from('affair').insert(payload)
+    console.log('Insert result:', { data: insertData, error })
+    if (error) { console.error('Insert error:', error); alert('Erreur: ' + error.message); showMessage('Erreur: ' + error.message, 'error') }
     else { showMessage('Affaire créée', 'success'); await loadAffairs(); showForm.value = false }
   }
 }
@@ -611,15 +713,68 @@ async function deleteAffair() {
   editing.value = null
 }
 
-async function addTechnician() {
+function openNewTech(zone) {
+  newTechZone.value = newTechZone.value === zone ? '' : zone
+  Object.assign(newTech, { firstname: '', name: '', email: '', phone: '' })
+}
+
+function onTechSelect(zone) {
+  const emailField = zone === 'front' ? 'tech_email' : `tech_email_${zone}`
+  const email = form[emailField]
+  const tech = technicians.value.find(t => t.email === email)
+  if (!tech) return
+  if (zone === 'front') {
+    form.tech_name = tech.name || ''
+    form.tech_firstname = tech.firstname || ''
+    form.tech_phone = tech.phone || ''
+  } else if (zone === 'monitor') {
+    form.tech_name_monitor = tech.name || ''
+    form.tech_firstname_monitor = tech.firstname || ''
+    form.tech_phone_monitor = tech.phone || ''
+  } else {
+    form.tech_name_stage = tech.name || ''
+    form.tech_firstname_stage = tech.firstname || ''
+    form.tech_phone_stage = tech.phone || ''
+  }
+}
+
+async function addTechForZone(zone) {
   if (!newTech.name) return
-  const { error } = await supabase.from('technician').insert({ ...newTech, company_id: companyId })
+  const { error } = await supabase.from('technician').insert({
+    name: newTech.name,
+    firstname: newTech.firstname,
+    email: newTech.email,
+    phone: newTech.phone,
+    company_id: companyId,
+  })
   if (!error) {
     await loadTechnicians()
-    Object.assign(newTech, { name: '', email: '', phone: '' })
-    showAddTech.value = false
+    // Auto-sélectionner
+    if (zone === 'front') {
+      form.tech_email = newTech.email
+      form.tech_name = newTech.name
+      form.tech_firstname = newTech.firstname
+      form.tech_phone = newTech.phone
+    } else if (zone === 'monitor') {
+      form.tech_email_monitor = newTech.email
+      form.tech_name_monitor = newTech.name
+      form.tech_firstname_monitor = newTech.firstname
+      form.tech_phone_monitor = newTech.phone
+    } else {
+      form.tech_email_stage = newTech.email
+      form.tech_name_stage = newTech.name
+      form.tech_firstname_stage = newTech.firstname
+      form.tech_phone_stage = newTech.phone
+    }
+    newTechZone.value = ''
+    Object.assign(newTech, { firstname: '', name: '', email: '', phone: '' })
     showMessage('Technicien ajouté', 'success')
   }
+}
+
+function onFileSelect(e) {
+  const files = Array.from(e.target.files || [])
+  attachmentFiles.value = [...attachmentFiles.value, ...files]
 }
 
 function showMessage(msg, type) {
@@ -683,6 +838,24 @@ h3 { font-size: 16px; margin: 0; }
 .tag-sm.front { background: #3b82f6; }
 .tag-sm.monitor { background: #f59e0b; }
 .tag-sm.stage { background: #10b981; }
+.btn-create-inline {
+  width: 32px;
+  height: 32px;
+  background: var(--color3);
+  color: #000;
+  border: none;
+  border-radius: 50%;
+  font-size: 20px;
+  font-weight: 800;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  min-width: auto;
+  box-shadow: none;
+  flex-shrink: 0;
+}
 .btn-create {
   width: 100%;
   padding: 10px;
@@ -720,7 +893,28 @@ h3 { font-size: 16px; margin: 0; }
   background: var(--bg-input, #fff); color: var(--text, #333);
   font-size: 13px; font-weight: 600; cursor: pointer; box-shadow: none; min-width: auto;
 }
+.zone-toggles button.active.facade { border-color: #3b82f6; background: #3b82f6; color: #fff; }
+.zone-toggles button.active.retour { border-color: #f59e0b; background: #f59e0b; color: #fff; }
+.zone-toggles button.active.scene { border-color: #10b981; background: #10b981; color: #fff; }
 .zone-toggles button.active { border-color: var(--color1); background: var(--color1); color: #fff; }
+.form-grid.three { display: flex; gap: 6px; }
+.form-grid.three .form-row { flex: 1; }
+.form-section-title { font-size: 13px; font-weight: 700; color: var(--text-light, #888); text-transform: uppercase; margin: 10px 0 6px; }
+.zone-tech-block { margin: 6px 0; padding: 8px; border-radius: 8px; border: 1px solid var(--border-light, #eee); }
+.zone-tech-block.facade { border-left: 3px solid #3b82f6; }
+.zone-tech-block.retour { border-left: 3px solid #f59e0b; }
+.zone-tech-block.scene { border-left: 3px solid #10b981; }
+.zone-tech-header { font-size: 13px; font-weight: 700; margin-bottom: 6px; }
+.zone-tech-select { display: flex; gap: 4px; align-items: center; }
+.zone-tech-select select { flex: 1; padding: 6px; font-size: 14px; border: 1px solid var(--border-light, #ccc); border-radius: 6px; background: var(--bg-input, #fff); color: var(--text, #333); }
+.btn-new-tech { width: 28px; height: 28px; border-radius: 50%; border: none; background: var(--color1); color: #fff; font-size: 16px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; min-width: auto; box-shadow: none; }
+.new-tech-form { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; padding: 6px; border: 1px dashed var(--border-light, #ccc); border-radius: 6px; }
+.new-tech-form input { flex: 1; min-width: 80px; padding: 6px; font-size: 14px; border: 1px solid #ccc; border-radius: 4px; background: var(--bg-input, #fff); color: var(--text, #333); }
+.new-tech-form button { padding: 6px 12px; background: var(--color1); color: #fff; border: none; border-radius: 4px; font-size: 13px; font-weight: 600; cursor: pointer; box-shadow: none; min-width: auto; }
+.zone-tech-info { font-size: 12px; color: var(--text-light, #888); margin-top: 4px; }
+.zone-tech-info span { color: var(--text-muted, #999); }
+.file-input { font-size: 14px; padding: 4px 0; color: var(--text, #333); }
+.attachment-info { font-size: 12px; color: var(--color1); margin-top: 4px; }
 .btn-add-tech {
   margin-top: 4px; padding: 4px 10px; font-size: 11px; font-weight: 600;
   border: 1px solid var(--color1); border-radius: 4px; background: transparent;
@@ -770,12 +964,23 @@ h3 { font-size: 16px; margin: 0; }
 @keyframes blink-star { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
 .card-unread-msg { padding: 4px 8px 4px 22px; font-size: 12px; color: #ef4444; font-style: italic; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .card-expanded { padding: 8px; border-top: 1px solid var(--border-light, #eee); margin-top: 6px; }
-.expanded-tech { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-.tech-info { display: flex; flex-direction: column; gap: 2px; }
-.tech-info strong { font-size: 14px; color: var(--text, #333); }
-.tech-contact { font-size: 12px; color: var(--text-light, #888); }
-.tech-actions { display: flex; gap: 6px; }
-.tech-btn { font-size: 20px; text-decoration: none; padding: 4px; }
+.fiche-person { margin-bottom: 10px; border: 1px solid var(--border-light, #eee); border-radius: 8px; overflow: hidden; }
+.fiche-person-header { padding: 6px 10px; font-size: 13px; font-weight: 700; }
+.fiche-person-header.facade { background: rgba(59,130,246,0.1); color: #3b82f6; }
+.fiche-person-header.retour { background: rgba(245,158,11,0.1); color: #f59e0b; }
+.fiche-person-header.scene { background: rgba(16,185,129,0.1); color: #10b981; }
+.fiche-person-body { padding: 8px 10px; }
+.fiche-contact-all { display: block; text-align: center; padding: 8px; margin-bottom: 10px; background: var(--color1); color: #fff; border-radius: 8px; font-size: 14px; font-weight: 700; text-decoration: none; }
+.fiche-person-line { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; margin-bottom: 6px; }
+.fiche-person-name { font-size: 15px; font-weight: 700; color: var(--text, #333); }
+.fiche-person-phone { font-size: 13px; color: var(--text-light, #888); }
+.fiche-person-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.fiche-action-btn { display: inline-flex; align-items: center; gap: 4px; padding: 6px 12px; border-radius: 6px; font-size: 13px; font-weight: 600; text-decoration: none; cursor: pointer; }
+.fiche-action-btn.call { background: rgba(59,130,246,0.1); color: #3b82f6; }
+.fiche-action-btn.sms { background: rgba(16,185,129,0.1); color: #10b981; }
+.fiche-action-btn.email { background: rgba(245,158,11,0.1); color: #f59e0b; }
+.fiche-person-email { font-size: 12px; color: var(--text-light, #888); margin-bottom: 6px; }
+.fiche-no-contact { font-size: 12px; color: var(--text-muted, #999); font-style: italic; margin-top: 4px; }
 .master-chat { border: 1px solid var(--border-light, #eee); border-radius: 8px; padding: 8px; }
 .chat-messages-master { max-height: 150px; overflow-y: auto; margin-bottom: 6px; }
 .chat-msg-m { display: flex; gap: 6px; margin-bottom: 6px; }
@@ -796,4 +1001,11 @@ h3 { font-size: 16px; margin: 0; }
 .message { text-align: center; padding: 10px; border-radius: 8px; margin-top: 10px; font-size: 14px; font-weight: 600; }
 .message.success { background: var(--color1-light); color: var(--color1-dark); }
 .message.error { background: #fecaca; color: #dc2626; }
+.fc-loading { text-align: center; padding: 12px; color: var(--text-muted, #999); font-size: 13px; }
+.zone-banner { padding: 6px 10px; font-size: 13px; font-weight: 700; border-radius: 6px; margin-bottom: 4px; }
+.zone-banner.facade { background: rgba(59,130,246,0.1); color: #3b82f6; }
+.zone-banner.retour { background: rgba(245,158,11,0.1); color: #f59e0b; }
+.zone-banner.scene { background: rgba(16,185,129,0.1); color: #10b981; }
+.zone-block { margin-bottom: 12px; }
+.zone-empty { padding: 8px 10px; font-size: 13px; color: var(--text-muted, #999); font-style: italic; }
 </style>
