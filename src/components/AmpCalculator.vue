@@ -7,59 +7,42 @@
     <div v-if="open" class="calc-body">
       <!-- En-têtes -->
       <div class="calc-table">
-        <div class="calc-row header">
-          <span class="col-nb">Nb</span>
-          <span class="col-sys">System</span>
-          <span class="col-amp">Ampli</span>
-          <span class="col-res">Amplis</span>
-          <span class="col-rack-group">
-            <span class="col-rack-sub">Racks</span>
-            <span class="col-rack-sub">Dispo</span>
-          </span>
-          <span class="col-cable">Câblage</span>
-          <span class="col-del"></span>
-        </div>
-
         <!-- Lignes -->
-        <div v-for="(line, i) in lines" :key="i" class="calc-row data">
-          <input v-model.number="line.qty" type="number" min="1" class="col-nb input-nb" placeholder="0" />
-          <select v-model="line.name" class="col-sys input-sys">
-            <option value="">--</option>
-            <optgroup v-for="cat in speakerCategories(line.ampType)" :key="cat.label" :label="cat.label">
-              <option v-for="s in cat.items" :key="s.name" :value="s.name">{{ s.name }}</option>
-            </optgroup>
-          </select>
-          <select v-model="line.ampType" class="col-amp input-amp">
-            <option value="LA4X">LA4X</option>
-            <option value="LA12X">LA12X</option>
-            <option value="LA8">LA8</option>
-          </select>
-          <span class="col-res val">{{ getAmps(line) || '–' }}</span>
-          <span class="col-rack-group">
-            <span class="col-rack-sub val">{{ getRacks(line) || '–' }}</span>
-            <span class="col-rack-sub val dispo">{{ getDispo(line) || '–' }}</span>
-          </span>
-          <span class="col-cable val small">{{ getCabling(line) }}</span>
-          <button class="col-del btn-del" @click="lines.splice(i, 1)">✕</button>
+        <div v-for="(line, i) in lines" :key="i" class="calc-card">
+          <div class="card-inputs">
+            <input v-model.number="line.qty" type="number" min="1" class="input-nb" placeholder="Nb" />
+            <select v-model="line.name" class="input-sys">
+              <option value="">-- Enceinte --</option>
+              <optgroup v-for="cat in speakerCategories(line.ampType)" :key="cat.label" :label="cat.label">
+                <option v-for="s in cat.items" :key="s.name" :value="s.name">{{ s.name }}</option>
+              </optgroup>
+            </select>
+            <select v-model="line.ampType" class="input-amp">
+              <option value="LA4X">4X</option>
+              <option value="LA12X">12X</option>
+              <option value="LA8">8</option>
+            </select>
+            <button class="btn-del" @click="lines.splice(i, 1)">✕</button>
+          </div>
+          <div v-if="line.name && line.qty" class="card-results">
+            <span class="res-item"><strong>{{ getAmps(line) }}</strong> ampli{{ getAmps(line) > 1 ? 's' : '' }}</span>
+            <template v-if="line.ampType !== 'LA4X'">
+              <span class="res-item rack">{{ getRacks(line) }} rack{{ getRacks(line) > 1 ? 's' : '' }}</span>
+              <span v-if="getDispo(line)" class="res-item dispo">{{ getDispo(line) }} dispo</span>
+            </template>
+            <span class="res-item cable">{{ getCabling(line) }}</span>
+          </div>
         </div>
 
-        <!-- Ligne vide pour ajout -->
-        <div class="calc-row add-row">
-          <button class="btn-add-line" @click="addLine">+ Ajouter une ligne</button>
-        </div>
+        <!-- Ajout -->
+        <button class="btn-add-line" @click="addLine">+ Ajouter une ligne</button>
 
         <!-- Total -->
-        <div v-if="lines.some(l => l.name && l.qty)" class="calc-row total">
-          <span class="col-nb"></span>
-          <span class="col-sys total-label">Total</span>
-          <span class="col-amp"></span>
-          <span class="col-res val total-val">{{ totalAmps }}</span>
-          <span class="col-rack-group">
-            <span class="col-rack-sub val total-val">{{ totalRacks }}</span>
-            <span class="col-rack-sub val total-val dispo">{{ totalDispo }}</span>
-          </span>
-          <span class="col-cable"></span>
-          <span class="col-del"></span>
+        <div v-if="lines.some(l => l.name && l.qty)" class="calc-total">
+          <span class="total-label">Total</span>
+          <span class="total-val">{{ totalAmps }} amplis</span>
+          <span v-if="totalRacks" class="total-val rack">{{ totalRacks }} racks</span>
+          <span v-if="totalDispo" class="total-val dispo">{{ totalDispo }} dispo</span>
         </div>
       </div>
 
@@ -328,104 +311,92 @@ const summaryText = computed(() => {
   color: var(--text, #333);
   user-select: none;
 }
-.calc-body {
-  padding: 8px;
-}
-.calc-table {
-  width: 100%;
-}
-.calc-row {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  padding: 3px 0;
-}
-.calc-row.header {
-  border-bottom: 2px solid var(--border, #ddd);
-  padding-bottom: 6px;
-  margin-bottom: 4px;
-}
-.calc-row.header span {
-  font-size: 10px;
-  font-weight: 700;
-  color: var(--text-light, #888);
-  text-transform: uppercase;
-  text-align: center;
-}
-.col-nb { width: 42px; text-align: center; flex-shrink: 0; }
-.col-sys { flex: 1; min-width: 0; }
-.col-amp { width: 62px; flex-shrink: 0; }
-.col-res { width: 38px; text-align: center; flex-shrink: 0; }
-.col-rack-group {
-  display: flex; flex-shrink: 0; border: 1px solid var(--border-light, #ddd);
-  border-radius: 4px; overflow: hidden; background: rgba(59,130,246,0.04);
-}
-.col-rack-sub { width: 36px; text-align: center; }
-.col-rack-sub + .col-rack-sub { border-left: 1px solid var(--border-light, #ddd); }
-.header .col-rack-group { border: none; background: none; }
-.header .col-rack-sub { font-size: 9px; }
-.val.dispo { color: #f59e0b; background: rgba(245,158,11,0.08); }
-.total-val.dispo { color: #f59e0b !important; background: rgba(245,158,11,0.1) !important; }
-.col-cable { width: 90px; text-align: center; flex-shrink: 0; }
-.col-del { width: 22px; flex-shrink: 0; }
+.calc-body { padding: 8px; }
+.calc-table { width: 100%; }
 
+/* Card par ligne */
+.calc-card {
+  border: 1px solid var(--border-light, #ddd);
+  border-radius: 8px;
+  margin-bottom: 6px;
+  overflow: hidden;
+}
+.card-inputs {
+  display: flex;
+  gap: 4px;
+  padding: 6px;
+  align-items: center;
+}
 .input-nb {
-  width: 42px; padding: 5px 2px; border: 1px solid var(--border-light, #ccc);
-  border-radius: 4px; font-size: 14px; text-align: center; font-weight: 700;
+  width: 50px; padding: 8px 4px; border: 1px solid var(--border-light, #ccc);
+  border-radius: 6px; font-size: 16px; text-align: center; font-weight: 700;
   background: var(--bg-input, #fff); color: var(--text, #333);
+  flex-shrink: 0;
 }
 .input-sys {
-  width: 100%; padding: 5px 2px; border: 1px solid var(--border-light, #ccc);
-  border-radius: 4px; font-size: 13px;
+  flex: 1; min-width: 0; padding: 8px 4px; border: 1px solid var(--border-light, #ccc);
+  border-radius: 6px; font-size: 14px;
   background: var(--bg-input, #fff); color: var(--text, #333);
 }
 .input-amp {
-  width: 62px; padding: 5px 1px; border: 1px solid var(--border-light, #ccc);
-  border-radius: 4px; font-size: 11px; font-weight: 600;
+  width: 54px; padding: 8px 2px; border: 1px solid var(--border-light, #ccc);
+  border-radius: 6px; font-size: 13px; font-weight: 700;
   background: var(--bg-input, #fff); color: var(--text, #333);
-}
-.val {
-  font-size: 14px;
-  font-weight: 800;
-  color: #3b82f6;
-  background: rgba(59,130,246,0.08);
-  border-radius: 4px;
-  padding: 4px 0;
-}
-.val.small {
-  font-size: 10px;
-  font-weight: 600;
+  flex-shrink: 0; text-align: center;
 }
 .btn-del {
-  width: 20px; height: 20px; border-radius: 50%; border: none;
-  background: #ef4444; color: #fff; font-size: 10px; cursor: pointer;
+  width: 24px; height: 24px; border-radius: 50%; border: none;
+  background: #ef4444; color: #fff; font-size: 11px; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
-  padding: 0; min-width: auto; box-shadow: none;
+  padding: 0; min-width: auto; box-shadow: none; flex-shrink: 0;
 }
-.add-row {
-  justify-content: center;
-  padding: 4px 0;
+/* Résultats sous les inputs */
+.card-results {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 4px 8px 6px;
+  background: rgba(59,130,246,0.05);
+  border-top: 1px solid var(--border-light, #eee);
 }
+.res-item {
+  font-size: 12px;
+  font-weight: 700;
+  color: #3b82f6;
+  background: rgba(59,130,246,0.1);
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+.res-item strong { font-size: 14px; }
+.res-item.rack { color: var(--color1); background: rgba(77,204,89,0.1); }
+.res-item.dispo { color: #f59e0b; background: rgba(245,158,11,0.1); }
+.res-item.cable { color: var(--text-light, #888); background: var(--bg-card, #f0f0f0); font-size: 11px; }
+
+/* Bouton ajout */
 .btn-add-line {
-  padding: 4px 12px; border: 1px dashed var(--border-light, #ccc);
+  display: block; width: 100%;
+  padding: 8px; border: 1px dashed var(--border-light, #ccc);
   border-radius: 6px; background: transparent; color: var(--text-muted, #999);
-  font-size: 12px; font-weight: 600; cursor: pointer; box-shadow: none; min-width: auto;
+  font-size: 13px; font-weight: 600; cursor: pointer; box-shadow: none; min-width: auto;
+  text-align: center; margin-bottom: 6px;
 }
-.calc-row.total {
+/* Total */
+.calc-total {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
   border-top: 2px solid var(--border, #ddd);
   margin-top: 4px;
-  padding-top: 6px;
 }
-.total-label {
-  font-size: 13px;
-  font-weight: 800;
-  color: var(--text, #333);
-}
+.total-label { font-size: 14px; font-weight: 800; color: var(--text, #333); }
 .total-val {
-  font-size: 16px !important;
-  color: var(--color1) !important;
-  background: rgba(77,204,89,0.1) !important;
+  font-size: 14px; font-weight: 800; color: var(--color1);
+  background: rgba(77,204,89,0.1); padding: 3px 10px; border-radius: 10px;
 }
+.total-val.rack { color: #3b82f6; background: rgba(59,130,246,0.1); }
+.total-val.dispo { color: #f59e0b; background: rgba(245,158,11,0.1); }
 .rack-config {
   display: flex;
   align-items: center;
