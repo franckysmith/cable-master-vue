@@ -8,11 +8,37 @@
       <button :class="{ active: tab === 'draft' }" @click="tab = 'draft'">Brouillons</button>
       <button :class="{ active: tab === 'sent' }" @click="tab = 'sent'">Envoyées</button>
       <button :class="{ active: tab === 'done' }" @click="tab = 'done'">Terminées</button>
-      <button class="btn-create-inline" @click="showForm = true; editing = null">+</button>
+      <button class="btn-create-inline" @click="showForm = true; editing = null; selected = null">+</button>
     </div>
     <button v-if="selected" class="btn-back" @click="selected = null; showForm = false; showChatOnly = false">
       ← Retour aux affaires
     </button>
+
+    <!-- Timeline -->
+    <div v-if="showTimeline" class="timeline-panel">
+      <div class="timeline-header">
+        <span class="timeline-title">Planning</span>
+        <button class="close-btn" @click="showTimeline = false">✕</button>
+      </div>
+      <div class="timeline-scroll" ref="timelineScroll">
+        <div class="timeline-grid" :style="{ width: timelineWidth + 'px' }">
+          <!-- Mois -->
+          <div class="timeline-months">
+            <div v-for="m in timelineMonths" :key="m.key" class="timeline-month" :style="{ left: m.left + 'px', width: m.width + 'px' }">
+              {{ m.label }}
+            </div>
+          </div>
+          <!-- Aujourd'hui -->
+          <div class="timeline-today" :style="{ left: todayLeft + 'px' }"></div>
+          <!-- Barres d'affaires -->
+          <div v-for="(bar, idx) in timelineBars" :key="bar.id" class="timeline-bar" :style="{ top: (idx * 32 + 28) + 'px', left: bar.left + 'px', width: bar.width + 'px' }">
+            <div class="bar-prep" v-if="bar.prepWidth > 0" :style="{ width: bar.prepWidth + 'px' }"></div>
+            <div class="bar-event" :style="{ width: bar.eventWidth + 'px' }"></div>
+            <span class="bar-label">{{ bar.name }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- Formulaire création/édition -->
     <div v-if="showForm && !selected" class="form-panel">
@@ -111,7 +137,7 @@
 
       <div class="form-row">
         <label>Matériel / Notes</label>
-        <textarea v-model="form.description" rows="5" placeholder="Systèmes K2, K3, wedge, subs, amplis..."></textarea>
+        <textarea v-model="form.description" rows="5" placeholder="Systèmes K2, K3, wedge, subs, amplis..." ref="descriptionRef"></textarea>
       </div>
 
       <div class="form-row">
@@ -131,7 +157,7 @@
     </div>
 
     <!-- Liste -->
-    <div class="affair-list">
+    <div class="affair-list" v-show="!showForm || selected">
       <div
         v-for="affair in filteredAffairs"
         :key="affair.affairid"
@@ -144,9 +170,13 @@
           <span class="card-status" :class="affair.status || 'draft'">{{ statusLabel(affair.status) }}</span>
           <span v-if="unreadAffairs[affair.affairid]" class="unread-star" @click.stop="openChatOnly(affair)">★</span>
           <span class="card-name">{{ affair.name }}</span>
-          <span class="date-item" v-if="affair.prep_date">🔧 {{ formatDate(affair.prep_date) }}</span>
-          <span class="date-item">📦 {{ formatDate(affair.receipt_date) }}</span>
-          <span class="date-item" v-if="affair.return_date">↩ {{ formatDate(affair.return_date) }}</span>
+          <div class="card-dates" @click.stop="showTimeline = !showTimeline">
+            <span v-if="affair.prep_date" class="date-prep">Prépa {{ formatDate(affair.prep_date) }}</span>
+            <span v-if="affair.prep_date" class="date-sep"></span>
+            <span class="date-event">{{ formatDate(affair.receipt_date) }}</span>
+            <span v-if="affair.return_date" class="date-arrow">➡</span>
+            <span v-if="affair.return_date" class="date-return">{{ formatDate(affair.return_date) }}</span>
+          </div>
         </div>
         <div class="card-bottom">
           <div class="card-techs">
@@ -259,6 +289,8 @@
               <div class="zone-banner scene">🟢 Scène — {{ affair.tech_name_stage || '?' }}</div>
               <div class="zone-empty">Aucun matériel préparé</div>
             </div>
+            <!-- Calculateur amplis -->
+            <AmpCalculator :description="affair.description || ''" />
           </template>
         </div>
       </div>
@@ -270,9 +302,10 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, watch, onMounted, nextTick } from 'vue'
 import { supabase } from '../lib/supabase'
 import AllCasesView from '../components/AllCasesView.vue'
+import AmpCalculator from '../components/AmpCalculator.vue'
 
 const tab = ref('all')
 const affairs = ref([])
@@ -316,6 +349,87 @@ const showChatOnly = ref(false)
 const expandedTab = ref('')
 const allCables = ref([])
 const fcLoading = ref(false)
+const showTimeline = ref(false)
+const timelineScroll = ref(null)
+
+const DAY_PX = 12 // pixels par jour
+
+const timelineRange = computed(() => {
+  const dates = []
+  for (const a of affairs.value) {
+    if (a.prep_date) dates.push(new Date(a.prep_date))
+    if (a.receipt_date) dates.push(new Date(a.receipt_date))
+    if (a.return_date) dates.push(new Date(a.return_date))
+  }
+  if (dates.length === 0) return { start: new Date(), end: new Date() }
+  const min = new Date(Math.min(...dates))
+  const max = new Date(Math.max(...dates))
+  // Ajouter 7j de marge de chaque côté
+  min.setDate(min.getDate() - 7)
+  max.setDate(max.getDate() + 7)
+  return { start: min, end: max }
+})
+
+function daysBetween(a, b) {
+  return Math.round((b - a) / (1000 * 60 * 60 * 24))
+}
+
+const timelineWidth = computed(() => {
+  const { start, end } = timelineRange.value
+  return Math.max(daysBetween(start, end) * DAY_PX, 300)
+})
+
+const todayLeft = computed(() => {
+  const { start } = timelineRange.value
+  return daysBetween(start, new Date()) * DAY_PX
+})
+
+const timelineMonths = computed(() => {
+  const { start, end } = timelineRange.value
+  const months = []
+  const d = new Date(start.getFullYear(), start.getMonth(), 1)
+  const monthNames = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre']
+  while (d <= end) {
+    const nextMonth = new Date(d.getFullYear(), d.getMonth() + 1, 1)
+    const left = daysBetween(start, d) * DAY_PX
+    const width = daysBetween(d, nextMonth > end ? end : nextMonth) * DAY_PX
+    months.push({ key: d.toISOString(), label: monthNames[d.getMonth()] + ' ' + d.getFullYear(), left: Math.max(left, 0), width })
+    d.setMonth(d.getMonth() + 1)
+  }
+  return months
+})
+
+const timelineBars = computed(() => {
+  const { start } = timelineRange.value
+  return affairs.value.map(a => {
+    const prepDate = a.prep_date ? new Date(a.prep_date) : null
+    const eventDate = a.receipt_date ? new Date(a.receipt_date) : new Date()
+    const returnDate = a.return_date ? new Date(a.return_date) : eventDate
+    const barStart = prepDate || eventDate
+    const left = daysBetween(start, barStart) * DAY_PX
+    const totalDays = Math.max(daysBetween(barStart, returnDate), 1)
+    const prepDays = prepDate ? daysBetween(prepDate, eventDate) : 0
+    const eventDays = Math.max(daysBetween(eventDate, returnDate), 1)
+    return {
+      id: a.affairid,
+      name: a.name,
+      left,
+      width: totalDays * DAY_PX,
+      prepWidth: prepDays * DAY_PX,
+      eventWidth: eventDays * DAY_PX,
+    }
+  })
+})
+
+// Scroll vers aujourd'hui quand on ouvre la timeline
+watch(showTimeline, async (val) => {
+  if (val) {
+    await nextTick()
+    if (timelineScroll.value) {
+      timelineScroll.value.scrollLeft = Math.max(todayLeft.value - 100, 0)
+    }
+  }
+})
 
 async function toggleTab(affair, tab) {
   if (selected.value?.affairid === affair.affairid && expandedTab.value === tab) {
@@ -829,7 +943,12 @@ h3 { font-size: 16px; margin: 0; }
 .card-top { display: flex; align-items: center; gap: 6px; }
 .card-status { font-size: 14px; }
 .card-name { flex: 1; font-size: 15px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text, #333); }
-.date-item { font-size: 10px; color: var(--text-light, #888); white-space: nowrap; flex-shrink: 0; margin-left: 6px; }
+.card-dates { display: flex; align-items: center; gap: 6px; margin-left: auto; flex-shrink: 0; }
+.date-prep { font-size: 11px; color: var(--text-light, #888); }
+.date-sep { width: 2px; height: 14px; background: #ef4444; border-radius: 1px; flex-shrink: 0; }
+.date-event { font-size: 12px; font-weight: 700; color: var(--text, #333); }
+.date-arrow { font-size: 11px; color: var(--text-muted, #999); }
+.date-return { font-size: 11px; color: var(--text-light, #888); }
 .btn-back { width: 100%; padding: 8px; background: transparent; border: 1px solid var(--border-light, #ccc); border-radius: 6px; color: var(--text, #333); font-size: 14px; font-weight: 600; cursor: pointer; margin-bottom: 8px; box-shadow: none; min-width: auto; text-align: left; }
 .card-bottom { display: flex; align-items: center; justify-content: space-between; margin-top: 4px; padding-left: 22px; }
 .card-tech { font-size: 12px; color: var(--text-light, #888); }
@@ -869,11 +988,19 @@ h3 { font-size: 16px; margin: 0; }
   margin-bottom: 10px;
   box-shadow: none;
 }
+.form-panel input, .form-panel select, .form-panel textarea {
+  background: var(--bg-input, #fff) !important;
+  color: var(--text, #333) !important;
+  -webkit-text-fill-color: var(--text, #333);
+  opacity: 1;
+}
 .form-panel {
   background: var(--bg, #fff);
   border: 2px solid var(--color3);
   border-radius: 10px;
   padding: 14px;
+  position: relative;
+  z-index: 10;
 }
 .form-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
 .close-btn { background: #ef4444; color: #fff; border: none; border-radius: 6px; padding: 4px 10px; font-size: 14px; font-weight: 700; cursor: pointer; box-shadow: none; min-width: auto; }
@@ -883,7 +1010,9 @@ h3 { font-size: 16px; margin: 0; }
   width: 100%; padding: 8px 10px; border: 1px solid var(--border-light, #ccc);
   border-radius: 6px; font-size: 16px; outline: none;
   background: var(--bg-input, #fff); color: var(--text, #333);
+  box-sizing: border-box;
 }
+.form-row input::placeholder, .form-row textarea::placeholder { color: var(--text-muted, #999); }
 .form-row input:focus, .form-row select:focus, .form-row textarea:focus { border-color: var(--color1); }
 .form-grid { display: flex; gap: 8px; }
 .form-row.half { flex: 1; }
@@ -1008,4 +1137,17 @@ h3 { font-size: 16px; margin: 0; }
 .zone-banner.scene { background: rgba(16,185,129,0.1); color: #10b981; }
 .zone-block { margin-bottom: 12px; }
 .zone-empty { padding: 8px 10px; font-size: 13px; color: var(--text-muted, #999); font-style: italic; }
+/* Timeline */
+.timeline-panel { background: var(--bg-card, #f9f9f9); border: 1px solid var(--border-light, #ddd); border-radius: 10px; padding: 8px; margin-bottom: 10px; }
+.timeline-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.timeline-title { font-size: 14px; font-weight: 700; color: var(--text, #333); }
+.timeline-scroll { overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; }
+.timeline-grid { position: relative; padding-bottom: 10px; }
+.timeline-months { display: flex; position: relative; height: 22px; border-bottom: 1px solid var(--border, #eee); }
+.timeline-month { position: absolute; font-size: 10px; font-weight: 600; color: var(--text-light, #888); padding: 2px 4px; border-left: 1px solid var(--border, #eee); white-space: nowrap; }
+.timeline-today { position: absolute; top: 0; bottom: 0; width: 2px; background: #ef4444; z-index: 2; opacity: 0.7; }
+.timeline-bar { position: absolute; height: 24px; display: flex; align-items: center; border-radius: 4px; overflow: hidden; }
+.bar-prep { height: 100%; background: rgba(245,158,11,0.3); border-radius: 4px 0 0 4px; flex-shrink: 0; }
+.bar-event { height: 100%; background: var(--color1); opacity: 0.8; border-radius: 0 4px 4px 0; flex-shrink: 0; min-width: 8px; }
+.bar-label { position: absolute; left: 4px; font-size: 10px; font-weight: 700; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.5); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: calc(100% - 8px); }
 </style>

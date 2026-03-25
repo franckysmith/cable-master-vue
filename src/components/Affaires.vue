@@ -53,15 +53,18 @@
       <div v-if="showMateriel" class="materiel-panel">
         <div class="materiel-section" v-if="affairStore.selectedAffair.front">
           <div class="materiel-title">🔊 Façade</div>
-          <textarea v-model="materielFront" rows="2" class="materiel-input" placeholder="Enceintes, subs, amplis..."></textarea>
+          <textarea v-model="materielFront" rows="2" class="materiel-input" placeholder="Enceintes, subs, amplis... ex: 6 K2, 4 KS28"></textarea>
+          <AmpCalculator :description="materielFront" />
         </div>
         <div class="materiel-section" v-if="affairStore.selectedAffair.monitor">
           <div class="materiel-title">🎧 Retour</div>
-          <textarea v-model="materielMonitor" rows="2" class="materiel-input" placeholder="Wedges, ears, amplis..."></textarea>
+          <textarea v-model="materielMonitor" rows="2" class="materiel-input" placeholder="Wedges, ears, amplis... ex: 8 X12, 2 SB18"></textarea>
+          <AmpCalculator :description="materielMonitor" />
         </div>
         <div class="materiel-section" v-if="affairStore.selectedAffair.stage">
           <div class="materiel-title">🎸 Scène</div>
-          <textarea v-model="materielStage" rows="2" class="materiel-input" placeholder="Front-fills, side-fills, DI..."></textarea>
+          <textarea v-model="materielStage" rows="2" class="materiel-input" placeholder="Front-fills, side-fills... ex: 4 X8, 2 SB15m"></textarea>
+          <AmpCalculator :description="materielStage" />
         </div>
         <div v-if="!affairStore.selectedAffair.front && !affairStore.selectedAffair.monitor && !affairStore.selectedAffair.stage" class="materiel-empty">
           Aucune zone définie
@@ -150,6 +153,7 @@
 <script setup>
 import { ref, computed, onMounted, inject } from 'vue'
 import { useAffairStore } from '../stores/affairs'
+import AmpCalculator from './AmpCalculator.vue'
 
 const emit = defineEmits(['selected', 'edit', 'openNew', 'materiel', 'share'])
 const affairStore = useAffairStore()

@@ -13,8 +13,10 @@
         readonly
       />
 
-      <q-input v-model="form.ref" label="Référence" dense outlined disable readonly />
+      <q-input v-model="form.ref" label="Référence" dense outlined />
       <q-input v-model="form.description" label="Description" type="textarea" dense outlined autogrow />
+
+      <AmpCalculator @insert="form.description += $event" />
 
       <div class="row q-col-gutter-xs">
         <div class="col-6">
@@ -46,6 +48,7 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted, watch } from 'vue'
+import AmpCalculator from './AmpCalculator.vue'
 import { useAffairStore } from '../stores/affairs'
 import { useCatalogStore } from '../stores/catalogs'
 import { useSettingsStore } from '../stores/settings'

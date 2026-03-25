@@ -57,10 +57,10 @@ const users = [
   { id: 'T1', label: 'T1', role: 'technician', name: 'Franck', techId: 1 },
   { id: 'T2', label: 'T2', role: 'technician', name: 'Robert', techId: 2 },
   { id: 'T3', label: 'T3', role: 'technician', name: 'Michel', techId: 3 },
-  { id: 'M', label: 'M', role: 'master', name: 'Super Admin Master', superadmin: true, techId: 0 },
-  { id: 'M1', label: 'M1', role: 'master', name: 'Pierre (TarPo)', techId: 11 },
-  { id: 'M2', label: 'M2', role: 'master', name: 'Sophie (TarPo)', techId: 12 },
-  { id: 'M3', label: 'M3', role: 'master', name: 'Jean (TarPo)', techId: 13 },
+  { id: 'M', label: 'M', role: 'master', name: 'Super Admin Master', superadmin: true, techId: 0, catalogId: null, companyId: null },
+  { id: 'M1', label: 'M1', role: 'master', name: 'Pierre (TarPo)', techId: 11, catalogId: 4, companyId: 1 },
+  { id: 'M2', label: 'M2', role: 'master', name: 'Sophie (TarPo)', techId: 12, catalogId: 4, companyId: 1 },
+  { id: 'M3', label: 'M3', role: 'master', name: 'Jean (TarPo)', techId: 13, catalogId: 4, companyId: 1 },
 ]
 
 const currentUser = ref(localStorage.getItem('cablemaster-userid') || 'T')
@@ -77,6 +77,16 @@ function switchUser(u) {
   localStorage.setItem('cablemaster-userid', u.id)
   localStorage.setItem('cablemaster-role', u.role)
   localStorage.setItem('cablemaster-techid', u.techId)
+  if (u.catalogId) {
+    localStorage.setItem('cablemaster-catalogid', u.catalogId)
+  } else {
+    localStorage.removeItem('cablemaster-catalogid')
+  }
+  if (u.companyId) {
+    localStorage.setItem('cablemaster-companyid', u.companyId)
+  } else {
+    localStorage.removeItem('cablemaster-companyid')
+  }
   if (u.superadmin) {
     localStorage.setItem('cablemaster-superadmin', 'true')
   } else {

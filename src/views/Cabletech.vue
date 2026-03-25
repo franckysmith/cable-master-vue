@@ -112,7 +112,7 @@
       <div class="sticky-header">
         <ButtonCableType v-if="!microMode" :model-value="typeChoose" :distributed-types="distributedTypes" @select="typeChoose = $event" />
 
-        <div v-if="!microMode && !ctMode && categoryTotals.length" class="totals-summary">
+        <div v-if="!microMode && !ctMode" class="totals-summary">
           <span v-for="t in categoryTotals" :key="t.type" class="total-badge" :style="{ borderColor: colorForType(t.type) }">
             {{ t.label }}: <strong>{{ t.count }}</strong>
           </span>
@@ -357,6 +357,7 @@ import MicroList from '../components/MicroList.vue'
 import CtypeList from '../components/CtypeList.vue'
 import ButtonCableType from '../components/ButtonCableType.vue'
 import AllCasesView from '../components/AllCasesView.vue'
+import AmpCalculator from '../components/AmpCalculator.vue'
 import { useSettingsStore } from '../stores/settings'
 import { useMfcStore } from '../stores/mfc'
 
@@ -410,6 +411,11 @@ const mfcStore = useMfcStore()
 onMounted(async () => {
   await mfcStore.fetchMfcs()
   checkCtContent()
+  // Recharger les câbles si une affaire est déjà sélectionnée (retour de navigation)
+  if (selectedAffair.value && joinedData.value.length === 0) {
+    await onAffairSelected(selectedAffair.value)
+  }
+  console.log('CableTech mounted, joinedData:', joinedData.value.length, 'types:', [...new Set(joinedData.value.map(c => c.type))])
 })
 
 const affairIsOpen = ref(false)
@@ -1567,6 +1573,7 @@ function colorForType(type) {
   flex-wrap: wrap;
   gap: 6px;
   margin: 6px 0;
+  min-height: 24px;
   justify-content: center;
 }
 .total-badge {
