@@ -66,6 +66,8 @@
 
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
+// Règles de câblage : source unique partagée (cf. @cinod/shared)
+import { ENCLOSURE_DATA } from '@cinod/shared'
 
 const props = defineProps({
   description: { type: String, default: '' },
@@ -81,62 +83,8 @@ const lines = ref([
   { qty: null, name: '', ampType: 'LA12X' },
 ])
 
-// Données : nombre d'enceintes qu'un ampli peut driver
-// ways: nombre de voies (3=tri-amp DO, 2=bi-amp, 1=mono speakon)
-// cable: 'DO' = DO10 + DO07 multi-pin, 'speakon' = speakon standard
-const speakers = [
-  { name: 'K1', cat: 'Line Array', LA4X: null, LA12X: 2, LA8: 2, ways: 3, cable: 'DO' },
-  { name: 'K1-SB', cat: 'Line Array', LA4X: null, LA12X: 4, LA8: 4, ways: 1, cable: 'speakon' },
-  { name: 'K2', cat: 'Line Array', LA4X: 1, LA12X: 3, LA8: 3, ways: 3, cable: 'DO' },
-  { name: 'K3', cat: 'Line Array', LA4X: 2, LA12X: 6, LA8: 4, ways: 2, cable: 'speakon' },
-  // 2 voies
-  { name: 'KARA II', cat: 'Line Array', LA4X: 4, LA12X: 6, LA8: 6, ways: 2, cable: 'speakon' },
-  { name: 'Kara', cat: 'Line Array', LA4X: 4, LA12X: 6, LA8: 6, ways: 2, cable: 'speakon' },
-  { name: 'Kiva II', cat: 'Line Array', LA4X: 8, LA12X: 24, LA8: 16, ways: 1, cable: 'speakon' },
-  { name: 'Kiva / Kilo', cat: 'Line Array', LA4X: 8, LA12X: 12, LA8: 12, ways: 1, cable: 'speakon' },
-  { name: 'V-DOSC', cat: 'Line Array', LA4X: null, LA12X: 2, LA8: null, ways: 3, cable: 'DO' },
-  { name: 'dV-DOSC', cat: 'Line Array', LA4X: null, LA12X: 6, LA8: null, ways: 1, cable: 'speakon' },
-  { name: 'A10', cat: 'Line Array', LA4X: 8, LA12X: 12, LA8: 8, ways: 1, cable: 'speakon' },
-  { name: 'A15', cat: 'Line Array', LA4X: 4, LA12X: 12, LA8: 8, ways: 2, cable: 'speakon' },
-  // Coaxial - 1 voie sauf X15
-  { name: 'X4i', cat: 'Coaxial', LA4X: 16, LA12X: 24, LA8: 24, ways: 1, cable: 'speakon' },
-  { name: '5XT', cat: 'Coaxial', LA4X: 16, LA12X: 24, LA8: 24, ways: 1, cable: 'speakon' },
-  { name: 'X6i', cat: 'Coaxial', LA4X: 8, LA12X: 12, LA8: null, ways: 1, cable: 'speakon' },
-  { name: 'X8', cat: 'Coaxial', LA4X: 8, LA12X: 12, LA8: 8, ways: 1, cable: 'speakon' },
-  { name: 'X8i', cat: 'Coaxial', LA4X: 8, LA12X: 12, LA8: null, ways: 1, cable: 'speakon' },
-  { name: 'X12', cat: 'Coaxial', LA4X: 4, LA12X: 12, LA8: 8, ways: 1, cable: 'speakon' },
-  { name: 'X15HIQ', cat: 'Coaxial', LA4X: 2, LA12X: 6, LA8: 4, ways: 2, cable: 'speakon' },
-  { name: '8XT', cat: 'Coaxial', LA4X: 8, LA12X: 12, LA8: 12, ways: 1, cable: 'speakon' },
-  { name: '12XT actif', cat: 'Coaxial', LA4X: 4, LA12X: 6, LA8: 6, ways: 2, cable: 'speakon' },
-  { name: '12XT passif', cat: 'Coaxial', LA4X: 4, LA12X: 12, LA8: 8, ways: 1, cable: 'speakon' },
-  { name: '115XTHIQ', cat: 'Coaxial', LA4X: 2, LA12X: 6, LA8: 4, ways: 2, cable: 'speakon' },
-  // Monitors
-  { name: 'MTD108a', cat: 'Monitor', LA4X: null, LA12X: 12, LA8: null, ways: 1, cable: 'speakon' },
-  { name: 'MTD112b', cat: 'Monitor', LA4X: null, LA12X: 8, LA8: null, ways: 1, cable: 'speakon' },
-  { name: 'MTD115a', cat: 'Monitor', LA4X: null, LA12X: 4, LA8: null, ways: 2, cable: 'speakon' },
-  { name: 'MTD115b-p', cat: 'Monitor', LA4X: null, LA12X: 8, LA8: null, ways: 1, cable: 'speakon' },
-  { name: 'ARC Wide/Focus', cat: 'Monitor', LA4X: 4, LA12X: 12, LA8: 8, ways: 1, cable: 'speakon' },
-  { name: 'ARCSII', cat: 'Monitor', LA4X: 2, LA12X: 6, LA8: 4, ways: 2, cable: 'speakon' },
-  { name: 'ARCS', cat: 'Monitor', LA4X: null, LA12X: 6, LA8: null, ways: 2, cable: 'speakon' },
-  { name: 'Kudo', cat: 'Monitor', LA4X: 1, LA12X: null, LA8: 3, ways: 3, cable: 'DO' },
-  // Subs - 1 voie, speakon
-  { name: 'KS28', cat: 'Sub', LA4X: null, LA12X: 4, LA8: null, ways: 1, cable: 'speakon' },
-  { name: 'SB28', cat: 'Sub', LA4X: null, LA12X: 4, LA8: 4, ways: 1, cable: 'speakon' },
-  { name: 'KS21', cat: 'Sub', LA4X: 4, LA12X: 8, LA8: 6, ways: 1, cable: 'speakon' },
-  { name: 'SB18', cat: 'Sub', LA4X: 4, LA12X: 12, LA8: 12, ways: 1, cable: 'speakon' },
-  { name: 'SB218', cat: 'Sub', LA4X: null, LA12X: 4, LA8: null, ways: 1, cable: 'speakon' },
-  { name: 'SB118', cat: 'Sub', LA4X: null, LA12X: 8, LA8: null, ways: 1, cable: 'speakon' },
-  { name: 'SB15m', cat: 'Sub', LA4X: 4, LA12X: 12, LA8: 6, ways: 1, cable: 'speakon' },
-  { name: 'dV-SUB', cat: 'Sub', LA4X: null, LA12X: 4, LA8: null, ways: 1, cable: 'speakon' },
-  // Syva
-  { name: 'Syva Low', cat: 'Syva', LA4X: 4, LA12X: 6, LA8: 4, ways: 2, cable: 'speakon' },
-  { name: 'Syva Sub', cat: 'Syva', LA4X: 4, LA12X: 12, LA8: 8, ways: 1, cable: 'speakon' },
-  { name: 'Syva', cat: 'Syva', LA4X: 4, LA12X: 12, LA8: 8, ways: 1, cable: 'speakon' },
-  // Install
-  { name: 'SB10i', cat: 'Install', LA4X: 8, LA12X: 12, LA8: 12, ways: 1, cable: 'speakon' },
-  { name: 'Soka', cat: 'Install', LA4X: 8, LA12X: 12, LA8: null, ways: 1, cable: 'speakon' },
-  { name: 'SB6i', cat: 'Install', LA4X: 4, LA12X: 8, LA8: null, ways: 1, cable: 'speakon' },
-]
+// Table des enceintes → importée depuis la source unique @cinod/shared.
+const speakers = ENCLOSURE_DATA
 
 function speakerCategories(ampKey) {
   const cats = {}
