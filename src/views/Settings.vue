@@ -55,7 +55,7 @@
               v-model="settingsStore.defaultFcLabels[`lfc${i}`]"
               :placeholder="`FC ${i}`"
               class="label-input"
-              maxlength="12"
+              maxlength="20"
             />
           </div>
         </div>
@@ -79,7 +79,7 @@
               v-model="settingsStore.defaultZoneLabels[`lz${i}`]"
               :placeholder="`Zone ${i}`"
               class="label-input"
-              maxlength="12"
+              maxlength="20"
             />
           </div>
         </div>

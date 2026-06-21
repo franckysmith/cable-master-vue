@@ -1,37 +1,89 @@
 <template>
-  <div v-if="!online" class="offline-bar">Mode hors-ligne</div>
-  <div v-if="userRole === 'master' && companyName" class="company-bar">
-    🏢 {{ companyName }}
-  </div>
-  <div id="nav">
-    <!-- Super admin (T) : accès à tout -->
-    <template v-if="currentUserObj?.superadmin && userRole === 'technician'">
-      <router-link to="/company">Entreprise</router-link> |
-      <router-link to="/Cablemaster">Cablemaster</router-link> |
-      <router-link to="/MasterAffaire">MasterAffaire</router-link> |
-      <router-link to="/CaisseType">CaisseType</router-link> |
-    </template>
-    <!-- Super admin master (M) : accès à tout -->
-    <template v-if="currentUserObj?.superadmin && userRole === 'master'">
-      <router-link to="/company">Entreprise</router-link> |
-      <router-link to="/Cablemaster">Cablemaster</router-link> |
-      <router-link to="/MasterAffaire">MasterAffaire</router-link> |
-      <router-link to="/CaisseType">CaisseType</router-link> |
-    </template>
-    <!-- Masters normaux (M1/M2/M3) : Cablemaster, MasterAffaire, CaisseType -->
-    <template v-if="!currentUserObj?.superadmin && userRole === 'master'">
-      <router-link to="/Cablemaster">Cablemaster</router-link> |
-      <router-link to="/MasterAffaire">MasterAffaire</router-link> |
-      <router-link to="/CaisseType">CaisseType</router-link> |
-    </template>
-    <router-link to="/about">About</router-link> |
-    <router-link to="/">CableTech</router-link> |
-    <router-link to="/micros" class="mic-link" title="Bibliothèque Micros">🎤</router-link>
-    <router-link to="/settings" class="settings-link" title="Réglages">&#9881;</router-link>
-    <span class="help-btn" :class="{ active: helpMode }" @click="helpMode = !helpMode" title="Aide">?</span>
-    <span class="user-selector" @click="showUserMenu = !showUserMenu">
-      {{ currentUserLabel }}
-    </span>
+  <q-layout view="hHh LpR fFf">
+    <!-- ===== Header (le vrai haut) ===== -->
+    <q-header class="app-header">
+      <q-toolbar class="app-toolbar">
+        <q-btn flat dense round icon="menu" aria-label="Menu" @click="drawer = !drawer" />
+        <q-toolbar-title class="app-title">
+          <span class="brand">cinod</span>
+        </q-toolbar-title>
+        <q-space />
+        <router-link to="/about" class="header-link" title="À propos">About</router-link>
+        <router-link to="/micros" class="header-icon" title="Bibliothèque Micros">🎤</router-link>
+        <router-link to="/settings" class="header-icon" title="Réglages">&#9881;</router-link>
+        <span class="help-btn" :class="{ active: helpMode }" @click="helpMode = !helpMode" title="Aide">?</span>
+        <span class="user-selector" @click="showUserMenu = !showUserMenu">
+          {{ currentUserLabel }}
+        </span>
+      </q-toolbar>
+
+      <!-- Bandeaux d'état -->
+      <div v-if="!online" class="offline-bar">Mode hors-ligne</div>
+      <div v-if="userRole === 'master' && companyName" class="company-bar">
+        🏢 {{ companyName }}
+      </div>
+    </q-header>
+
+    <!-- ===== Drawer (menu latéral) ===== -->
+    <q-drawer v-model="drawer" side="left" bordered :width="260" :breakpoint="599" class="app-drawer">
+      <q-scroll-area class="fit">
+        <div class="drawer-brand">
+          <span class="drawer-brand-name">cinod</span>
+          <span class="drawer-brand-sub">CableTech</span>
+        </div>
+        <q-list padding>
+          <!-- Employeurs -->
+          <q-expansion-item
+            v-if="employerItems.length"
+            label="Employeurs"
+            icon="business"
+            default-opened
+            header-class="drawer-group"
+          >
+            <q-item
+              v-for="it in employerItems"
+              :key="it.to"
+              clickable
+              :to="it.to"
+              active-class="drawer-active"
+              @click="closeDrawerOnMobile"
+            >
+              <q-item-section avatar><q-icon :name="it.icon" /></q-item-section>
+              <q-item-section>{{ it.label }}</q-item-section>
+            </q-item>
+          </q-expansion-item>
+
+          <!-- Techniciens -->
+          <q-expansion-item
+            label="Techniciens"
+            icon="engineering"
+            default-opened
+            header-class="drawer-group"
+          >
+            <q-item
+              clickable
+              to="/"
+              active-class="drawer-active"
+              @click="closeDrawerOnMobile"
+            >
+              <q-item-section avatar><q-icon name="cable" /></q-item-section>
+              <q-item-section>CableTech</q-item-section>
+            </q-item>
+          </q-expansion-item>
+        </q-list>
+      </q-scroll-area>
+    </q-drawer>
+
+    <!-- ===== Contenu (centré, type application) ===== -->
+    <q-page-container>
+      <q-page class="app-page">
+        <div class="app-content">
+          <router-view />
+        </div>
+      </q-page>
+    </q-page-container>
+
+    <!-- Menu sélecteur d'utilisateur (super admin) -->
     <div v-if="showUserMenu" class="user-menu">
       <div class="user-menu-title">Super Admin</div>
       <div class="user-menu-group">
@@ -40,16 +92,24 @@
         </button>
       </div>
     </div>
-  </div>
-  <router-view />
+  </q-layout>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, provide } from 'vue'
+import { useQuasar } from 'quasar'
 import { supabase } from './lib/supabase'
 
+const $q = useQuasar()
 const online = ref(navigator.onLine)
 const helpMode = ref(false)
+// Desktop (web) : drawer ouvert par défaut et persistant (ferme uniquement via le bouton).
+// Mobile : overlay qui se referme après navigation.
+const isDesktop = computed(() => $q.screen.gt.sm)
+const drawer = ref($q.screen.gt.sm)
+function closeDrawerOnMobile() {
+  if (!isDesktop.value) drawer.value = false
+}
 provide('helpMode', helpMode)
 
 const users = [
@@ -70,6 +130,23 @@ const currentUserObj = computed(() => users.find(u => u.id === currentUser.value
 const currentUserLabel = computed(() => currentUserObj.value.label)
 const userRole = ref(localStorage.getItem('cablemaster-role') || 'technician')
 const companyName = ref(localStorage.getItem('cablemaster-company') || '')
+
+// Items "Employeurs" selon le rôle / les permissions
+const isSuper = computed(() => !!currentUserObj.value?.superadmin)
+const employerItems = computed(() => {
+  const items = []
+  if (isSuper.value) {
+    items.push({ label: 'Entreprise', to: '/company', icon: 'apartment' })
+  }
+  if (isSuper.value || userRole.value === 'master') {
+    items.push(
+      { label: 'CableList', to: '/CableList', icon: 'settings_input_component' },
+      { label: 'FlightType', to: '/FlightType', icon: 'inventory_2' },
+      { label: 'MasterAffaire', to: '/MasterAffaire', icon: 'event_note' },
+    )
+  }
+  return items
+})
 
 function switchUser(u) {
   currentUser.value = u.id
@@ -110,9 +187,6 @@ async function loadCompany() {
   }
 }
 
-function refreshPage() {
-  window.location.reload()
-}
 function onOnline() { online.value = true }
 function onOffline() { online.value = false }
 
@@ -137,6 +211,9 @@ onUnmounted(() => {
   --color1-hover: #f0faf0;
   --color2: #f3e309;
   --color3: #eb910a;
+
+  /* Largeur de la colonne "application" (centrée) */
+  --app-max-width: 640px;
 
   /* Mode clair (défaut) */
   --bg: #ffffff;
@@ -169,29 +246,96 @@ onUnmounted(() => {
   color: var(--text);
   background: var(--bg);
   margin: 0px;
-  padding-top: 10px;
   min-height: 100vh;
 }
 .input,
 select {
   font-size: 100%;
 }
-#nav {
-  margin: auto;
+
+/* ===== Header ===== */
+.app-header {
+  background: var(--bg-card);
+  color: var(--text);
+  border-bottom: 1px solid var(--border);
 }
-#nav a {
+.app-toolbar {
+  min-height: 52px;
+}
+.app-title .brand {
+  font-weight: 900;
+  letter-spacing: 1px;
+  font-size: 20px;
+  color: var(--color1);
+}
+.header-link {
   font-weight: bold;
   color: var(--text);
   text-decoration: none;
-  padding: 0 5px;
+  padding: 0 8px;
+  font-size: 14px;
 }
-#nav a.router-link-exact-active {
+.header-link.router-link-exact-active {
   color: var(--color1);
 }
-.settings-link {
-  font-size: 24px;
-  padding: 0 4px;
+.header-icon {
+  font-size: 18px;
+  text-decoration: none;
+  padding: 0 5px;
+  color: var(--text);
+  vertical-align: middle;
 }
+
+/* ===== Drawer ===== */
+.app-drawer {
+  background: var(--bg-card);
+  color: var(--text);
+}
+.drawer-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 18px 0 12px;
+  border-bottom: 1px solid var(--border);
+}
+.drawer-brand-name {
+  font-weight: 900;
+  font-size: 24px;
+  letter-spacing: 1px;
+  color: var(--color1);
+}
+.drawer-brand-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.drawer-group {
+  font-weight: 800;
+  color: var(--text);
+}
+.drawer-active {
+  color: var(--color1);
+  font-weight: 800;
+  background: var(--color1-light);
+}
+:root.dark .drawer-active {
+  background: rgba(77, 204, 89, 0.12);
+}
+
+/* ===== Page / contenu centré ===== */
+.app-page {
+  background: var(--bg);
+}
+.app-content {
+  width: 100%;
+  max-width: var(--app-max-width);
+  margin: 0 auto;
+  padding: 10px 4px 24px;
+  box-sizing: border-box;
+}
+
+/* ===== Sélecteur utilisateur ===== */
 .company-bar {
   background: var(--color3);
   color: #fff;
@@ -208,29 +352,6 @@ select {
   padding: 4px;
   font-size: 12px;
   font-weight: bold;
-}
-.mic-link {
-  font-size: 18px;
-  text-decoration: none;
-  vertical-align: middle;
-}
-.refresh-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  font-size: 24px;
-  font-weight: bold;
-  color: var(--text);
-  cursor: pointer;
-  margin: 0 4px;
-  vertical-align: middle;
-  user-select: none;
-}
-.refresh-btn:active {
-  transform: rotate(180deg);
-  transition: transform 0.3s;
 }
 .user-selector {
   display: inline-flex;
@@ -249,14 +370,14 @@ select {
   color: #fff;
 }
 .user-menu {
-  position: absolute;
+  position: fixed;
   right: 10px;
-  top: 60px;
+  top: 58px;
   background: var(--bg, #fff);
   border: 2px solid var(--color1);
   border-radius: 10px;
   padding: 10px;
-  z-index: 200;
+  z-index: 3000;
   box-shadow: 0 4px 16px rgba(0,0,0,0.3);
   min-width: 200px;
 }

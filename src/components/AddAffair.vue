@@ -36,6 +36,29 @@
         <q-checkbox v-model="form.stage" label="Scène" dense />
       </div>
 
+      <q-btn
+        flat
+        dense
+        no-caps
+        :icon="showFcNames ? 'expand_more' : 'chevron_right'"
+        label="Noms des flight-cases"
+        class="q-mt-sm"
+        @click="showFcNames = !showFcNames"
+      />
+      <div v-if="showFcNames" class="row q-col-gutter-xs q-mt-xs">
+        <div class="col-6" v-for="i in 7" :key="'lfc'+i">
+          <q-input
+            v-model="form[`lfc${i}`]"
+            :label="`FC${i}`"
+            :placeholder="`FC${i}`"
+            dense
+            outlined
+            stack-label
+            maxlength="20"
+          />
+        </div>
+      </div>
+
       <div class="row q-gutter-sm q-mt-md">
         <div v-if="submitError" style="color: #ef4444; font-size: 13px; font-weight: 600; margin-bottom: 6px;">{{ submitError }}</div>
         <q-btn :label="isEditing ? 'Enregistrer' : 'Créer'" color="primary" unelevated @click="submit" />
@@ -72,6 +95,11 @@ const activeCatalogName = computed(() => {
 
 onMounted(() => {
   catalogStore.fetchCatalogs()
+  // Nouvelle affaire : pré-remplir les noms de flight-cases avec les défauts
+  if (!isEditing.value) {
+    const df = settingsStore.defaultFcLabels
+    for (let i = 1; i <= 7; i++) form[`lfc${i}`] = df[`lfc${i}`] || ''
+  }
 })
 
 const form = reactive({
@@ -91,7 +119,10 @@ const form = reactive({
   stage: false,
   done: false,
   catalog_id: '',
+  lfc1: '', lfc2: '', lfc3: '', lfc4: '', lfc5: '', lfc6: '', lfc7: '',
 })
+
+const showFcNames = ref(false)
 
 // Pré-remplir en mode édition
 watch(() => props.affair, (affair) => {
@@ -112,6 +143,7 @@ watch(() => props.affair, (affair) => {
     form.stage = affair.stage || false
     form.done = affair.done || false
     form.catalog_id = affair.catalog_id || ''
+    for (let i = 1; i <= 7; i++) form[`lfc${i}`] = affair[`lfc${i}`] || ''
   }
 }, { immediate: true })
 
@@ -142,12 +174,11 @@ async function submit() {
     payload.tech_name = userId
   }
 
-  // Pour une nouvelle affaire, inclure les noms par défaut des zones/FC
+  // Noms de flight-cases : portés par le formulaire (form.lfc1..7) → déjà dans payload
+  // Pour une nouvelle affaire, inclure les noms par défaut des zones
   if (!isEditing.value) {
     const dz = settingsStore.defaultZoneLabels
-    const df = settingsStore.defaultFcLabels
     for (let i = 1; i <= 6; i++) payload[`lz${i}`] = dz[`lz${i}`] || ''
-    for (let i = 1; i <= 7; i++) payload[`lfc${i}`] = df[`lfc${i}`] || ''
   }
 
   if (isEditing.value) {

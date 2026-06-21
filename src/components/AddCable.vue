@@ -48,6 +48,7 @@
         <label>Lien (URL)</label>
         <input v-model="form.link" placeholder="https://..." />
       </div>
+      <p v-if="errorMsg" class="add-error">{{ errorMsg }}</p>
       <div class="form-actions">
         <button type="submit" class="btn-add" :disabled="submitting">{{ submitting ? 'Ajout en cours...' : 'Ajouter' }}</button>
         <button type="button" class="btn-cancel" @click="$emit('close')">Annuler</button>
@@ -86,22 +87,27 @@ const form = reactive({
 })
 
 const submitting = ref(false)
+const errorMsg = ref('')
 
 async function submit() {
   if (!form.name || !form.type || submitting.value) return
+  errorMsg.value = ''
   submitting.value = true
   const payload = { ...form }
   if (!payload.brand) delete payload.brand
   if (!payload.info) delete payload.info
   if (!payload.link) delete payload.link
-  // Ajouter au catalogue actif
-  const catalogId = parseInt(localStorage.getItem('cablemaster-catalogid')) || null
-  if (catalogId) payload.catalog_id = catalogId
+  // Ajouter au catalogue actif (même résolution que la vue CableList : défaut 1)
+  payload.catalog_id = parseInt(localStorage.getItem('cablemaster-catalogid')) || 1
   const { error } = await cableStore.addCable(payload)
   submitting.value = false
   if (!error) {
     Object.assign(form, { name: '', type: '', brand: '', weight: 0, total: 0, reserved: 0, sortno: 0, info: '', link: '' })
     emit('close')
+  } else {
+    errorMsg.value = error.message
+      ? `Échec de l'ajout : ${error.message}`
+      : "Échec de l'ajout (vérifie le réseau et que le nom n'existe pas déjà)."
   }
 }
 </script>
@@ -167,6 +173,16 @@ async function submit() {
 }
 .form-row.half {
   flex: 1;
+}
+.add-error {
+  margin: 10px 0 0;
+  padding: 8px 10px;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid #ef4444;
+  border-radius: 6px;
+  color: #ef4444;
+  font-size: 13px;
+  font-weight: 600;
 }
 .form-actions {
   display: flex;

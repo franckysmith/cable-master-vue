@@ -18,12 +18,21 @@
       >
         {{ cable.name }}
       </div>
+      <div
+        class="cable-total"
+        :class="{ done: !soloActive && !directMode && getRemaining(cable) === 0, over: !soloActive && !directMode && getRemaining(cable) < 0 }"
+      >
+        <template v-if="soloActive"></template>
+        <template v-else-if="directMode">{{ getDistributed(cable) || '' }}</template>
+        <template v-else-if="getRemaining(cable) < 0">+{{ Math.abs(getRemaining(cable)) }}</template>
+        <template v-else>{{ getRemaining(cable) }}</template>
+      </div>
       <div class="cable-fcs">
         <div
           v-for="(field, idx) in fcFields"
           :key="field"
           class="fc-cell"
-          :class="{ disabled: cable.cableid !== activeCableId, 'col-even': idx % 2 === 1 }"
+          :class="{ disabled: cable.cableid !== activeCableId, 'col-even': idx % 2 === 1, 'solo-col': soloActive && field === `tfc${soloFilter}` }"
           @mousedown="startPress(cable, field, $event)"
           @mouseup="endPress(cable, field, $event)"
           @mouseleave="cancelPress"
@@ -35,13 +44,6 @@
             {{ cable[field] > 0 ? cable[field] : '--' }}
           </span>
         </div>
-      </div>
-      <div class="cable-total" :class="{ done: !directMode && getRemaining(cable) <= 0, extra: !directMode && getRemaining(cable) < 0 }">
-        <template v-if="directMode">{{ getDistributed(cable) || '' }}</template>
-        <template v-else-if="getRemaining(cable) < 0">
-          <span class="extra-label">0 +{{ Math.abs(getRemaining(cable)) }}</span>
-        </template>
-        <template v-else>{{ getRemaining(cable) }}</template>
       </div>
     </div>
     <div v-if="selectedCables.length === 0" class="empty">
@@ -126,7 +128,12 @@ const selectedCables = computed(() => {
     if (props.soloMode) return props.cables.filter(c => hasFcValue(c))
     return props.cables
   }
-  return props.cables.filter(c => getZoneTotal(c) > 0 || c.count > 0)
+  let list = props.cables.filter(c => getZoneTotal(c) > 0 || c.count > 0)
+  // Solo : ne montrer que les câbles présents dans le flight-case sélectionné
+  if (props.soloMode && props.soloFilter) {
+    list = list.filter(c => (c[`tfc${props.soloFilter}`] || 0) > 0)
+  }
+  return list
 })
 
 function getDistributed(cable) {
@@ -153,6 +160,9 @@ const distributedCount = computed(() =>
 const allDistributed = computed(() =>
   selectedCables.value.length > 0 && selectedCables.value.every(c => getRemaining(c) <= 0)
 )
+
+// Mode sélection (solo sur un flight-case précis) : la colonne Total recopie la quantité du FC
+const soloActive = computed(() => props.soloMode && !!props.soloFilter)
 
 const LONG_PRESS_DELAY = 400
 const REPEAT_INTERVAL = 200
@@ -278,9 +288,6 @@ function colorForType(type) {
 .cable-name {
   width: 120px;
   min-width: 120px;
-  position: sticky;
-  left: 0;
-  z-index: 1;
   background: inherit;
   text-align: left;
   font-size: 15px;
@@ -296,18 +303,27 @@ function colorForType(type) {
   font-weight: 800;
 }
 .cable-total {
-  width: 28px;
-  min-width: 28px;
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   text-align: center;
   font-size: 14px;
   font-weight: bold;
   color: #2c3e50;
-  border-radius: 4px;
+  border-radius: 6px;
   transition: all 0.3s;
+  margin: 0 3px 0 1px;
 }
 .cable-total.done {
-  background: var(--color1);
-  color: white;
+  background: #22c55e;
+  color: #fff;
+}
+.cable-total.over {
+  background: #ef4444;
+  color: #fff;
 }
 .cable-fcs {
   display: flex;
@@ -374,13 +390,6 @@ function colorForType(type) {
   75% { background: #fef3c7; }
   100% { background: #fff; }
 }
-.cable-total.extra {
-  font-size: 11px;
-}
-.extra-label {
-  color: #f59e0b;
-  font-weight: 800;
-}
 @media (min-width: 768px) {
   .cable-name {
     width: 200px;
@@ -398,6 +407,7 @@ function colorForType(type) {
   .cable-total {
     width: 40px;
     min-width: 40px;
+    height: 40px;
     font-size: 17px;
   }
 }

@@ -1,8 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import Cabletech from './views/Cabletech.vue'
-import Cablemaster from './views/Cablemaster.vue'
+import CableList from './views/CableList.vue'
 import MasterAffaire from './views/MasterAffaire.vue'
-import CaisseType from './views/CaisseType.vue'
+import FlightType from './views/FlightType.vue'
 import About from './views/About.vue'
 import Settings from './views/Settings.vue'
 import MicLibrary from './views/MicLibrary.vue'
@@ -11,9 +11,9 @@ import ShareView from './views/ShareView.vue'
 
 const routes = [
   { path: '/', component: Cabletech },
-  { path: '/Cablemaster', component: Cablemaster },
+  { path: '/CableList', component: CableList },
   { path: '/MasterAffaire', component: MasterAffaire },
-  { path: '/CaisseType', component: CaisseType },
+  { path: '/FlightType', component: FlightType },
   { path: '/micros', component: MicLibrary },
   { path: '/company', component: CompanySetup },
   { path: '/settings', component: Settings },

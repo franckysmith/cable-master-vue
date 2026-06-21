@@ -7,6 +7,21 @@ body {
   font-family: Avenir, Helvetica, Arial, sans-serif;
   font-size: 16px;
 }
+
+/* Empêcher la sélection accidentelle de texte (appui long, double-clic…) */
+body {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+/* …sauf dans les champs de saisie */
+input, textarea, [contenteditable="true"],
+.q-field__native, .q-field__input {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  user-select: text;
+}
 input, select, textarea,
 input[type="text"], input[type="date"], input[type="number"], input[type="search"],
 .q-field__native, .q-field__input {
@@ -43,20 +58,46 @@ input[type="text"], input[type="date"], input[type="number"], input[type="search
   background: var(--border) !important;
 }
 .dark .zone-cell,
-.dark .fc-cell {
-  background: var(--border) !important;
+.dark .fc-cell,
+.dark .ct-cell,
+.dark .mic-cell {
+  background: #ede9fe !important;
 }
 .dark .cable-row:not(.row-band) .zone-cell,
-.dark .cable-row:not(.row-band) .fc-cell {
-  background: var(--border-light) !important;
+.dark .cable-row:not(.row-band) .fc-cell,
+.dark .cable-row:not(.row-band) .ct-cell,
+.dark .cable-row:not(.row-band) .mic-cell {
+  background: #e1daf7 !important;
+}
+/* Colonne quantité Micro : on garde l'orange */
+.dark .mic-cell.mic-qty {
+  background: var(--color3) !important;
 }
 .dark .zone-value,
-.dark .fc-value {
-  color: var(--text-muted);
+.dark .fc-value,
+.dark .ct-value,
+.dark .mic-value {
+  color: #999;
 }
 .dark .zone-value.active,
-.dark .fc-value.active {
-  color: var(--text);
+.dark .fc-value.active,
+.dark .ct-value.active,
+.dark .mic-value.active {
+  color: #1a1a2e !important;
+  font-weight: 700 !important;
+}
+/* Mode sélection (solo) : la colonne choisie passe entièrement en bleu */
+.zone-cell.solo-col,
+.fc-cell.solo-col,
+.dark .cable-row .zone-cell.solo-col,
+.dark .cable-row:not(.row-band) .zone-cell.solo-col,
+.dark .cable-row .fc-cell.solo-col,
+.dark .cable-row:not(.row-band) .fc-cell.solo-col {
+  background: #3b82f6 !important;
+}
+.zone-cell.solo-col .zone-value,
+.fc-cell.solo-col .fc-value {
+  color: #fff !important;
 }
 .dark .cable-name {
   color: var(--text);

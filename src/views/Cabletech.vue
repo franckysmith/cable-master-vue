@@ -145,7 +145,7 @@
               <button class="mini-btn" :class="{ active: subtractMode }" @click="subtractMode = !subtractMode">
                 {{ subtractMode ? '−' : '+' }}
               </button>
-              <button class="mini-btn" :class="{ 'active-orange': soloMode }" @click="soloMode = !soloMode">
+              <button class="mini-btn" :class="{ 'active-blue': soloMode }" @click="soloMode = !soloMode; if(!soloMode) zoneSoloFilter = null">
                 S
               </button>
               <button class="mini-btn" :class="{ 'active-blue': incrementStep === 10 }" @click="incrementStep = incrementStep === 10 ? 1 : 10">
@@ -153,8 +153,18 @@
               </button>
             </div>
             <div class="head-label-angled head-spare"><span>Spare</span></div>
-            <div v-for="i in 6" :key="'zh'+i" class="head-label-angled">
-              <input v-model="zoneLabels[`lz${i}`]" :placeholder="`Zone${i}`" />
+            <div
+              v-for="i in 6" :key="'zh'+i" class="head-label-angled"
+              @mousedown="startHeaderPress('zone', i)" @mouseup="endHeaderPress('zone', i)" @mouseleave="cancelHeaderPress"
+              @touchstart="startHeaderPress('zone', i)" @touchmove="onHeaderMove" @touchend.prevent="endHeaderPress('zone', i)" @touchcancel="cancelHeaderPress"
+            >
+              <input
+                v-if="editingHeader && editingHeader.type === 'zone' && editingHeader.index === i"
+                v-focus v-model="zoneLabels[`lz${i}`]" :placeholder="`Zone${i}`" maxlength="20"
+                @blur="commitHeaderEdit" @keydown.enter="commitHeaderEdit"
+                @mousedown.stop @touchstart.stop @click.stop
+              />
+              <span v-else :class="{ 'solo-selected': soloMode && zoneSoloFilter === i }">{{ zoneLabels[`lz${i}`] || `Zone${i}` }}</span>
             </div>
             <div class="head-total-spacer"></div>
           </div>
@@ -163,21 +173,31 @@
         <!-- Sync-header Flight-cases -->
         <div v-if="!ctMode && !microMode && (directMode || layout === 'flightcase')" class="sync-header" ref="fcHeaderScroll" @scroll="syncScroll('fcHeaderScroll','fcBodyScroll')">
           <div class="sync-header-inner">
-            <div class="head-spacer-sticky ct-btn-row">
+            <div class="head-spacer-sticky ct-btn-row fc-unstick">
               <button class="mini-btn" :class="{ active: subtractMode }" @click="subtractMode = !subtractMode">
                 {{ subtractMode ? '−' : '+' }}
               </button>
-              <button class="mini-btn" :class="{ 'active-orange': fcSolo }" @click="fcSolo = !fcSolo; if(!fcSolo) fcSoloFilter = null">
+              <button class="mini-btn" :class="{ 'active-blue': fcSolo }" @click="fcSolo = !fcSolo; if(!fcSolo) fcSoloFilter = null">
                 S
               </button>
               <button class="mini-btn" :class="{ 'active-blue': incrementStep === 10 }" @click="incrementStep = incrementStep === 10 ? 1 : 10">
                 +10
               </button>
             </div>
-            <div v-for="i in 7" :key="'fch2'+i" class="head-label-angled-fc fc-clickable" @mousedown="startHeaderPress('fc', i)" @mouseup="endHeaderPress('fc', i)" @mouseleave="cancelHeaderPress" @touchstart="startHeaderPress('fc', i)" @touchend="endHeaderPress('fc', i)" @touchcancel="cancelHeaderPress">
-              <span class="fc-label-btn" :class="{ 'solo-selected': fcSolo && fcSoloFilter === i }">{{ fcLabels[`lfc${i}`] || `FC${i}` }}</span>
+            <div class="head-total-label">Total</div>
+            <div
+              v-for="i in 7" :key="'fch2'+i" class="head-label-angled-fc"
+              @mousedown="startHeaderPress('fc', i)" @mouseup="endHeaderPress('fc', i)" @mouseleave="cancelHeaderPress"
+              @touchstart="startHeaderPress('fc', i)" @touchmove="onHeaderMove" @touchend.prevent="endHeaderPress('fc', i)" @touchcancel="cancelHeaderPress"
+            >
+              <input
+                v-if="editingHeader && editingHeader.type === 'fc' && editingHeader.index === i"
+                v-focus v-model="fcLabels[`lfc${i}`]" :placeholder="`FC${i}`" maxlength="20"
+                @blur="commitHeaderEdit" @keydown.enter="commitHeaderEdit"
+                @mousedown.stop @touchstart.stop @click.stop
+              />
+              <span v-else class="fc-label-btn">{{ fcLabels[`lfc${i}`] || `FC${i}` }}</span>
             </div>
-            <div class="head-total-spacer"></div>
           </div>
         </div>
 
@@ -226,7 +246,7 @@
 
       <!-- Zones layout (body only, header in sticky) -->
       <div v-if="!ctMode && !microMode && !directMode && layout === 'cableTechBase'" class="table-scroll" ref="zoneBodyScroll" @scroll="syncScroll('zoneBodyScroll','zoneHeaderScroll')" style="width:100%">
-        <CableList :cables="filteredJoinedData" :active-cable-id="activeCableId" :visible-zones="6" :subtract-mode="subtractMode" :solo-mode="soloMode" :increment-step="incrementStep" @updated="onCableUpdated" @select="onCableSelect" @longpress="onCableLongPress" />
+        <CableList :cables="filteredJoinedData" :active-cable-id="activeCableId" :visible-zones="6" :subtract-mode="subtractMode" :solo-mode="soloMode" :solo-filter="zoneSoloFilter" :increment-step="incrementStep" @updated="onCableUpdated" @select="onCableSelect" @longpress="onCableLongPress" />
       </div>
 
       <!-- Flightcase layout (body only, header in sticky) -->
@@ -543,6 +563,7 @@ async function shareAllCasesSummary() {
 const ctSolo = ref(false)
 const ctSoloFilter = ref(null)  // null = tous, 1-7 = CT spécifique
 const fcSoloFilter = ref(null)  // null = tous, 1-7 = FC spécifique
+const zoneSoloFilter = ref(null)  // null = toutes, 1-6 = zone spécifique
 
 const fcSolo = ref(false)
 
@@ -565,41 +586,68 @@ function onFcHeaderClick(i) {
   }
 }
 
-// Long press pour éditer les noms FC/CT
-let headerPressTimer = null
-let headerDidLongPress = false
-
-function startHeaderPress(type, index) {
-  headerDidLongPress = false
-  headerPressTimer = setTimeout(() => {
-    headerDidLongPress = true
-    const currentName = type === 'fc'
-      ? (fcLabels[`lfc${index}`] || `FC${index}`)
-      : (settingsStore.defaultCtLabels[`ct${index}`] || `CT${index}`)
-    const newName = prompt(`Renommer :`, currentName)
-    if (newName !== null) {
-      if (type === 'fc') {
-        fcLabels[`lfc${index}`] = newName
-      } else {
-        settingsStore.defaultCtLabels[`ct${index}`] = newName
-      }
-    }
-  }, 800)
+function onZoneHeaderClick(i) {
+  if (zoneSoloFilter.value === i) {
+    soloMode.value = false
+    zoneSoloFilter.value = null
+  } else {
+    soloMode.value = true
+    zoneSoloFilter.value = i
+  }
 }
 
-function endHeaderPress(type, index, e) {
-  clearTimeout(headerPressTimer)
-  if (!headerDidLongPress) {
-    if (type === 'fc') {
-      onFcHeaderClick(index)
+// En-têtes de colonnes (zones & flight-cases) :
+//   clic court = ouvrir le détail (voir le contenu) ; appui long = renommer en ligne
+const editingHeader = ref(null) // { type: 'fc' | 'zone', index }
+const vFocus = { mounted: (el) => { el.focus(); if (el.select) el.select() } }
+
+let headerPressTimer = null
+let headerDidLongPress = false
+let headerMoved = false
+
+function startHeaderPress(type, index) {
+  if (editingHeader.value) return
+  headerDidLongPress = false
+  headerMoved = false
+  headerPressTimer = setTimeout(() => {
+    headerDidLongPress = true
+    if (type === 'ct') {
+      const cur = settingsStore.defaultCtLabels[`ct${index}`] || `CT${index}`
+      const n = prompt('Renommer :', cur)
+      if (n !== null) settingsStore.defaultCtLabels[`ct${index}`] = n
     } else {
-      onCtHeaderClick(index)
+      // fc / zone : édition en ligne du titre
+      editingHeader.value = { type, index }
     }
+  }, 600)
+}
+
+function onHeaderMove() {
+  // L'utilisateur fait défiler : on annule l'appui (pas d'ouverture ni de renommage)
+  headerMoved = true
+  clearTimeout(headerPressTimer)
+}
+
+function endHeaderPress(type, index) {
+  clearTimeout(headerPressTimer)
+  if (headerDidLongPress || headerMoved) return
+  if (type === 'ct') { onCtHeaderClick(index); return }
+  if (type === 'fc') {
+    // Solo seulement si le mode S est actif : clic = sélectionner ce flight-case
+    // (on sort du solo uniquement via le bouton S, jamais en recliquant)
+    if (fcSolo.value) { fcSoloFilter.value = index; typeChoose.value = '' }
+    return
   }
+  // zone : idem, sélection seulement si le mode S est actif
+  if (soloMode.value) zoneSoloFilter.value = index
 }
 
 function cancelHeaderPress() {
   clearTimeout(headerPressTimer)
+}
+
+function commitHeaderEdit() {
+  editingHeader.value = null
 }
 
 const ctEditMode = ref(false)
@@ -1344,7 +1392,7 @@ function colorForType(type) {
   align-items: center;
   margin: 0 auto;
   max-width: 900px;
-  padding: 0 10px;
+  padding: 0 3px;
   text-align: center;
 }
 @media (min-width: 768px) {
@@ -1677,6 +1725,21 @@ function colorForType(type) {
   width: 28px;
   min-width: 28px;
 }
+.head-total-label {
+  width: 32px;
+  min-width: 32px;
+  margin: 0 3px 0 1px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  height: 55px;
+  padding-bottom: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text);
+  user-select: none;
+  -webkit-user-select: none;
+}
 .table-scroll {
   width: 100%;
   overflow-x: auto;
@@ -1717,6 +1780,10 @@ function colorForType(type) {
   left: 0;
   z-index: 2;
   background: var(--bg, #fff);
+}
+/* Flight-case : on dé-fige pour faire défiler tout le tableau (voir FC5/6/7) */
+.head-spacer-sticky.fc-unstick {
+  position: static;
 }
 .ct-btn-row {
   display: flex;
@@ -1841,7 +1908,7 @@ function colorForType(type) {
 }
 .head-label-angled input,
 .head-label-angled-fc input {
-  width: 60px;
+  width: 85px;
   border: none;
   border-bottom: 1px solid #ccc;
   background: transparent;
@@ -1884,8 +1951,11 @@ function colorForType(type) {
   left: 28px;
 }
 .solo-selected {
-  outline: 3px solid #ef4444 !important;
-  outline-offset: 1px;
+  background: #3b82f6 !important;
+  color: #fff !important;
+  border-color: #2563eb !important;
+  border-radius: 4px;
+  padding: 1px 4px;
 }
 .fc-clickable {
   cursor: pointer;
@@ -2370,6 +2440,12 @@ button {
   .head-spacer-sticky {
     width: 200px;
     min-width: 200px;
+  }
+  .head-total-label {
+    width: 40px;
+    min-width: 40px;
+    height: 65px;
+    font-size: 12px;
   }
 }
 </style>

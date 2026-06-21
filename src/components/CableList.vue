@@ -27,7 +27,8 @@
             pressing: isDecrementing,
             disabled: cable.cableid !== activeCableId,
             'col-even': idx % 2 === 1,
-            'col-spare': field === 'spare_count'
+            'col-spare': field === 'spare_count',
+            'solo-col': soloActive && field === `z${soloFilter}`
           }"
           @mousedown="startPress(cable, field, $event)"
           @mouseup="endPress(cable, field, $event)"
@@ -42,12 +43,12 @@
         </div>
       </div>
       <div class="cable-total">
-        {{ getTotal(cable) || '' }}
+        {{ soloActive ? '' : (getTotal(cable) || '') }}
       </div>
     </div>
 
     <!-- Séparateur + câbles inactifs en mode solo -->
-    <template v-if="soloMode && inactiveCables.length > 0">
+    <template v-if="soloMode && !soloFilter && inactiveCables.length > 0">
       <div class="solo-separator"></div>
       <div
         v-for="(cable, rowIdx) in inactiveCables"
@@ -107,13 +108,20 @@ const props = defineProps({
   visibleZones: { type: Number, default: 6 },
   subtractMode: { type: Boolean, default: false },
   soloMode: { type: Boolean, default: false },
+  soloFilter: { type: Number, default: null },
   incrementStep: { type: Number, default: 1 },
 })
 
 const activeCables = computed(() => props.cables.filter(c => getTotal(c) > 0))
 const inactiveCables = computed(() => props.cables.filter(c => getTotal(c) === 0))
+const soloActive = computed(() => props.soloMode && !!props.soloFilter)
+
 const displayedCables = computed(() => {
   if (!props.soloMode) return props.cables
+  // Solo sur une zone précise : ne montrer que les câbles présents dans cette zone
+  if (props.soloFilter) {
+    return props.cables.filter(c => (c[`z${props.soloFilter}`] || 0) > 0)
+  }
   return activeCables.value
 })
 
@@ -301,6 +309,7 @@ function colorForType(type) {
   font-size: 14px;
   font-weight: bold;
   color: #2c3e50;
+  border-radius: 4px;
 }
 .cable-zones {
   display: flex;
