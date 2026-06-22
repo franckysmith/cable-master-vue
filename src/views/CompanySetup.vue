@@ -29,14 +29,15 @@
     <div class="form-panel">
       <h3>{{ editing ? 'Modifier' : 'Nouvelle entreprise' }}</h3>
       <form @submit.prevent="submit">
+        <p v-if="editing" class="lock-note">🔒 Nom, SIRET et adresse sont verrouillés après la création de l'entreprise.</p>
         <div class="form-grid">
           <div class="form-row half">
-            <label>Nom de l'entreprise *</label>
-            <input v-model="form.name" placeholder="ex: Audio Test" required />
+            <label>Nom de l'entreprise * <span v-if="editing" class="lock-badge">🔒</span></label>
+            <input v-model="form.name" placeholder="ex: Audio Test" required :readonly="editing" :class="{ locked: editing }" />
           </div>
           <div class="form-row half">
-            <label>SIRET</label>
-            <input v-model="form.siret" placeholder="N° SIRET" inputmode="numeric" />
+            <label>SIRET <span v-if="editing" class="lock-badge">🔒</span></label>
+            <input v-model="form.siret" placeholder="N° SIRET" inputmode="numeric" :readonly="editing" :class="{ locked: editing }" />
           </div>
         </div>
         <div class="form-row">
@@ -56,17 +57,17 @@
           <p class="hint">Chaque département aura sa propre liste de matériel</p>
         </div>
         <div class="form-row">
-          <label>Adresse</label>
-          <input v-model="form.address" placeholder="Rue, numéro..." />
+          <label>Adresse <span v-if="editing" class="lock-badge">🔒</span></label>
+          <input v-model="form.address" placeholder="Rue, numéro..." :readonly="editing" :class="{ locked: editing }" />
         </div>
         <div class="form-grid">
           <div class="form-row half">
-            <label>Ville</label>
-            <input v-model="form.city" placeholder="Ville" />
+            <label>Ville <span v-if="editing" class="lock-badge">🔒</span></label>
+            <input v-model="form.city" placeholder="Ville" :readonly="editing" :class="{ locked: editing }" />
           </div>
           <div class="form-row half">
-            <label>Pays</label>
-            <input v-model="form.country" placeholder="Pays" />
+            <label>Pays <span v-if="editing" class="lock-badge">🔒</span></label>
+            <input v-model="form.country" placeholder="Pays" :readonly="editing" :class="{ locked: editing }" />
           </div>
         </div>
         <div class="form-grid">
@@ -79,6 +80,32 @@
             <input v-model="form.email" type="email" placeholder="contact@..." />
           </div>
         </div>
+
+        <div class="resp-block">
+          <div class="resp-title">👑 Responsable (master principal)</div>
+          <div class="form-grid">
+            <div class="form-row half">
+              <label>Prénom</label>
+              <input v-model="form.resp_firstname" placeholder="Prénom" />
+            </div>
+            <div class="form-row half">
+              <label>Nom</label>
+              <input v-model="form.resp_lastname" placeholder="Nom" />
+            </div>
+          </div>
+          <div class="form-grid">
+            <div class="form-row half">
+              <label>Email</label>
+              <input v-model="form.resp_email" type="email" placeholder="email@..." />
+            </div>
+            <div class="form-row half">
+              <label>Téléphone</label>
+              <input v-model="form.resp_phone" placeholder="+33..." />
+            </div>
+          </div>
+          <p class="hint">Seul le master principal peut modifier la fiche de l'entreprise.</p>
+        </div>
+
         <div class="form-actions">
           <button type="submit" class="btn-save" :disabled="!form.name || form.departments.length === 0">
             {{ editing ? 'Enregistrer' : 'Créer l\'entreprise' }}
@@ -91,8 +118,8 @@
 
     <!-- Gestionnaires / suivi des affaires -->
     <div v-if="activeCompanyId" class="managers-section">
-      <h3>Gestionnaires des affaires</h3>
-      <p class="hint">Ils créent et suivent les affaires, et reçoivent la liste des affaires à venir.</p>
+      <h3>Masters secondaires</h3>
+      <p class="hint">Ils peuvent inviter des techniciens et créer/suivre des affaires (qui vont et viennent), mais ne peuvent pas modifier la fiche de l'entreprise.</p>
 
       <div v-for="mgr in managers" :key="mgr.techid" class="manager-card">
         <template v-if="editManagerId === mgr.techid">
@@ -121,9 +148,9 @@
         </template>
       </div>
 
-      <div v-if="managers.length === 0" class="emp-empty">Aucun gestionnaire</div>
+      <div v-if="managers.length === 0" class="emp-empty">Aucun master secondaire</div>
 
-      <button v-if="!showAddManager" class="btn-add-employee" @click="showAddManager = true">+ Ajouter un gestionnaire</button>
+      <button v-if="!showAddManager" class="btn-add-employee" @click="showAddManager = true">+ Ajouter un master</button>
       <div v-if="showAddManager" class="add-employee-form">
         <div class="form-grid">
           <div class="form-row half"><label>Prénom *</label><input v-model="newManager.firstname" placeholder="Prénom" /></div>
@@ -276,6 +303,10 @@ const form = reactive({
   country: '',
   phone: '',
   email: '',
+  resp_firstname: '',
+  resp_lastname: '',
+  resp_email: '',
+  resp_phone: '',
 })
 
 function toggleDepartment(d) {
@@ -316,12 +347,16 @@ function selectCompany(c) {
   form.country = c.country || ''
   form.phone = c.phone || ''
   form.email = c.email || ''
+  form.resp_firstname = c.resp_firstname || ''
+  form.resp_lastname = c.resp_lastname || ''
+  form.resp_email = c.resp_email || ''
+  form.resp_phone = c.resp_phone || ''
 }
 
 function resetForm() {
   editing.value = false
   selectedCompany.value = null
-  Object.assign(form, { name: '', siret: '', departments: [], address: '', city: '', country: '', phone: '', email: '' })
+  Object.assign(form, { name: '', siret: '', departments: [], address: '', city: '', country: '', phone: '', email: '', resp_firstname: '', resp_lastname: '', resp_email: '', resp_phone: '' })
   message.value = ''
 }
 
@@ -334,14 +369,14 @@ async function submit() {
     const { error } = await supabase
       .from('company')
       .update({
-        name: form.name,
-        siret: form.siret,
+        // name / siret / address / city / country sont verrouillés après création
         domain: form.departments.join(','),
-        address: form.address,
-        city: form.city,
-        country: form.country,
         phone: form.phone,
         email: form.email,
+        resp_firstname: form.resp_firstname,
+        resp_lastname: form.resp_lastname,
+        resp_email: form.resp_email,
+        resp_phone: form.resp_phone,
       })
       .eq('companyid', selectedCompany.value.companyid)
     if (error) {
@@ -387,6 +422,10 @@ async function submit() {
         country: form.country,
         phone: form.phone,
         email: form.email,
+        resp_firstname: form.resp_firstname,
+        resp_lastname: form.resp_lastname,
+        resp_email: form.resp_email,
+        resp_phone: form.resp_phone,
         catalog_id: firstCatId,
       })
       .select()
@@ -731,6 +770,33 @@ h3 {
   color: var(--text-muted, #999);
   margin-top: 4px;
   font-style: italic;
+}
+.resp-block {
+  margin-top: 12px;
+  padding: 10px;
+  border: 1px dashed var(--color1);
+  border-radius: 8px;
+  background: var(--color1-light);
+}
+.resp-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color1-dark);
+  margin-bottom: 8px;
+}
+.lock-note {
+  font-size: 11px;
+  color: var(--text-muted, #999);
+  margin-bottom: 8px;
+  font-style: italic;
+}
+.lock-badge {
+  font-size: 11px;
+}
+input.locked {
+  background: var(--bg-locked, #f0f0f0) !important;
+  color: var(--text-muted, #888) !important;
+  cursor: not-allowed;
 }
 .form-actions {
   display: flex;
