@@ -8,7 +8,8 @@
       :class="{
         selectedtype: modelValue === t.value,
         'has-cables': (counts[t.value] || 0) > 0,
-        distributed: distributedTypes[t.value],
+        over: overTypes[t.value],
+        distributed: (counts[t.value] || 0) > 0 && distributedTypes[t.value] && !overTypes[t.value],
       }"
       :style="(counts[t.value] || 0) > 0 ? { borderColor: colorFor(t.value) } : null"
     >
@@ -18,7 +19,7 @@
     <button
       class="type-btn"
       @click="$emit('select', '')"
-      :class="{ selectedtype: modelValue === '' }"
+      :class="{ selectedtype: modelValue === '', distributed: allDone && !anyOver, over: anyOver }"
     >All</button>
   </div>
 </template>
@@ -30,6 +31,7 @@ import { useSettingsStore } from '../stores/settings'
 const props = defineProps({
   modelValue: { type: String, default: 'speaker' },
   distributedTypes: { type: Object, default: () => ({}) },
+  overTypes: { type: Object, default: () => ({}) },
   counts: { type: Object, default: () => ({}) },
   showAll: { type: Boolean, default: false },
 })
@@ -39,7 +41,7 @@ const settingsStore = useSettingsStore()
 
 const TYPE_COLORS = {
   speaker: 'var(--color1)', electrical: '#f3e309', microphone: '#eb910a',
-  module: '#3b82f6', special: '#ef4444', other: '#8b5cf6',
+  module: '#8b5cf6', special: '#ef4444', other: '#a16207',
   c_type: '#06b6d4', accessory: '#84cc16', digital: '#f97316',
   type8: '#ec4899', type9: '#14b8a6', type10: '#a855f7',
 }
@@ -57,10 +59,18 @@ const types = computed(() => {
   }).filter(t => t.label)
   if (props.showAll) {
     list.push({ value: 'microphone', label: 'Micros' })
-    list.push({ value: 'c_type', label: 'Caisses-type' })
+    list.push({ value: 'c_type', label: 'Cablekit' })
   }
   return list
 })
+
+// Tout distribué : tous les types qui ont des câbles sont rangés
+const allDone = computed(() => {
+  const withCables = types.value.filter(t => (props.counts[t.value] || 0) > 0)
+  return withCables.length > 0 && withCables.every(t => props.distributedTypes[t.value])
+})
+// Au moins un câble en trop quelque part → erreur globale
+const anyOver = computed(() => Object.values(props.overTypes).some(Boolean))
 </script>
 
 <style scoped>
@@ -102,19 +112,27 @@ const types = computed(() => {
   margin-left: 5px;
   padding: 0 5px;
   border-radius: 9px;
-  color: #fff;
+  color: #111;
   font-size: 11px;
   font-weight: 800;
   vertical-align: middle;
 }
-/* Tout distribué : coche verte */
-.type-btn.distributed::after {
+/* Coche « tout rangé » : place réservée en permanence (invisible), verte quand distribué */
+.type-btn::after {
   content: '✓';
   margin-left: 4px;
-  color: #22c55e;
   font-weight: 900;
+  color: transparent;
+}
+.type-btn.distributed::after {
+  color: #22c55e;
 }
 .type-btn.selectedtype.distributed::after {
   color: #bbf7d0;
+}
+/* Erreur : un câble en trop → croix rouge */
+.type-btn.over::after {
+  content: '✗';
+  color: #ef4444;
 }
 </style>

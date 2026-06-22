@@ -188,7 +188,7 @@ const employerItems = computed(() => {
   if (isSuper.value || userRole.value === 'master') {
     items.push(
       { label: 'CableList', to: '/CableList', icon: 'settings_input_component' },
-      { label: 'FlightType', to: '/FlightType', icon: 'inventory_2' },
+      { label: 'Cablekit', to: '/FlightType', icon: 'inventory_2' },
       { label: 'MasterAffaire', to: '/MasterAffaire', icon: 'event_note' },
     )
   }

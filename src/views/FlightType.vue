@@ -2,7 +2,7 @@
   <div class="caisse-type">
     <!-- Sélection de la caisse type -->
     <div class="ct-header">
-      <h2>Caisses Type</h2>
+      <h2>Cablekit</h2>
       <div class="ct-tabs">
         <button
           v-for="i in 8"
@@ -11,7 +11,7 @@
           :class="{ active: selectedCt === i }"
           @click="selectCt(i)"
         >
-          {{ settingsStore.defaultCtLabels[`ct${i}`] || `CT${i}` }}
+          {{ settingsStore.defaultCtLabels[`ct${i}`] || `CK${i}` }}
         </button>
       </div>
     </div>
@@ -61,7 +61,7 @@
 
       <!-- Résumé -->
       <div class="ct-summary" v-if="totalCount > 0">
-        <strong>{{ totalCount }}</strong> câbles dans {{ settingsStore.defaultCtLabels[`ct${selectedCt}`] || `CT${selectedCt}` }}
+        <strong>{{ totalCount }}</strong> câbles dans {{ settingsStore.defaultCtLabels[`ct${selectedCt}`] || `CK${selectedCt}` }}
       </div>
     </div>
 
@@ -119,8 +119,8 @@ async function selectCt(i) {
   selectedCt.value = i
   activeCableId.value = null
   // Chercher ou créer la MFC correspondante
-  const ctName = settingsStore.defaultCtLabels[`ct${i}`] || `CT${i}`
-  let mfc = mfcStore.mfcs.find(m => m.name === ctName || m.name === `CT${i}`)
+  const ctName = settingsStore.defaultCtLabels[`ct${i}`] || `CK${i}`
+  let mfc = mfcStore.mfcs.find(m => m.name === ctName || m.name === `CK${i}`)
   if (!mfc) {
     const { data } = await mfcStore.addMfc({ name: ctName, info: '' })
     mfc = data?.[0]
@@ -167,8 +167,8 @@ function cancelPress() {
 }
 
 async function saveCableCount(cableid) {
-  const ctName = settingsStore.defaultCtLabels[`ct${selectedCt.value}`] || `CT${selectedCt.value}`
-  const mfc = mfcStore.mfcs.find(m => m.name === ctName || m.name === `CT${selectedCt.value}`)
+  const ctName = settingsStore.defaultCtLabels[`ct${selectedCt.value}`] || `CK${selectedCt.value}`
+  const mfc = mfcStore.mfcs.find(m => m.name === ctName || m.name === `CK${selectedCt.value}`)
   if (!mfc) return
   const count = cableCounts.value[cableid] || 0
   await mfcStore.setCableMfc(mfc.mfcid, cableid, count)
@@ -177,7 +177,7 @@ async function saveCableCount(cableid) {
 function colorForType(type) {
   const colors = {
     speaker: '#4dcc59', electrical: '#f3e309', microphone: '#eb910a',
-    module: '#3b82f6', special: '#ef4444', other: '#8b5cf6',
+    module: '#8b5cf6', special: '#ef4444', other: '#a16207',
     c_type: '#06b6d4', accessory: '#84cc16', digital: '#f97316',
   }
   return colors[type] || '#ccc'

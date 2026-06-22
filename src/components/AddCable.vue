@@ -67,7 +67,7 @@ const cableStore = useCableStore()
 const settingsStore = useSettingsStore()
 
 const typeKeys = ['speaker', 'electrical', 'module', 'special', 'other', 'accessory', 'digital', 'type8', 'type9', 'type10', 'microphone', 'c_type']
-const defaultLabels = ['HP', 'Elec', 'Modules', 'Spéciaux', 'Autres', 'Accessoires', 'Numériques', '', '', '', 'Micros', 'Caisses-type']
+const defaultLabels = ['HP', 'Elec', 'Modules', 'Spéciaux', 'Autres', 'Accessoires', 'Numériques', '', '', '', 'Micros', 'Cablekit']
 
 const typeOptions = typeKeys.map((value, i) => {
   const label = (i < 10 ? settingsStore.defaultTypeLabels[`type${i + 1}`] : null) || defaultLabels[i]

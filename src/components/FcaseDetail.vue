@@ -132,7 +132,7 @@ function typeLabel(type) {
   const labels = {
     speaker: 'HP', electrical: 'Électrique', module: 'Modules',
     microphone: 'Micros', special: 'Spéciaux', other: 'Autres',
-    c_type: 'Caisses-type', accessory: 'Accessoires', digital: 'Digital'
+    c_type: 'Cablekit', accessory: 'Accessoires', digital: 'Digital'
   }
   return labels[type] || type
 }
@@ -140,7 +140,7 @@ function typeLabel(type) {
 function colorForType(type) {
   const colors = {
     speaker: 'var(--color1)', electrical: '#f3e309', microphone: '#eb910a',
-    module: '#3b82f6', special: '#ef4444', other: '#8b5cf6',
+    module: '#8b5cf6', special: '#ef4444', other: '#a16207',
     c_type: '#06b6d4', accessory: '#84cc16', digital: '#f97316',
   }
   return colors[type] || '#ccc'

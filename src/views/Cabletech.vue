@@ -37,17 +37,18 @@
       <!-- Mode toggle : Select / flight-case / Micro -->
       <div class="mode-bar" v-if="!ctMode && !allCasesMode">
         <button
-          class="select-btn"
+          class="mode-btn"
+          :class="{ active: !microMode && layout === 'cableTechBase' }"
           @click="microMode = false; onHelpClick('select', () => layout = 'cableTechBase')"
-          :class="{ button3: !microMode && layout === 'cableTechBase' }"
         >Select</button>
         <span class="mode-arrow">⮕</span>
         <button
+          class="mode-btn"
+          :class="{ active: !microMode && layout === 'flightcase' }"
           @click="microMode = false; onHelpClick('fc', () => layout = 'flightcase')"
-          :class="{ button3: !microMode && layout === 'flightcase' }"
         >flight-case</button>
         <button
-          class="special-btn micro-btn"
+          class="mode-btn"
           :class="{ active: microMode }"
           @click="onHelpClick('micro', toggleMicroMode)"
         >Micro</button>
@@ -68,7 +69,7 @@
           @touchend.prevent="endCtBtnPress"
           @touchcancel="cancelCtBtnPress"
           style="user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;"
-        >Caisse-type</button>
+        >Cablekit</button>
       </div>
 
       <!-- Ajout rapide de câble -->
@@ -111,7 +112,7 @@
 
       <!-- Sticky : boutons type (sélection + quantité + cadre couleur) + en-têtes colonnes -->
       <div class="sticky-header">
-        <ButtonCableType v-if="!microMode" :model-value="typeChoose" :distributed-types="distributedTypes" :counts="typeCounts" @select="typeChoose = $event" />
+        <ButtonCableType v-if="!microMode" :model-value="typeChoose" :distributed-types="distributedTypes" :over-types="overTypes" :counts="typeCounts" @select="typeChoose = $event" />
 
 
         <!-- En-têtes micro -->
@@ -196,7 +197,7 @@
           </div>
         </div>
 
-        <!-- Sync-header Caisses-type -->
+        <!-- Sync-header Cablekit -->
         <div v-if="ctMode" class="sync-header" ref="ctHeaderScroll">
           <div class="sync-header-inner">
             <div class="head-spacer-sticky ct-btn-row">
@@ -211,13 +212,13 @@
               </button>
             </div>
             <div v-for="i in 7" :key="'cth'+i" class="head-label-angled-fc" @mousedown="startHeaderPress('ct', i)" @mouseup="endHeaderPress('ct', i)" @mouseleave="cancelHeaderPress" @touchstart="startHeaderPress('ct', i)" @touchend="endHeaderPress('ct', i)" @touchcancel="cancelHeaderPress">
-              <span class="ct-label-btn" :class="{ 'solo-selected': ctSolo && ctSoloFilter === i }">{{ settingsStore.defaultCtLabels[`ct${i}`] || `CT${i}` }}</span>
+              <span class="ct-label-btn" :class="{ 'solo-selected': ctSolo && ctSoloFilter === i }">{{ settingsStore.defaultCtLabels[`ct${i}`] || `CK${i}` }}</span>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Caisse-type body (outside sticky) -->
+      <!-- Cablekit body (outside sticky) -->
       <div v-if="ctMode" class="table-scroll" ref="ctBodyScroll" @scroll="syncScroll('ctBodyScroll','ctHeaderScroll')" style="width:100%">
         <CtypeList
           :cables="ctFilteredCables"
@@ -262,7 +263,7 @@
       <!-- Boutons caisse-type sélectionnée -->
       <div class="print-all-bar" v-if="ctSolo && ctSoloFilter">
         <button class="action-btn" @click="printCtCaisse(ctSoloFilter)">
-          🖨 {{ settingsStore.defaultCtLabels[`ct${ctSoloFilter}`] || `CT${ctSoloFilter}` }}
+          🖨 {{ settingsStore.defaultCtLabels[`ct${ctSoloFilter}`] || `CK${ctSoloFilter}` }}
         </button>
         <button class="action-btn" @click="shareCtCaisse(ctSoloFilter)">
           📤 Partager
@@ -297,7 +298,7 @@
           <p>Répartir les micros par groupe de musiciens. Chaque groupe correspond à un plateau. La colonne Qté calcule automatiquement le maximum + les spares.</p>
         </template>
         <template v-else-if="helpTarget === 'ctype'">
-          <h4>📦 Caisse-type</h4>
+          <h4>📦 Cablekit</h4>
           <p>Caisses pré-configurées par l'entreprise. Cliquez sur un titre de colonne pour voir son contenu. Appui long sur un titre pour le renommer.</p>
         </template>
         <template v-else-if="helpTarget === 'select'">
@@ -650,7 +651,7 @@ function startHeaderPress(type, index) {
   headerPressTimer = setTimeout(() => {
     headerDidLongPress = true
     if (type === 'ct') {
-      const cur = settingsStore.defaultCtLabels[`ct${index}`] || `CT${index}`
+      const cur = settingsStore.defaultCtLabels[`ct${index}`] || `CK${index}`
       const n = prompt('Renommer :', cur)
       if (n !== null) settingsStore.defaultCtLabels[`ct${index}`] = n
     } else {
@@ -764,8 +765,8 @@ async function loadAllCtCables() {
   const counts = {}
   const ids = {}
   for (let i = 1; i <= 7; i++) {
-    const ctName = settingsStore.defaultCtLabels[`ct${i}`] || `CT${i}`
-    const mfc = mfcStore.mfcs.find(m => m.name === ctName || m.name === `CT${i}`)
+    const ctName = settingsStore.defaultCtLabels[`ct${i}`] || `CK${i}`
+    const mfc = mfcStore.mfcs.find(m => m.name === ctName || m.name === `CK${i}`)
     if (!mfc) continue
     ids[i] = mfc.mfcid
     const { data } = await mfcStore.getMfcCables(mfc.mfcid)
@@ -789,7 +790,7 @@ async function onCtCableUpdated({ cableid, ctIndex, count }) {
   // Sauvegarder dans Supabase
   let mfcid = ctMfcIds.value[ctIndex]
   if (!mfcid) {
-    const ctName = settingsStore.defaultCtLabels[`ct${ctIndex}`] || `CT${ctIndex}`
+    const ctName = settingsStore.defaultCtLabels[`ct${ctIndex}`] || `CK${ctIndex}`
     const { data } = await mfcStore.addMfc({ name: ctName, info: '' })
     if (data?.[0]) {
       mfcid = data[0].mfcid
@@ -826,7 +827,7 @@ const cableTypes = computed(() => {
   })).filter(t => t.label)
   // Ajouter micro et caisse-type (toujours présents)
   all.push({ value: 'microphone', label: 'Micros' })
-  all.push({ value: 'c_type', label: 'Caisses-type' })
+  all.push({ value: 'c_type', label: 'Cablekit' })
   return all
 })
 
@@ -912,7 +913,7 @@ function printAllFc() {
   const typeLabels = {
     speaker: 'HP', electrical: 'Électrique', module: 'Modules',
     microphone: 'Micros', special: 'Spéciaux', other: 'Autres',
-    c_type: 'Caisses-type', accessory: 'Accessoires', digital: 'Digital'
+    c_type: 'Cablekit', accessory: 'Accessoires', digital: 'Digital'
   }
 
   let html = `<html><head><title>Caisses - ${selectedAffair.value?.name || ''}</title><style>
@@ -966,7 +967,7 @@ function printAllFc() {
 }
 
 function printCtCaisse(ctIndex) {
-  const ctName = settingsStore.defaultCtLabels[`ct${ctIndex}`] || `CT${ctIndex}`
+  const ctName = settingsStore.defaultCtLabels[`ct${ctIndex}`] || `CK${ctIndex}`
   const counts = ctAllCounts.value
   const cables = cableStore.cables
     .filter(c => (counts[c.cableid]?.[ctIndex] || 0) > 0)
@@ -978,7 +979,7 @@ function printCtCaisse(ctIndex) {
   const typeLabels = {
     speaker: 'HP', electrical: 'Électrique', module: 'Modules',
     microphone: 'Micros', special: 'Spéciaux', other: 'Autres',
-    c_type: 'Caisses-type', accessory: 'Accessoires', digital: 'Digital'
+    c_type: 'Cablekit', accessory: 'Accessoires', digital: 'Digital'
   }
 
   const groups = {}
@@ -1056,7 +1057,7 @@ async function shareAllFc() {
 }
 
 async function shareCtCaisse(ctIndex) {
-  const ctName = settingsStore.defaultCtLabels[`ct${ctIndex}`] || `CT${ctIndex}`
+  const ctName = settingsStore.defaultCtLabels[`ct${ctIndex}`] || `CK${ctIndex}`
   const counts = ctAllCounts.value
   const cables = cableStore.cables
     .filter(c => (counts[c.cableid]?.[ctIndex] || 0) > 0)
@@ -1441,6 +1442,18 @@ const distributedTypes = computed(() => {
   return result
 })
 
+// Par type : y a-t-il un câble en TROP (distribué > nécessaire) → erreur (coche rouge)
+const overTypes = computed(() => {
+  const result = {}
+  for (const c of joinedData.value) {
+    const cableTotal = calculateTotal(c) > 0 ? calculateTotal(c) : c.count
+    const distributed = (c.tfc1 || 0) + (c.tfc2 || 0) + (c.tfc3 || 0) +
+      (c.tfc4 || 0) + (c.tfc5 || 0) + (c.tfc6 || 0)
+    if (cableTotal > 0 && distributed > cableTotal) result[c.type] = true
+  }
+  return result
+})
+
 // Est-ce que tous les câbles sélectionnés sont distribués dans les FC ?
 const allDistributed = computed(() => {
   if (directMode.value) return false
@@ -1485,7 +1498,7 @@ function calculateTotal(cable) {
 function colorForType(type) {
   const colors = {
     speaker: 'var(--color1)', electrical: '#f3e309', microphone: '#eb910a',
-    module: '#3b82f6', special: '#ef4444', other: '#8b5cf6',
+    module: '#8b5cf6', special: '#ef4444', other: '#a16207',
     c_type: '#06b6d4', accessory: '#84cc16', digital: '#f97316',
     type8: '#ec4899', type9: '#14b8a6', type10: '#a855f7',
   }
@@ -1527,11 +1540,26 @@ function colorForType(type) {
   gap: 12px;
   margin: 8px 0;
 }
-/* Select : orange uniquement quand c'est le mode actif (éteint sinon / en flightcase) */
-.select-btn.button3 {
-  background: #f59e0b !important;
-  color: #fff !important;
-  border: none;
+/* Boutons de mode unifiés (Select / flight-case / Micro) */
+.mode-btn {
+  padding: 5px 12px;
+  font-size: 13px;
+  font-weight: 700;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  min-width: auto;
+  box-shadow: none;
+  background: var(--bg-card, #eee);
+  color: var(--text, #555);
+  transition: all 0.2s;
+}
+.mode-btn.active {
+  background: #eb910a;
+  color: #fff;
+  border-color: #fff;
+  box-shadow: 0 0 0 2px #eb910a, 0 0 8px rgba(235, 145, 10, 0.5);
+  transform: scale(1.03);
 }
 .mode-arrow {
   font-size: 22px;
