@@ -3,13 +3,11 @@
     <!-- ===== Header (le vrai haut) ===== -->
     <q-header class="app-header">
       <q-toolbar class="app-toolbar">
-        <q-btn flat dense round icon="menu" aria-label="Menu" @click="drawer = !drawer" />
-        <q-toolbar-title class="app-title">
-          <span class="brand">cinod</span>
-        </q-toolbar-title>
+        <q-btn flat round icon="menu" class="hdr-nav-btn" aria-label="Menu" @click="drawer = !drawer" />
+        <q-btn flat round icon="arrow_back" class="hdr-nav-btn" aria-label="Précédent" title="Précédent" @click="router.back()" />
+        <q-btn flat round icon="arrow_forward" class="hdr-nav-btn" aria-label="Suivant" title="Suivant" @click="router.forward()" />
         <q-space />
-        <router-link to="/about" class="header-link" title="À propos">About</router-link>
-        <router-link to="/micros" class="header-icon" title="Bibliothèque Micros">🎤</router-link>
+        <router-link to="/" class="header-link" title="Accueil" @click="goHome">Home</router-link>
         <router-link to="/settings" class="header-icon" title="Réglages">&#9881;</router-link>
         <span class="help-btn" :class="{ active: helpMode }" @click="helpMode = !helpMode" title="Aide">?</span>
         <span class="user-selector" @click="showUserMenu = !showUserMenu">
@@ -18,18 +16,26 @@
       </q-toolbar>
 
       <!-- Bandeaux d'état -->
-      <div v-if="!online" class="offline-bar">Mode hors-ligne</div>
+      <div class="status-bar" :class="'status-' + syncStatus">
+        <template v-if="syncStatus === 'offline'">⚠️ Hors-ligne{{ pendingCount ? ` — ${pendingCount} modif. en attente (envoyées au retour du réseau)` : ' — modifications enregistrées localement' }}</template>
+        <template v-else-if="syncStatus === 'syncing'">⟳ Synchronisation… {{ pendingCount }} modif. en attente</template>
+        <template v-else>● En ligne</template>
+      </div>
       <div v-if="userRole === 'master' && companyName" class="company-bar">
         🏢 {{ companyName }}
       </div>
     </q-header>
 
     <!-- ===== Drawer (menu latéral) ===== -->
-    <q-drawer v-model="drawer" side="left" bordered :width="260" :breakpoint="599" class="app-drawer">
+    <q-drawer v-model="drawer" side="left" bordered :width="230" :breakpoint="599" class="app-drawer">
       <q-scroll-area class="fit">
+        <div class="drawer-top">
+          <q-btn flat dense round icon="chevron_left" aria-label="Fermer le menu" @click="drawer = false" />
+        </div>
         <div class="drawer-brand">
-          <span class="drawer-brand-name">cinod</span>
-          <span class="drawer-brand-sub">CableTech</span>
+          <img src="/icon-512.png" alt="CableLog" class="drawer-logo" />
+          <span class="drawer-brand-name">CableLog</span>
+          <span class="drawer-brand-sub">cinod</span>
         </div>
         <q-list padding>
           <!-- Employeurs -->
@@ -64,12 +70,35 @@
               clickable
               to="/"
               active-class="drawer-active"
-              @click="closeDrawerOnMobile"
+              @click="goHome"
             >
               <q-item-section avatar><q-icon name="cable" /></q-item-section>
-              <q-item-section>CableTech</q-item-section>
+              <q-item-section>Home</q-item-section>
             </q-item>
           </q-expansion-item>
+
+          <!-- Bibliothèque Micros -->
+          <q-item
+            clickable
+            to="/micros"
+            active-class="drawer-active"
+            @click="closeDrawerOnMobile"
+          >
+            <q-item-section avatar><q-icon name="mic" /></q-item-section>
+            <q-item-section>Bibliothèque Micros</q-item-section>
+          </q-item>
+
+          <!-- About (tout en bas) -->
+          <q-item
+            clickable
+            to="/about"
+            active-class="drawer-active"
+            class="drawer-about"
+            @click="closeDrawerOnMobile"
+          >
+            <q-item-section avatar><q-icon name="info" /></q-item-section>
+            <q-item-section>About</q-item-section>
+          </q-item>
         </q-list>
       </q-scroll-area>
     </q-drawer>
@@ -99,9 +128,27 @@
 import { ref, computed, onMounted, onUnmounted, provide } from 'vue'
 import { useQuasar } from 'quasar'
 import { supabase } from './lib/supabase'
+import { useAffairStore } from './stores/affairs'
+import { useRouter } from 'vue-router'
+import { getQueue } from './lib/offlineCache'
+import { flushQueue } from './lib/syncService'
 
 const $q = useQuasar()
+const affairStore = useAffairStore()
+const router = useRouter()
+
+// « Home » : revenir à l'accueil = désélectionner l'affaire en cours
+function goHome() {
+  affairStore.selectAffair(null)
+  closeDrawerOnMobile()
+}
 const online = ref(navigator.onLine)
+// Nombre de modifications en attente d'envoi (file de sync hors-ligne)
+const pendingCount = ref(getQueue().length)
+// Statut global : 'offline' | 'syncing' (en ligne mais modifs en attente) | 'online'
+const syncStatus = computed(() =>
+  !online.value ? 'offline' : (pendingCount.value > 0 ? 'syncing' : 'online')
+)
 const helpMode = ref(false)
 // Desktop (web) : drawer ouvert par défaut et persistant (ferme uniquement via le bouton).
 // Mobile : overlay qui se referme après navigation.
@@ -187,17 +234,30 @@ async function loadCompany() {
   }
 }
 
-function onOnline() { online.value = true }
-function onOffline() { online.value = false }
+function refreshPending() { pendingCount.value = getQueue().length }
+async function trySync() {
+  if (!online.value) return
+  await flushQueue()
+  refreshPending()
+}
+function onOnline() { online.value = true; trySync() }
+function onOffline() { online.value = false; refreshPending() }
 
+let syncTimer = null
 onMounted(() => {
   window.addEventListener('online', onOnline)
   window.addEventListener('offline', onOffline)
   if (userRole.value === 'master') loadCompany()
+  // Vérifie périodiquement la file et tente l'envoi si en ligne
+  syncTimer = setInterval(() => {
+    refreshPending()
+    if (online.value && pendingCount.value > 0) trySync()
+  }, 3000)
 })
 onUnmounted(() => {
   window.removeEventListener('online', onOnline)
   window.removeEventListener('offline', onOffline)
+  if (syncTimer) clearInterval(syncTimer)
 })
 </script>
 
@@ -255,34 +315,44 @@ select {
 
 /* ===== Header ===== */
 .app-header {
-  background: var(--bg-card);
-  color: var(--text);
-  border-bottom: 1px solid var(--border);
+  background: var(--color1-dark);
+  color: #fff;
+  border-bottom: 1px solid var(--color1-dark);
 }
 .app-toolbar {
   min-height: 52px;
+  padding-left: 6px;
+  padding-right: 6px;
+  overflow: hidden;
+}
+/* Boutons de navigation (hamburger + flèches) bien espacés pour le pouce */
+.hdr-nav-btn {
+  margin-right: 10px;
 }
 .app-title .brand {
   font-weight: 900;
   letter-spacing: 1px;
   font-size: 20px;
-  color: var(--color1);
+  color: #fff;
 }
 .header-link {
-  font-weight: bold;
-  color: var(--text);
+  font-weight: 800;
+  color: #fff;
   text-decoration: none;
-  padding: 0 8px;
-  font-size: 14px;
+  padding: 4px 12px;
+  font-size: 16px;
+  background: var(--bg);
+  border-radius: 8px;
+  margin-right: 4px;
 }
 .header-link.router-link-exact-active {
-  color: var(--color1);
+  color: #fff;
 }
 .header-icon {
   font-size: 18px;
   text-decoration: none;
   padding: 0 5px;
-  color: var(--text);
+  color: #fff;
   vertical-align: middle;
 }
 
@@ -291,12 +361,24 @@ select {
   background: var(--bg-card);
   color: var(--text);
 }
+.drawer-top {
+  display: flex;
+  justify-content: flex-end;
+  padding: 4px 4px 0;
+}
 .drawer-brand {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 18px 0 12px;
+  padding: 6px 0 12px;
   border-bottom: 1px solid var(--border);
+}
+.drawer-logo {
+  width: 60px;
+  height: 60px;
+  border-radius: 12px;
+  margin-bottom: 8px;
+  object-fit: cover;
 }
 .drawer-brand-name {
   font-weight: 900;
@@ -345,13 +427,25 @@ select {
   font-weight: 700;
   letter-spacing: 0.5px;
 }
-.offline-bar {
-  background: #ef4444;
-  color: white;
+.status-bar {
   text-align: center;
-  padding: 4px;
+  padding: 3px 4px;
   font-size: 12px;
   font-weight: bold;
+}
+.status-offline {
+  background: #ef4444;
+  color: #fff;
+}
+.status-syncing {
+  background: #f59e0b;
+  color: #fff;
+}
+.status-online {
+  background: rgba(34, 197, 94, 0.15);
+  color: #16a34a;
+  padding: 2px 4px;
+  font-size: 11px;
 }
 .user-selector {
   display: inline-flex;

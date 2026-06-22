@@ -75,6 +75,7 @@
       <div class="zone-toggles">
         <button :class="{ active: form.front }" @click="form.front = !form.front" class="zone-btn facade">Front</button>
         <button :class="{ active: form.monitor }" @click="form.monitor = !form.monitor" class="zone-btn retour">Monitor</button>
+        <button :class="{ active: form.system }" @click="form.system = !form.system" class="zone-btn systeme">System</button>
         <button :class="{ active: form.stage }" @click="form.stage = !form.stage" class="zone-btn scene">Stage</button>
       </div>
 
@@ -268,9 +269,9 @@
         <div v-if="selected?.affairid === affair.affairid && expandedTab === 'materiel'" class="card-expanded" @click.stop>
           <div v-if="fcLoading" class="fc-loading">Chargement...</div>
           <template v-else>
-            <!-- Façade -->
+            <!-- Front -->
             <div v-if="affair.front" class="zone-block">
-              <div class="zone-banner facade">🔵 Façade — {{ affair.tech_name || '?' }}</div>
+              <div class="zone-banner facade">🔵 Front — {{ affair.tech_name || '?' }}</div>
               <AllCasesView
                 v-if="allCables.length > 0"
                 :cables="allCables"
@@ -279,14 +280,19 @@
               />
               <div v-else class="zone-empty">Aucun matériel préparé</div>
             </div>
-            <!-- Retours -->
+            <!-- Monitor -->
             <div v-if="affair.monitor" class="zone-block">
-              <div class="zone-banner retour">🟠 Retours — {{ affair.tech_name_monitor || '?' }}</div>
+              <div class="zone-banner retour">🟠 Monitor — {{ affair.tech_name_monitor || '?' }}</div>
               <div class="zone-empty">Aucun matériel préparé</div>
             </div>
-            <!-- Scène -->
+            <!-- System -->
+            <div v-if="affair.system" class="zone-block">
+              <div class="zone-banner systeme">🟣 System</div>
+              <div class="zone-empty">Aucun matériel préparé</div>
+            </div>
+            <!-- Stage -->
             <div v-if="affair.stage" class="zone-block">
-              <div class="zone-banner scene">🟢 Scène — {{ affair.tech_name_stage || '?' }}</div>
+              <div class="zone-banner scene">🟢 Stage — {{ affair.tech_name_stage || '?' }}</div>
               <div class="zone-empty">Aucun matériel préparé</div>
             </div>
             <!-- Calculateur amplis -->
@@ -331,6 +337,7 @@ const form = reactive({
   return_date: '',
   front: false,
   monitor: false,
+  system: false,
   stage: false,
   description: '',
   attachment_name: '',
@@ -543,7 +550,7 @@ function getAffairZones(affair) {
   const zones = []
   if (affair.front) {
     zones.push({
-      key: 'front', css: 'facade', icon: '🔵', label: 'Façade',
+      key: 'front', css: 'facade', icon: '🔵', label: 'Front',
       name: affair.tech_name || '?',
       firstname: affair.tech_firstname || '',
       phone: affair.tech_phone || '',
@@ -552,7 +559,7 @@ function getAffairZones(affair) {
   }
   if (affair.monitor) {
     zones.push({
-      key: 'monitor', css: 'retour', icon: '🟠', label: 'Retours',
+      key: 'monitor', css: 'retour', icon: '🟠', label: 'Monitor',
       name: affair.tech_name_monitor || '?',
       firstname: affair.tech_firstname_monitor || '',
       phone: affair.tech_phone_monitor || '',
@@ -561,7 +568,7 @@ function getAffairZones(affair) {
   }
   if (affair.stage) {
     zones.push({
-      key: 'stage', css: 'scene', icon: '🟢', label: 'Scène',
+      key: 'stage', css: 'scene', icon: '🟢', label: 'Stage',
       name: affair.tech_name_stage || '?',
       firstname: affair.tech_firstname_stage || '',
       phone: affair.tech_phone_stage || '',
@@ -662,6 +669,7 @@ async function selectAffair(affair) {
     return_date: affair.return_date || '',
     front: affair.front || false,
     monitor: affair.monitor || false,
+    system: affair.system || false,
     stage: affair.stage || false,
     description: affair.description || '',
     attachment_name: affair.attachment_name || '',
@@ -734,6 +742,7 @@ async function saveAffair() {
     return_date: form.return_date || null,
     front: form.front,
     monitor: form.monitor,
+    system: form.system,
     stage: form.stage,
     description: form.description || '',
     catalog_id: catalogId,
@@ -909,6 +918,7 @@ h2 { text-align: center; font-size: 18px; margin-bottom: 12px; }
 h3 { font-size: 16px; margin: 0; }
 .affair-tabs {
   display: flex;
+  flex-wrap: wrap;
   gap: 4px;
   margin-bottom: 10px;
   justify-content: center;
@@ -1025,6 +1035,7 @@ h3 { font-size: 16px; margin: 0; }
 .zone-toggles button.active.facade { border-color: #3b82f6; background: #3b82f6; color: #fff; }
 .zone-toggles button.active.retour { border-color: #f59e0b; background: #f59e0b; color: #fff; }
 .zone-toggles button.active.scene { border-color: #10b981; background: #10b981; color: #fff; }
+.zone-toggles button.active.systeme { border-color: #8b5cf6; background: #8b5cf6; color: #fff; }
 .zone-toggles button.active { border-color: var(--color1); background: var(--color1); color: #fff; }
 .form-grid.three { display: flex; gap: 6px; }
 .form-grid.three .form-row { flex: 1; }
@@ -1135,6 +1146,7 @@ h3 { font-size: 16px; margin: 0; }
 .zone-banner.facade { background: rgba(59,130,246,0.1); color: #3b82f6; }
 .zone-banner.retour { background: rgba(245,158,11,0.1); color: #f59e0b; }
 .zone-banner.scene { background: rgba(16,185,129,0.1); color: #10b981; }
+.zone-banner.systeme { background: rgba(139,92,246,0.12); color: #8b5cf6; }
 .zone-block { margin-bottom: 12px; }
 .zone-empty { padding: 8px 10px; font-size: 13px; color: var(--text-muted, #999); font-style: italic; }
 /* Timeline */

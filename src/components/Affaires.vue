@@ -11,9 +11,10 @@
       <div class="sel-details" @click.stop>
         <div class="sel-tags">
           <span v-if="hasUnreadMessage" class="unread-dot">★</span>
-          <span v-if="affairStore.selectedAffair.front" class="tag tag-front">Façade</span>
-          <span v-if="affairStore.selectedAffair.monitor" class="tag tag-monitor">Retours</span>
-          <span v-if="affairStore.selectedAffair.stage" class="tag tag-stage">Scène</span>
+          <span v-if="affairStore.selectedAffair.front" class="tag tag-front">Front</span>
+          <span v-if="affairStore.selectedAffair.monitor" class="tag tag-monitor">Monitor</span>
+          <span v-if="affairStore.selectedAffair.system" class="tag tag-system">System</span>
+          <span v-if="affairStore.selectedAffair.stage" class="tag tag-stage">Stage</span>
         </div>
         <span class="sel-catalog">{{ getCatalogName(affairStore.selectedAffair) }}</span>
         <button v-if="isLinkedToCompany" class="btn-action-sel btn-chat" :class="{ 'has-unread': hasUnreadMessage }" @click.stop="toggleChat" title="Question">❓</button>
@@ -21,6 +22,7 @@
         <button class="btn-action-sel" @click.stop="showMateriel = !showMateriel" title="Matériel">
           {{ showMateriel ? '▲' : '▼' }} 🔧
         </button>
+        <button class="btn-action-sel" :class="{ active: allCasesActive }" @click.stop="$emit('toggle-all-cases')" title="Vue flight-cases">🔍</button>
         <button class="btn-action-sel" @click.stop="$emit('share')" title="Partager">📤</button>
       </div>
 
@@ -52,21 +54,26 @@
       </div>
       <div v-if="showMateriel" class="materiel-panel">
         <div class="materiel-section" v-if="affairStore.selectedAffair.front">
-          <div class="materiel-title">🔊 Façade</div>
+          <div class="materiel-title">🔊 Front</div>
           <textarea v-model="materielFront" rows="2" class="materiel-input" placeholder="Enceintes, subs, amplis... ex: 6 K2, 4 KS28"></textarea>
           <AmpCalculator :description="materielFront" />
         </div>
         <div class="materiel-section" v-if="affairStore.selectedAffair.monitor">
-          <div class="materiel-title">🎧 Retour</div>
+          <div class="materiel-title">🎧 Monitor</div>
           <textarea v-model="materielMonitor" rows="2" class="materiel-input" placeholder="Wedges, ears, amplis... ex: 8 X12, 2 SB18"></textarea>
           <AmpCalculator :description="materielMonitor" />
         </div>
+        <div class="materiel-section" v-if="affairStore.selectedAffair.system">
+          <div class="materiel-title">🎚 System</div>
+          <textarea v-model="materielSystem" rows="2" class="materiel-input" placeholder="Processeurs, drives, distribution..."></textarea>
+          <AmpCalculator :description="materielSystem" />
+        </div>
         <div class="materiel-section" v-if="affairStore.selectedAffair.stage">
-          <div class="materiel-title">🎸 Scène</div>
+          <div class="materiel-title">🎸 Stage</div>
           <textarea v-model="materielStage" rows="2" class="materiel-input" placeholder="Front-fills, side-fills... ex: 4 X8, 2 SB15m"></textarea>
           <AmpCalculator :description="materielStage" />
         </div>
-        <div v-if="!affairStore.selectedAffair.front && !affairStore.selectedAffair.monitor && !affairStore.selectedAffair.stage" class="materiel-empty">
+        <div v-if="!affairStore.selectedAffair.front && !affairStore.selectedAffair.monitor && !affairStore.selectedAffair.system && !affairStore.selectedAffair.stage" class="materiel-empty">
           Aucune zone définie
         </div>
         <div class="materiel-actions">
@@ -112,10 +119,11 @@
             </div>
             <div class="card-line3">
               <div class="card-tags">
-                <span v-if="affair.front" class="tag tag-front">Façade</span>
-                <span v-if="affair.monitor" class="tag tag-monitor">Retours</span>
-                <span v-if="affair.stage" class="tag tag-stage">Scène</span>
-                <span v-if="!affair.front && !affair.monitor && !affair.stage" class="tag tag-none">—</span>
+                <span v-if="affair.front" class="tag tag-front">Front</span>
+                <span v-if="affair.monitor" class="tag tag-monitor">Monitor</span>
+                <span v-if="affair.system" class="tag tag-system">System</span>
+                <span v-if="affair.stage" class="tag tag-stage">Stage</span>
+                <span v-if="!affair.front && !affair.monitor && !affair.system && !affair.stage" class="tag tag-none">—</span>
               </div>
               <button class="btn-materiel" @click.stop="toggleCardMateriel(affair.affairid)">
                 {{ openMaterielId === affair.affairid ? '▲ Matériel' : '▼ Matériel' }}
@@ -124,18 +132,22 @@
             <!-- Matériel dépliable dans la liste -->
             <div v-if="openMaterielId === affair.affairid" class="card-materiel" @click.stop>
               <div v-if="affair.front" class="materiel-section">
-                <div class="materiel-title">🔊 Façade</div>
+                <div class="materiel-title">🔊 Front</div>
                 <textarea v-model="affair.materiel_front" rows="2" class="materiel-input" placeholder="Enceintes, subs, amplis..."></textarea>
               </div>
               <div v-if="affair.monitor" class="materiel-section">
-                <div class="materiel-title">🎧 Retours</div>
+                <div class="materiel-title">🎧 Monitor</div>
                 <textarea v-model="affair.materiel_monitor" rows="2" class="materiel-input" placeholder="Wedges, ears, amplis..."></textarea>
               </div>
+              <div v-if="affair.system" class="materiel-section">
+                <div class="materiel-title">🎚 System</div>
+                <textarea v-model="affair.materiel_system" rows="2" class="materiel-input" placeholder="Processeurs, drives, distribution..."></textarea>
+              </div>
               <div v-if="affair.stage" class="materiel-section">
-                <div class="materiel-title">🎸 Scène</div>
+                <div class="materiel-title">🎸 Stage</div>
                 <textarea v-model="affair.materiel_stage" rows="2" class="materiel-input" placeholder="Front-fills, side-fills, DI..."></textarea>
               </div>
-              <div v-if="!affair.front && !affair.monitor && !affair.stage" class="materiel-empty">
+              <div v-if="!affair.front && !affair.monitor && !affair.system && !affair.stage" class="materiel-empty">
                 Aucune zone définie
               </div>
               <div class="materiel-actions">
@@ -155,7 +167,8 @@ import { ref, computed, onMounted, inject } from 'vue'
 import { useAffairStore } from '../stores/affairs'
 import AmpCalculator from './AmpCalculator.vue'
 
-const emit = defineEmits(['selected', 'edit', 'openNew', 'materiel', 'share'])
+defineProps({ allCasesActive: { type: Boolean, default: false } })
+const emit = defineEmits(['selected', 'edit', 'openNew', 'materiel', 'share', 'toggle-all-cases'])
 const affairStore = useAffairStore()
 const currentUser = inject('currentUser', ref('T'))
 
@@ -241,6 +254,7 @@ async function saveCardMateriel(affair) {
   await supabase.from('affair').update({
     materiel_front: affair.materiel_front || '',
     materiel_monitor: affair.materiel_monitor || '',
+    materiel_system: affair.materiel_system || '',
     materiel_stage: affair.materiel_stage || '',
   }).eq('affairid', affair.affairid)
   openMaterielId.value = null
@@ -249,6 +263,7 @@ const showNote = ref(false)
 const techNote = ref('')
 const materielFront = ref('')
 const materielMonitor = ref('')
+const materielSystem = ref('')
 const materielStage = ref('')
 
 // Charger la note et le matériel quand on sélectionne une affaire
@@ -258,6 +273,7 @@ watch(() => affairStore.selectedAffair, (a) => {
     techNote.value = a.tech_note || ''
     materielFront.value = a.materiel_front || ''
     materielMonitor.value = a.materiel_monitor || ''
+    materielSystem.value = a.materiel_system || ''
     materielStage.value = a.materiel_stage || ''
     // Vérifier messages non lus
     if (a.catalog_id && a.catalog_id > 1) loadChatMessages()
@@ -273,10 +289,12 @@ async function saveMateriel() {
   await supabase.from('affair').update({
     materiel_front: materielFront.value,
     materiel_monitor: materielMonitor.value,
+    materiel_system: materielSystem.value,
     materiel_stage: materielStage.value,
   }).eq('affairid', affairStore.selectedAffair.affairid)
   affairStore.selectedAffair.materiel_front = materielFront.value
   affairStore.selectedAffair.materiel_monitor = materielMonitor.value
+  affairStore.selectedAffair.materiel_system = materielSystem.value
   affairStore.selectedAffair.materiel_stage = materielStage.value
   showMateriel.value = false
 }
@@ -466,7 +484,8 @@ function deselectAffair() {
 }
 .sel-date {
   font-size: 13px;
-  color: #555;
+  color: #facc15;
+  font-weight: 700;
   white-space: nowrap;
 }
 .sel-change {
@@ -509,6 +528,10 @@ function deselectAffair() {
 }
 .btn-action-sel:active {
   transform: scale(0.9);
+}
+.btn-action-sel.active {
+  background: var(--color1);
+  border-color: var(--color1);
 }
 .btn-chat.has-unread {
   animation: pulse-red 1.5s infinite;
@@ -843,6 +866,10 @@ function deselectAffair() {
 }
 .tag-stage {
   background: #10b981;
+  color: #fff;
+}
+.tag-system {
+  background: #8b5cf6;
   color: #fff;
 }
 .tag-none {

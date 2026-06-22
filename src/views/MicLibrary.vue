@@ -8,10 +8,12 @@
       <button class="view-toggle" @click="viewMode = viewMode === 'list' ? 'gallery' : 'list'">
         {{ viewMode === 'list' ? '🖼' : '📋' }}
       </button>
-      <button v-if="!isMasterWorker" class="edit-toggle" :class="{ active: editListMode }" @click="editListMode = !editListMode">
-        {{ editListMode ? '🔓' : '🔒' }}
-      </button>
-      <button v-if="editListMode && !isMasterWorker" class="upload-btn" @click="showUpload = !showUpload">+ Ajouter</button>
+      <button
+        v-if="!isMasterWorker"
+        class="upload-btn"
+        :class="{ active: showUpload }"
+        @click="showUpload = !showUpload; editListMode = showUpload"
+      >{{ showUpload ? '✕ Fermer' : '+ Ajouter' }}</button>
     </div>
 
     <!-- Filtres par marque -->
@@ -763,6 +765,7 @@ h2 {
 }
 .search-input {
   flex: 1;
+  max-width: 220px;
   padding: 8px 10px;
   border: 1px solid #ccc;
   border-radius: 6px;
@@ -789,6 +792,18 @@ h2 {
   border-radius: 10px;
   padding: 12px;
   margin-bottom: 12px;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+.upload-panel input,
+.upload-panel textarea {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+.upload-panel input[type="file"] {
+  font-size: 13px;
 }
 .upload-panel h4 {
   margin: 0 0 10px;

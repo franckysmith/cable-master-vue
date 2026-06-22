@@ -8,10 +8,12 @@
     />
     <Affaires
       v-else
+      :all-cases-active="allCasesMode"
       @selected="onAffairSelected"
       @openNew="affairIsOpen = true; editingAffair = null"
       @edit="onAffairEdit"
       @share="shareAllFc"
+      @toggle-all-cases="toggleAllCases"
     />
 
 
@@ -29,32 +31,28 @@
     </div>
 
     <div class="content-liste" v-if="selectedAffair && !allCasesMode">
-      <!-- Mode toggle -->
-      <div class="mode-bar" v-if="!ctMode && !microMode && !allCasesMode">
+      <!-- Mode toggle : Select / flight-case / Micro -->
+      <div class="mode-bar" v-if="!ctMode && !allCasesMode">
         <button
-          @click="onHelpClick('select', () => layout = 'cableTechBase')"
-          :class="{ button3: layout === 'cableTechBase' }"
-        >sélectionner</button>
+          class="select-btn"
+          @click="microMode = false; onHelpClick('select', () => layout = 'cableTechBase')"
+          :class="{ button3: !microMode && layout === 'cableTechBase' }"
+        >Select</button>
         <span class="mode-arrow">⮕</span>
         <button
-          @click="onHelpClick('fc', () => layout = 'flightcase')"
-          :class="{ button3: layout === 'flightcase' }"
+          @click="microMode = false; onHelpClick('fc', () => layout = 'flightcase')"
+          :class="{ button3: !microMode && layout === 'flightcase' }"
         >flight-case</button>
-        <button
-          class="allcases-mode-btn"
-          :class="{ active: allCasesMode }"
-          @click="toggleAllCases"
-        >🔍 flight-cases</button>
-      </div>
-      <div class="content-button2">
-        <span class="sync-dot" :class="{ saving: saving, synced: !saving }" :title="saving ? 'Synchronisation...' : 'Synchronisé'"></span>
-        <input class="search" type="text" v-model="searchKey" placeholder="Rechercher élément" @focus="onHelpClick('search', () => {})" />
-        <button class="add-btn" @click="onHelpClick('add', () => showAddInput = !showAddInput)">+</button>
         <button
           class="special-btn micro-btn"
           :class="{ active: microMode }"
           @click="onHelpClick('micro', toggleMicroMode)"
         >Micro</button>
+      </div>
+      <div class="content-button2">
+        <span class="sync-dot" :class="{ saving: saving, synced: !saving }" :title="saving ? 'Synchronisation...' : 'Synchronisé'"></span>
+        <input class="search" type="text" v-model="searchKey" placeholder="Rechercher élément" @focus="onHelpClick('search', () => {})" />
+        <button class="add-btn" @click="onHelpClick('add', () => showAddInput = !showAddInput)">+</button>
         <button
           v-if="hasCompany"
           class="special-btn ctype-btn"
@@ -139,7 +137,7 @@
         </div>
 
         <!-- Sync-header Zones -->
-        <div v-if="!ctMode && !microMode && !directMode && layout === 'cableTechBase'" class="sync-header" ref="zoneHeaderScroll" @scroll="syncScroll('zoneHeaderScroll','zoneBodyScroll')">
+        <div v-if="!ctMode && !microMode && !directMode && layout === 'cableTechBase'" class="sync-header" ref="zoneHeaderScroll">
           <div class="sync-header-inner">
             <div class="head-spacer-sticky ct-btn-row">
               <button class="mini-btn" :class="{ active: subtractMode }" @click="subtractMode = !subtractMode">
@@ -171,9 +169,9 @@
         </div>
 
         <!-- Sync-header Flight-cases -->
-        <div v-if="!ctMode && !microMode && (directMode || layout === 'flightcase')" class="sync-header" ref="fcHeaderScroll" @scroll="syncScroll('fcHeaderScroll','fcBodyScroll')">
+        <div v-if="!ctMode && !microMode && (directMode || layout === 'flightcase')" class="sync-header" ref="fcHeaderScroll">
           <div class="sync-header-inner">
-            <div class="head-spacer-sticky ct-btn-row fc-unstick">
+            <div class="head-spacer-sticky ct-btn-row">
               <button class="mini-btn" :class="{ active: subtractMode }" @click="subtractMode = !subtractMode">
                 {{ subtractMode ? '−' : '+' }}
               </button>
@@ -202,7 +200,7 @@
         </div>
 
         <!-- Sync-header Caisses-type -->
-        <div v-if="ctMode" class="sync-header" ref="ctHeaderScroll" @scroll="syncScroll('ctHeaderScroll','ctBodyScroll')">
+        <div v-if="ctMode" class="sync-header" ref="ctHeaderScroll">
           <div class="sync-header-inner">
             <div class="head-spacer-sticky ct-btn-row">
               <button class="mini-btn" :class="{ active: subtractMode }" @click="subtractMode = !subtractMode">
@@ -1414,9 +1412,16 @@ function colorForType(type) {
 }
 .mode-bar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 12px;
   margin: 8px 0;
+}
+/* Select : orange uniquement quand c'est le mode actif (éteint sinon / en flightcase) */
+.select-btn.button3 {
+  background: #f59e0b !important;
+  color: #fff !important;
+  border: none;
 }
 .mode-arrow {
   font-size: 22px;
@@ -1604,6 +1609,7 @@ function colorForType(type) {
 }
 .content-button2 {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 10px;
   margin: 6px 0;
@@ -1739,6 +1745,10 @@ function colorForType(type) {
   color: var(--text);
   user-select: none;
   -webkit-user-select: none;
+  position: sticky;
+  left: 120px;
+  z-index: 2;
+  background: var(--bg);
 }
 .table-scroll {
   width: 100%;
@@ -1752,8 +1762,7 @@ function colorForType(type) {
 }
 .sync-header {
   width: 100%;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
+  overflow-x: hidden;
   scrollbar-width: none;
   margin-top: 10px;
 }
@@ -1780,10 +1789,6 @@ function colorForType(type) {
   left: 0;
   z-index: 2;
   background: var(--bg, #fff);
-}
-/* Flight-case : on dé-fige pour faire défiler tout le tableau (voir FC5/6/7) */
-.head-spacer-sticky.fc-unstick {
-  position: static;
 }
 .ct-btn-row {
   display: flex;
@@ -2446,6 +2451,7 @@ button {
     min-width: 40px;
     height: 65px;
     font-size: 12px;
+    left: 200px;
   }
 }
 </style>

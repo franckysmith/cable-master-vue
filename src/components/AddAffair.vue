@@ -31,9 +31,10 @@
       </div>
 
       <div class="row q-gutter-md q-mt-xs">
-        <q-checkbox v-model="form.front" label="Façade" dense />
-        <q-checkbox v-model="form.monitor" label="Retour" dense />
-        <q-checkbox v-model="form.stage" label="Scène" dense />
+        <q-checkbox v-model="form.front" label="Front" dense />
+        <q-checkbox v-model="form.monitor" label="Monitor" dense />
+        <q-checkbox v-model="form.system" label="System" dense />
+        <q-checkbox v-model="form.stage" label="Stage" dense />
       </div>
 
       <q-btn
@@ -116,6 +117,7 @@ const form = reactive({
   prep_date: '',
   front: true,
   monitor: false,
+  system: false,
   stage: false,
   done: false,
   catalog_id: '',
@@ -140,6 +142,7 @@ watch(() => props.affair, (affair) => {
     form.prep_date = affair.prep_date || ''
     form.front = affair.front || false
     form.monitor = affair.monitor || false
+    form.system = affair.system || false
     form.stage = affair.stage || false
     form.done = affair.done || false
     form.catalog_id = affair.catalog_id || ''

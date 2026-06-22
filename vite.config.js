@@ -32,8 +32,8 @@ export default defineConfig({
         ],
       },
       manifest: {
-        name: 'Cable Master',
-        short_name: 'CableMaster',
+        name: 'cinod CableLog',
+        short_name: 'CableLog',
         description: 'Gestion de câblage son professionnel',
         theme_color: '#1a1a2e',
         background_color: '#1a1a2e',

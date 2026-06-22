@@ -269,7 +269,7 @@ function colorForType(type) {
   box-shadow: 0 2px 3px rgba(0, 0, 0, 0.12);
 }
 .cable-row.row-band .cable-name {
-  background: var(--color1);
+  background: transparent;
   border-radius: 6px;
   padding-top: 4px;
   padding-bottom: 4px;
@@ -288,18 +288,21 @@ function colorForType(type) {
 .cable-name {
   width: 120px;
   min-width: 120px;
+  position: sticky;
+  left: 0;
+  z-index: 3;
   background: inherit;
   text-align: left;
   font-size: 15px;
   font-weight: 700;
-  padding-left: 6px;
+  padding: 4px 6px;
+  color: #fff !important;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   cursor: pointer;
 }
 .row-active .cable-name {
-  color: var(--color1-dark);
   font-weight: 800;
 }
 .cable-total {
@@ -316,6 +319,10 @@ function colorForType(type) {
   border-radius: 6px;
   transition: all 0.3s;
   margin: 0 3px 0 1px;
+  position: sticky;
+  left: 120px;
+  z-index: 2;
+  background: inherit;
 }
 .cable-total.done {
   background: #22c55e;
@@ -409,6 +416,7 @@ function colorForType(type) {
     min-width: 40px;
     height: 40px;
     font-size: 17px;
+    left: 200px;
   }
 }
 </style>

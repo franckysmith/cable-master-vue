@@ -207,7 +207,7 @@ function colorForType(type) {
   box-shadow: 0 2px 3px rgba(0, 0, 0, 0.12);
 }
 .cable-row.row-band .cable-name {
-  background: var(--color1);
+  background: transparent;
   border-radius: 6px;
   padding-top: 4px;
   padding-bottom: 4px;
@@ -219,7 +219,6 @@ function colorForType(type) {
 .cable-row.row-active .cable-name {
   border: 1.5px solid var(--color1);
   border-radius: 6px;
-  color: var(--color1-dark);
   font-weight: 800;
 }
 .cable-name {
@@ -232,7 +231,8 @@ function colorForType(type) {
   text-align: left;
   font-size: 15px;
   font-weight: 700;
-  padding-left: 6px;
+  padding: 4px 6px;
+  color: #fff !important;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

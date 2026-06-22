@@ -295,7 +295,7 @@ function cancelPress() {
 .cable-row.row-active .cable-name {
   border: 1.5px solid var(--color1);
   border-radius: 6px;
-  color: var(--color1-dark);
+  color: #fff;
   font-weight: 800;
 }
 .cable-name {
@@ -304,7 +304,8 @@ function cancelPress() {
   text-align: left;
   font-size: 15px;
   font-weight: 700;
-  padding-left: 6px;
+  padding: 4px 6px;
+  color: #fff !important;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

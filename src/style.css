@@ -7,6 +7,11 @@ body {
   font-family: Avenir, Helvetica, Arial, sans-serif;
   font-size: 16px;
 }
+/* Empêcher le défilement / flottement horizontal de la page */
+html, body, #app {
+  max-width: 100%;
+  overflow-x: hidden;
+}
 
 /* Empêcher la sélection accidentelle de texte (appui long, double-clic…) */
 body {
