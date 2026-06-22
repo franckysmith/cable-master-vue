@@ -16,6 +16,11 @@
           <span class="tag tag-system role-tag" :class="{ 'role-active': activeRole === 'system' }" @click.stop="$emit('select-role', 'system')">System</span>
           <span class="tag tag-stage role-tag" :class="{ 'role-active': activeRole === 'stage' }" @click.stop="$emit('select-role', 'stage')">Stage</span>
         </div>
+        <div class="sel-dates">
+          <span class="sel-date-item">🚚 Sortie <b>{{ formatDate(affairStore.selectedAffair.receipt_date) || '—' }}</b></span>
+          <span class="sel-date-item">↩️ Retour <b>{{ formatDate(affairStore.selectedAffair.return_date) || '—' }}</b></span>
+          <span class="sel-date-item" v-if="affairStore.selectedAffair.prep_date">🔧 Prépa <b>{{ formatDate(affairStore.selectedAffair.prep_date) }}</b></span>
+        </div>
         <span class="sel-catalog">{{ getCatalogName(affairStore.selectedAffair) }}</span>
         <button v-if="isLinkedToCompany" class="btn-action-sel btn-chat" :class="{ 'has-unread': hasUnreadMessage }" @click.stop="toggleChat" title="Question">❓</button>
         <button class="btn-action-sel" @click.stop="showNote = !showNote" title="Note">📝</button>
@@ -23,7 +28,25 @@
           {{ showMateriel ? '▲' : '▼' }} 🔧
         </button>
         <button class="btn-action-sel" :class="{ active: allCasesActive }" @click.stop="$emit('toggle-all-cases')" title="Vue flight-cases">🔍</button>
+        <button class="btn-action-sel" @click.stop="openCalendar" title="Calendrier de tournée">📅</button>
         <button class="btn-action-sel" @click.stop="$emit('share')" title="Partager">📤</button>
+      </div>
+
+      <!-- Calendrier de tournée -->
+      <div v-if="showCalendar" class="cal-overlay" @click.self="showCalendar = false">
+        <div class="cal-modal">
+          <div class="cal-modal-head">
+            <span>📅 {{ affairStore.selectedAffair.name }} — {{ tourDates.length }} date(s)</span>
+            <button class="cal-close" @click="showCalendar = false">✕</button>
+          </div>
+          <TourCalendar
+            :tour-dates="tourDates"
+            :receipt-date="affairStore.selectedAffair.receipt_date"
+            :return-date="affairStore.selectedAffair.return_date"
+            :prep-date="affairStore.selectedAffair.prep_date"
+            @toggle="toggleTourDate"
+          />
+        </div>
       </div>
 
       <!-- Chat avec l'entreprise -->
@@ -155,11 +178,35 @@
 import { ref, computed, onMounted, inject } from 'vue'
 import { useAffairStore } from '../stores/affairs'
 import AmpCalculator from './AmpCalculator.vue'
+import TourCalendar from './TourCalendar.vue'
 
 defineProps({ allCasesActive: { type: Boolean, default: false }, activeRole: { type: String, default: '' } })
 const emit = defineEmits(['selected', 'edit', 'openNew', 'materiel', 'share', 'toggle-all-cases', 'select-role'])
 const affairStore = useAffairStore()
 const currentUser = inject('currentUser', ref('T'))
+
+// --- Calendrier de tournée ---
+const showCalendar = ref(false)
+const tourDates = ref([])
+
+function openCalendar() {
+  tourDates.value = Array.isArray(affairStore.selectedAffair?.tour_dates)
+    ? [...affairStore.selectedAffair.tour_dates]
+    : []
+  showCalendar.value = true
+}
+
+async function toggleTourDate(dateStr) {
+  const a = affairStore.selectedAffair
+  if (!a) return
+  const arr = tourDates.value.includes(dateStr)
+    ? tourDates.value.filter(d => d !== dateStr)
+    : [...tourDates.value, dateStr].sort()
+  tourDates.value = arr
+  a.tour_dates = arr
+  const { supabase } = await import('../lib/supabase')
+  await supabase.from('affair').update({ tour_dates: arr }).eq('affairid', a.affairid)
+}
 
 const search = ref('')
 const searchInput = ref(null)
@@ -504,6 +551,57 @@ function deselectAffair() {
   font-size: 11px;
   color: var(--color1);
   font-weight: 600;
+}
+.cal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+}
+.cal-modal {
+  background: var(--bg, #fff);
+  border-radius: 12px;
+  width: 100%;
+  max-width: 460px;
+  height: 80vh;
+  display: flex;
+  flex-direction: column;
+  padding: 10px 12px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+}
+.cal-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: 800;
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+.cal-close {
+  background: transparent;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  color: var(--text, #333);
+  padding: 0 6px;
+  min-width: auto;
+  box-shadow: none;
+}
+.sel-dates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  width: 100%;
+  font-size: 12px;
+  color: var(--text-light, #888);
+}
+.sel-date-item b {
+  color: #facc15;
+  font-weight: 700;
 }
 .btn-action-sel {
   font-size: 14px;

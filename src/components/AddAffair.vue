@@ -30,13 +30,6 @@
         </div>
       </div>
 
-      <div class="row q-gutter-md q-mt-xs">
-        <q-checkbox v-model="form.front" label="Front" dense />
-        <q-checkbox v-model="form.monitor" label="Monitor" dense />
-        <q-checkbox v-model="form.system" label="System" dense />
-        <q-checkbox v-model="form.stage" label="Stage" dense />
-      </div>
-
       <q-btn
         flat
         dense
@@ -116,9 +109,9 @@ const form = reactive({
   return_date: '',
   prep_date: '',
   front: true,
-  monitor: false,
-  system: false,
-  stage: false,
+  monitor: true,
+  system: true,
+  stage: true,
   done: false,
   catalog_id: '',
   lfc1: '', lfc2: '', lfc3: '', lfc4: '', lfc5: '', lfc6: '', lfc7: '',
