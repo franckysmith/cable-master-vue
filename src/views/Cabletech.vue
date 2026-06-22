@@ -9,17 +9,20 @@
     <Affaires
       v-else
       :all-cases-active="allCasesMode"
+      :active-role="activeRole"
       @selected="onAffairSelected"
       @openNew="affairIsOpen = true; editingAffair = null"
       @edit="onAffairEdit"
       @share="shareAllFc"
       @toggle-all-cases="toggleAllCases"
+      @select-role="onSelectRole"
     />
 
 
     <!-- Vue toutes les caisses -->
     <div v-if="selectedAffair && allCasesMode">
       <AllCasesView
+        :groups="casesByRole"
         :cables="joinedData"
         :affair-id="selectedAffair.affairid"
         :fc-labels="fcLabels"
@@ -106,15 +109,9 @@
         </div>
       </div>
 
-      <!-- Sticky : boutons type + totaux + en-têtes colonnes -->
+      <!-- Sticky : boutons type (sélection + quantité + cadre couleur) + en-têtes colonnes -->
       <div class="sticky-header">
-        <ButtonCableType v-if="!microMode" :model-value="typeChoose" :distributed-types="distributedTypes" @select="typeChoose = $event" />
-
-        <div v-if="!microMode && !ctMode" class="totals-summary">
-          <span v-for="t in categoryTotals" :key="t.type" class="total-badge" :style="{ borderColor: colorForType(t.type) }">
-            {{ t.label }}: <strong>{{ t.count }}</strong>
-          </span>
-        </div>
+        <ButtonCableType v-if="!microMode" :model-value="typeChoose" :distributed-types="distributedTypes" :counts="typeCounts" @select="typeChoose = $event" />
 
 
         <!-- En-têtes micro -->
@@ -441,7 +438,50 @@ const editingAffair = ref(null)
 const typeChoose = ref('speaker')
 const searchKey = ref('')
 const layout = ref('cableTechBase')
+// Métier sur lequel on travaille (front / monitor / system / stage)
+const activeRole = ref('front')
+
+// Mémoriser les libellés (zones + FC) du métier donné dans l'objet affaire (local)
+function saveLabelsToRole(role) {
+  const a = selectedAffair.value
+  if (!a) return
+  const rl = { ...(a.role_labels || {}) }
+  rl[role] = { ...zoneLabels, ...fcLabels }
+  a.role_labels = rl
+}
+
+// Charger les libellés du métier actif, repli créneau par créneau :
+// nom du métier → sinon nom de création de l'affaire (lz/lfc) → sinon vide (placeholder Zone1…/FC1…)
+function loadLabelsForRole() {
+  const a = selectedAffair.value
+  if (!a) return
+  const rl = (a.role_labels && a.role_labels[activeRole.value]) || {}
+  // Zones : uniquement le renommage par métier, sinon Zone1… (pas de défaut global ni de colonne affaire)
+  for (let i = 1; i <= 6; i++) {
+    zoneLabels[`lz${i}`] = rl[`lz${i}`] || ''
+  }
+  // Flight-cases : renommage métier → sinon noms de création de l'affaire → sinon FC1…
+  for (let i = 1; i <= 7; i++) {
+    fcLabels[`lfc${i}`] = rl[`lfc${i}`] || (a[`lfc${i}`] && a[`lfc${i}`].trim()) || ''
+  }
+}
+
+// Cliquer un métier : enregistrer le métier courant, revenir en Select, charger le nouveau métier
+async function onSelectRole(role) {
+  allCasesMode.value = false
+  microMode.value = false
+  layout.value = 'cableTechBase'
+  if (role === activeRole.value) return
+  saveLabelsToRole(activeRole.value)
+  if (autoSaveTimer) await autoSaveNow()
+  activeRole.value = role
+  loadLabelsForRole()
+  rebuildJoinedData()
+  activeCableId.value = null
+}
 const joinedData = ref([])
+// Toutes les commandes de l'affaire, tous métiers confondus (pour reconstruire par métier)
+const allOrders = ref([])
 const directMode = ref(false)
 const saving = ref(false)
 const activeCableId = ref(null)
@@ -1115,8 +1155,9 @@ async function autoSaveNow() {
   clearTimeout(autoSaveTimer)
   saving.value = true
 
-  // Sauvegarder labels
-  const labelUpdate = { ...zoneLabels, ...fcLabels, ...microGroupLabels }
+  // Sauvegarder labels : zones+FC par métier (role_labels), micros communs (mg)
+  saveLabelsToRole(activeRole.value)
+  const labelUpdate = { role_labels: selectedAffair.value.role_labels || {}, ...microGroupLabels }
   const { error: labelError } = await affairStore.updateAffair(selectedAffair.value.affairid, labelUpdate)
   if (labelError) console.error('Erreur save labels:', labelError.message)
 
@@ -1127,6 +1168,7 @@ async function autoSaveNow() {
       cableid: c.cableid,
       affairid: c.affairid,
       tech_id: c.tech_id,
+      role: c.role || 'front',
       done: c.done,
       count: getZoneTotal(c) > 0 ? getZoneTotal(c) : getTfcTotal(c),
       spare_count: c.spare_count,
@@ -1139,6 +1181,13 @@ async function autoSaveNow() {
     const { error } = await orderStore.setOrders(toSave)
     if (error) {
       console.error('Erreur sauvegarde:', error)
+    } else {
+      // Tenir allOrders à jour pour que le changement de métier reflète les dernières saisies
+      for (const o of toSave) {
+        const i = allOrders.value.findIndex(x => x.cableid === o.cableid && (x.role || 'front') === o.role)
+        if (i >= 0) allOrders.value[i] = { ...allOrders.value[i], ...o }
+        else allOrders.value.push({ ...o })
+      }
     }
   }
 
@@ -1150,6 +1199,7 @@ watch([zoneLabels, fcLabels, microGroupLabels], () => {
   if (!selectedAffair.value) return
   scheduleAutoSave()
 }, { deep: true })
+
 
 function onCableUpdated() {
   scheduleAutoSave()
@@ -1172,21 +1222,8 @@ async function onAffairSelected(affair) {
     await autoSaveNow()
   }
 
-  const dz = settingsStore.defaultZoneLabels
-  const df = settingsStore.defaultFcLabels
-  zoneLabels.lz1 = (affair.lz1 && affair.lz1.trim()) || dz.lz1 || ''
-  zoneLabels.lz2 = (affair.lz2 && affair.lz2.trim()) || dz.lz2 || ''
-  zoneLabels.lz3 = (affair.lz3 && affair.lz3.trim()) || dz.lz3 || ''
-  zoneLabels.lz4 = (affair.lz4 && affair.lz4.trim()) || dz.lz4 || ''
-  zoneLabels.lz5 = (affair.lz5 && affair.lz5.trim()) || dz.lz5 || ''
-  zoneLabels.lz6 = (affair.lz6 && affair.lz6.trim()) || dz.lz6 || ''
-  fcLabels.lfc1 = (affair.lfc1 && affair.lfc1.trim()) || df.lfc1 || ''
-  fcLabels.lfc2 = (affair.lfc2 && affair.lfc2.trim()) || df.lfc2 || ''
-  fcLabels.lfc3 = (affair.lfc3 && affair.lfc3.trim()) || df.lfc3 || ''
-  fcLabels.lfc4 = (affair.lfc4 && affair.lfc4.trim()) || df.lfc4 || ''
-  fcLabels.lfc5 = (affair.lfc5 && affair.lfc5.trim()) || df.lfc5 || ''
-  fcLabels.lfc6 = (affair.lfc6 && affair.lfc6.trim()) || df.lfc6 || ''
-  fcLabels.lfc7 = (affair.lfc7 && affair.lfc7.trim()) || df.lfc7 || ''
+  activeRole.value = 'front'
+  loadLabelsForRole()
   microGroupLabels.mg1 = (affair.mg1 && affair.mg1.trim()) || ''
   microGroupLabels.mg2 = (affair.mg2 && affair.mg2.trim()) || ''
   microGroupLabels.mg3 = (affair.mg3 && affair.mg3.trim()) || ''
@@ -1233,18 +1270,30 @@ function onAffairEdit(affair) {
   affairIsOpen.value = true
 }
 
+// Le métier d'une ligne : les micros sont COMMUNS (caisse partagée), le reste suit le métier actif
+function roleForCable(cable) {
+  return cable.type === 'microphone' ? 'micro' : activeRole.value
+}
+
 function buildJoinedData(orders, cables) {
+  allOrders.value = orders || []
+  rebuildJoinedData(cables)
+}
+
+function rebuildJoinedData(cables = cableStore.cables) {
   const orderMap = {}
-  for (const o of orders) {
-    orderMap[o.cableid] = o
+  for (const o of allOrders.value) {
+    orderMap[`${o.cableid}-${o.role || 'front'}`] = o
   }
 
   joinedData.value = cables.map(cable => {
-    const order = orderMap[cable.cableid]
+    const role = roleForCable(cable)
+    const order = orderMap[`${cable.cableid}-${role}`]
     return {
       cableid: cable.cableid,
       affairid: selectedAffair.value?.affairid,
       tech_id: selectedAffair.value?.tech_id,
+      role,
       done: order?.done ?? true,
       name: cable.name,
       type: cable.type,
@@ -1271,6 +1320,60 @@ function buildJoinedData(orders, cables) {
     }
   })
 }
+
+// Vue globale regroupée par métier (+ caisse micro commune)
+const ROLE_DEFS = [
+  { role: 'front', label: 'Front', color: '#3b82f6' },
+  { role: 'monitor', label: 'Monitor', color: '#f59e0b' },
+  { role: 'system', label: 'System', color: '#8b5cf6' },
+  { role: 'stage', label: 'Stage', color: '#10b981' },
+]
+// Libellés FC d'un métier (repli créneau par créneau : métier → création affaire → vide)
+function labelsForRole(role) {
+  const a = selectedAffair.value
+  const rl = (a?.role_labels && a.role_labels[role]) || {}
+  const o = {}
+  for (let i = 1; i <= 7; i++) {
+    o[`lfc${i}`] = rl[`lfc${i}`] || (a?.[`lfc${i}`] && a[`lfc${i}`].trim()) || ''
+  }
+  return o
+}
+
+const casesByRole = computed(() => {
+  const groups = ROLE_DEFS.map(def => {
+    const map = {}
+    for (const o of allOrders.value) if ((o.role || 'front') === def.role) map[o.cableid] = o
+    const cables = []
+    for (const cable of cableStore.cables) {
+      const o = map[cable.cableid]
+      if (!o) continue
+      cables.push({
+        cableid: cable.cableid, name: cable.name, type: cable.type,
+        spare_count: o.spare_count || 0,
+        tfc1: o.tfc1 || 0, tfc2: o.tfc2 || 0, tfc3: o.tfc3 || 0, tfc4: o.tfc4 || 0,
+        tfc5: o.tfc5 || 0, tfc6: o.tfc6 || 0, tfc7: o.tfc7 || 0,
+      })
+    }
+    return { ...def, isMicro: false, cables, labels: labelsForRole(def.role) }
+  }).filter(g => g.cables.some(c => c.tfc1 || c.tfc2 || c.tfc3 || c.tfc4 || c.tfc5 || c.tfc6 || c.tfc7))
+
+  // Caisse micro commune
+  const mmap = {}
+  for (const o of allOrders.value) if ((o.role || 'front') === 'micro') mmap[o.cableid] = o
+  const micros = []
+  for (const cable of cableStore.cables) {
+    if (cable.type !== 'microphone') continue
+    const o = mmap[cable.cableid]
+    if (!o) continue
+    micros.push({
+      cableid: cable.cableid, name: cable.name, type: cable.type,
+      spare_count: o.spare_count || 0,
+      tfc1: o.tfc1 || 0, tfc2: o.tfc2 || 0, tfc3: o.tfc3 || 0, tfc4: o.tfc4 || 0, tfc5: o.tfc5 || 0,
+    })
+  }
+  if (micros.length) groups.push({ role: 'micro', label: '🎤 Micros (commun)', color: '#eb910a', isMicro: true, cables: micros })
+  return groups
+})
 
 const searchFiltered = computed(() =>
   joinedData.value.filter(c =>
@@ -1308,6 +1411,13 @@ const categoryTotals = computed(() => {
     label: typeLabels[type] || type,
     count
   }))
+})
+
+// Quantité par type (pour les pastilles sur les boutons de type)
+const typeCounts = computed(() => {
+  const m = {}
+  for (const t of categoryTotals.value) m[t.type] = t.count
+  return m
 })
 
 // Par type : est-ce que tous les câbles de ce type sont distribués ?

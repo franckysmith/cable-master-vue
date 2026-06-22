@@ -34,19 +34,20 @@ export const useOrderStore = defineStore('orders', () => {
   }
 
   async function setOrder(order) {
+    const role = order.role || 'front'
     if (order.count === 0) {
       const { error } = await supabase
         .from('order')
         .delete()
         .eq('cableid', order.cableid)
         .eq('affairid', order.affairid)
-        .eq('tech_id', order.tech_id)
+        .eq('role', role)
       return { error }
     }
 
     const { data, error } = await supabase
       .from('order')
-      .upsert(order, { onConflict: 'cableid,affairid,tech_id' })
+      .upsert(order, { onConflict: 'cableid,affairid,role' })
       .select()
     return { data, error }
   }
@@ -61,8 +62,9 @@ export const useOrderStore = defineStore('orders', () => {
       const cached = cacheGet(cacheKey) || []
       // Fusionner : mettre à jour les existants, ajouter les nouveaux
       const map = {}
-      for (const o of cached) map[o.cableid] = o
-      for (const o of ordersList) map[o.cableid] = { ...map[o.cableid], ...o }
+      const k = (o) => `${o.cableid}-${o.role || 'front'}`
+      for (const o of cached) map[k(o)] = o
+      for (const o of ordersList) map[k(o)] = { ...map[k(o)], ...o }
       cacheSet(cacheKey, Object.values(map))
     }
 
@@ -75,7 +77,7 @@ export const useOrderStore = defineStore('orders', () => {
     try {
       const { data, error } = await supabase
         .from('order')
-        .upsert(ordersList, { onConflict: 'cableid,affairid,tech_id' })
+        .upsert(ordersList, { onConflict: 'cableid,affairid,role' })
         .select()
 
       if (error) {

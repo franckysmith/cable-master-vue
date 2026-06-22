@@ -29,7 +29,7 @@ export async function flushQueue() {
       if (op.type === 'upsert-orders') {
         ({ error } = await supabase
           .from('order')
-          .upsert(op.data, { onConflict: 'cableid,affairid,tech_id' })
+          .upsert(op.data, { onConflict: 'cableid,affairid,role' })
           .select())
       } else if (op.type === 'update-affair') {
         ({ error } = await supabase

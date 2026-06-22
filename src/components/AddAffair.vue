@@ -177,12 +177,8 @@ async function submit() {
     payload.tech_name = userId
   }
 
-  // Noms de flight-cases : portés par le formulaire (form.lfc1..7) → déjà dans payload
-  // Pour une nouvelle affaire, inclure les noms par défaut des zones
-  if (!isEditing.value) {
-    const dz = settingsStore.defaultZoneLabels
-    for (let i = 1; i <= 6; i++) payload[`lz${i}`] = dz[`lz${i}`] || ''
-  }
+  // Noms de flight-cases : portés par le formulaire (form.lfc1..7) → déjà dans payload.
+  // Les zones ne sont PAS pré-remplies : elles restent Zone1… par défaut, renommables par métier.
 
   if (isEditing.value) {
     const { error } = await affairStore.updateAffair(props.affair.affairid, payload)

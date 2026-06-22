@@ -11,10 +11,10 @@
       <div class="sel-details" @click.stop>
         <div class="sel-tags">
           <span v-if="hasUnreadMessage" class="unread-dot">★</span>
-          <span v-if="affairStore.selectedAffair.front" class="tag tag-front">Front</span>
-          <span v-if="affairStore.selectedAffair.monitor" class="tag tag-monitor">Monitor</span>
-          <span v-if="affairStore.selectedAffair.system" class="tag tag-system">System</span>
-          <span v-if="affairStore.selectedAffair.stage" class="tag tag-stage">Stage</span>
+          <span class="tag tag-front role-tag" :class="{ 'role-active': activeRole === 'front' }" @click.stop="$emit('select-role', 'front')">Front</span>
+          <span class="tag tag-monitor role-tag" :class="{ 'role-active': activeRole === 'monitor' }" @click.stop="$emit('select-role', 'monitor')">Monitor</span>
+          <span class="tag tag-system role-tag" :class="{ 'role-active': activeRole === 'system' }" @click.stop="$emit('select-role', 'system')">System</span>
+          <span class="tag tag-stage role-tag" :class="{ 'role-active': activeRole === 'stage' }" @click.stop="$emit('select-role', 'stage')">Stage</span>
         </div>
         <span class="sel-catalog">{{ getCatalogName(affairStore.selectedAffair) }}</span>
         <button v-if="isLinkedToCompany" class="btn-action-sel btn-chat" :class="{ 'has-unread': hasUnreadMessage }" @click.stop="toggleChat" title="Question">❓</button>
@@ -85,18 +85,7 @@
     <!-- Sinon : barre d'actions + liste -->
     <template v-else>
       <div class="top-bar">
-        <button class="btn-new" @click="$emit('openNew', true)">+ Nouvelle</button>
-        <input
-          ref="searchInput"
-          v-model="search"
-          class="search-input"
-          placeholder="Rechercher..."
-        />
-        <button
-          class="btn-edit-mode"
-          :class="{ active: editMode }"
-          @click="editMode = !editMode"
-        >edit</button>
+        <button class="btn-new" @click="$emit('openNew', true)">New</button>
       </div>
 
       <div class="affair-list">
@@ -167,8 +156,8 @@ import { ref, computed, onMounted, inject } from 'vue'
 import { useAffairStore } from '../stores/affairs'
 import AmpCalculator from './AmpCalculator.vue'
 
-defineProps({ allCasesActive: { type: Boolean, default: false } })
-const emit = defineEmits(['selected', 'edit', 'openNew', 'materiel', 'share', 'toggle-all-cases'])
+defineProps({ allCasesActive: { type: Boolean, default: false }, activeRole: { type: String, default: '' } })
+const emit = defineEmits(['selected', 'edit', 'openNew', 'materiel', 'share', 'toggle-all-cases', 'select-role'])
 const affairStore = useAffairStore()
 const currentUser = inject('currentUser', ref('T'))
 
@@ -501,6 +490,7 @@ function deselectAffair() {
 }
 .sel-details {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
   padding: 4px 12px;
@@ -780,7 +770,7 @@ function deselectAffair() {
 .affair-card {
   position: relative;
   padding: 8px 10px;
-  margin: 2px 4px;
+  margin: 6px 4px;
   border-radius: 6px;
   border: 1px solid var(--border, #e8e8e8);
   background: var(--bg-card, #fafafa);
@@ -871,6 +861,16 @@ function deselectAffair() {
 .tag-system {
   background: #8b5cf6;
   color: #fff;
+}
+/* Sélecteur de métier : le métier choisi ressort, les autres sont atténués */
+.role-tag {
+  cursor: pointer;
+  opacity: 0.45;
+  transition: opacity 0.15s, box-shadow 0.15s;
+}
+.role-tag.role-active {
+  opacity: 1;
+  box-shadow: 0 0 0 2px var(--bg, #fff), 0 0 0 4px currentColor;
 }
 .tag-none {
   color: #999;

@@ -68,7 +68,12 @@ export const useAffairStore = defineStore('affairs', () => {
         .update(updates)
         .eq('affairid', affairid)
         .select()
-      if (!error) await fetchAffairs()
+      if (error) {
+        // Erreur réseau renvoyée (ex. « Load failed ») → mettre en file pour réessayer
+        addToQueue({ type: 'update-affair', affairid, data: updates })
+        return { data: null, error: null }
+      }
+      await fetchAffairs()
       return { data, error }
     } catch {
       addToQueue({ type: 'update-affair', affairid, data: updates })
