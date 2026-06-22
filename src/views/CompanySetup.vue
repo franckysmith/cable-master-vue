@@ -29,9 +29,15 @@
     <div class="form-panel">
       <h3>{{ editing ? 'Modifier' : 'Nouvelle entreprise' }}</h3>
       <form @submit.prevent="submit">
-        <div class="form-row">
-          <label>Nom de l'entreprise *</label>
-          <input v-model="form.name" placeholder="ex: Audio Test" required />
+        <div class="form-grid">
+          <div class="form-row half">
+            <label>Nom de l'entreprise *</label>
+            <input v-model="form.name" placeholder="ex: Audio Test" required />
+          </div>
+          <div class="form-row half">
+            <label>SIRET</label>
+            <input v-model="form.siret" placeholder="N° SIRET" inputmode="numeric" />
+          </div>
         </div>
         <div class="form-row">
           <label>Départements *</label>
@@ -83,12 +89,63 @@
       </form>
     </div>
 
+    <!-- Gestionnaires / suivi des affaires -->
+    <div v-if="activeCompanyId" class="managers-section">
+      <h3>Gestionnaires des affaires</h3>
+      <p class="hint">Ils créent et suivent les affaires, et reçoivent la liste des affaires à venir.</p>
+
+      <div v-for="mgr in managers" :key="mgr.techid" class="manager-card">
+        <template v-if="editManagerId === mgr.techid">
+          <div class="form-grid">
+            <div class="form-row half"><label>Prénom</label><input v-model="editManager.firstname" placeholder="Prénom" /></div>
+            <div class="form-row half"><label>Nom</label><input v-model="editManager.lastname" placeholder="Nom" /></div>
+          </div>
+          <div class="form-grid">
+            <div class="form-row half"><label>Email</label><input v-model="editManager.email" type="email" placeholder="email@..." /></div>
+            <div class="form-row half"><label>Téléphone</label><input v-model="editManager.phone" placeholder="+33..." /></div>
+          </div>
+          <div class="form-actions">
+            <button class="btn-save" @click="saveManager(mgr)">Enregistrer</button>
+            <button class="btn-cancel" @click="editManagerId = null">Annuler</button>
+          </div>
+        </template>
+        <template v-else>
+          <div class="mgr-info">
+            <div class="mgr-name">{{ mgr.name }}</div>
+            <div class="mgr-contact">{{ mgr.email }}{{ mgr.phone ? ' · ' + mgr.phone : '' }}</div>
+          </div>
+          <div class="mgr-actions">
+            <button class="mgr-edit-btn" @click="startEditManager(mgr)" title="Modifier">✎</button>
+            <button class="mgr-delete-btn" @click="deleteManager(mgr)" title="Retirer">✕</button>
+          </div>
+        </template>
+      </div>
+
+      <div v-if="managers.length === 0" class="emp-empty">Aucun gestionnaire</div>
+
+      <button v-if="!showAddManager" class="btn-add-employee" @click="showAddManager = true">+ Ajouter un gestionnaire</button>
+      <div v-if="showAddManager" class="add-employee-form">
+        <div class="form-grid">
+          <div class="form-row half"><label>Prénom *</label><input v-model="newManager.firstname" placeholder="Prénom" /></div>
+          <div class="form-row half"><label>Nom *</label><input v-model="newManager.lastname" placeholder="Nom" /></div>
+        </div>
+        <div class="form-grid">
+          <div class="form-row half"><label>Email</label><input v-model="newManager.email" type="email" placeholder="email@..." /></div>
+          <div class="form-row half"><label>Téléphone</label><input v-model="newManager.phone" placeholder="+33..." /></div>
+        </div>
+        <div class="form-actions">
+          <button class="btn-save" @click="addManager" :disabled="!newManager.firstname && !newManager.lastname">Ajouter</button>
+          <button class="btn-cancel" @click="showAddManager = false">Annuler</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Gestion des employés -->
     <div v-if="activeCompanyId" class="employees-section">
-      <h3>Employés de {{ companies.find(c => c.companyid === activeCompanyId)?.name }}</h3>
+      <h3>Techniciens de {{ companies.find(c => c.companyid === activeCompanyId)?.name }}</h3>
 
       <!-- Liste des employés -->
-      <div v-for="emp in employees" :key="emp.techid" class="employee-card" :class="{ inactive: emp.active === false }">
+      <div v-for="emp in staff" :key="emp.techid" class="employee-card" :class="{ inactive: emp.active === false }">
         <div class="emp-top">
           <div class="emp-info">
             <div class="emp-name">{{ emp.name }}</div>
@@ -121,7 +178,7 @@
         </div>
       </div>
 
-      <div v-if="employees.length === 0" class="emp-empty">Aucun employé</div>
+      <div v-if="staff.length === 0" class="emp-empty">Aucun technicien</div>
 
       <!-- Ajouter un employé -->
       <button v-if="!showAddEmployee" class="btn-add-employee" @click="showAddEmployee = true">+ Ajouter un employé</button>
@@ -172,7 +229,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, inject } from 'vue'
+import { ref, reactive, computed, onMounted, inject } from 'vue'
 import { supabase } from '../lib/supabase'
 import { useCableStore } from '../stores/cables'
 
@@ -196,6 +253,14 @@ const newEmployee = reactive({
   can_manage_ct: false,
 })
 
+// Gestionnaires (suivi des affaires) = techniciens marqués can_manage_affairs
+const managers = computed(() => employees.value.filter(e => e.can_manage_affairs))
+const staff = computed(() => employees.value.filter(e => !e.can_manage_affairs))
+const showAddManager = ref(false)
+const newManager = reactive({ firstname: '', lastname: '', email: '', phone: '' })
+const editManagerId = ref(null)
+const editManager = reactive({ firstname: '', lastname: '', email: '', phone: '' })
+
 const domains = [
   { value: 'sound', label: 'Son', icon: '🔊' },
   { value: 'light', label: 'Lumière', icon: '💡' },
@@ -204,6 +269,7 @@ const domains = [
 
 const form = reactive({
   name: '',
+  siret: '',
   departments: [],
   address: '',
   city: '',
@@ -243,6 +309,7 @@ function selectCompany(c) {
   selectedCompany.value = c
   editing.value = true
   form.name = c.name
+  form.siret = c.siret || ''
   form.departments = c.domain ? c.domain.split(',') : []
   form.address = c.address || ''
   form.city = c.city || ''
@@ -254,7 +321,7 @@ function selectCompany(c) {
 function resetForm() {
   editing.value = false
   selectedCompany.value = null
-  Object.assign(form, { name: '', departments: [], address: '', city: '', country: '', phone: '', email: '' })
+  Object.assign(form, { name: '', siret: '', departments: [], address: '', city: '', country: '', phone: '', email: '' })
   message.value = ''
 }
 
@@ -268,6 +335,7 @@ async function submit() {
       .from('company')
       .update({
         name: form.name,
+        siret: form.siret,
         domain: form.departments.join(','),
         address: form.address,
         city: form.city,
@@ -312,6 +380,7 @@ async function submit() {
       .from('company')
       .insert({
         name: form.name,
+        siret: form.siret,
         domain: form.departments.join(','),
         address: form.address,
         city: form.city,
@@ -455,6 +524,64 @@ async function deleteEmployee(emp) {
   await supabase.from('technician').delete().eq('techid', emp.techid)
   await loadEmployees()
   showMessage(`${emp.name} retiré`, 'success')
+}
+
+// --- Gestionnaires ---
+
+async function addManager() {
+  if (!newManager.firstname && !newManager.lastname) return
+  const name = `${newManager.firstname} ${newManager.lastname}`.trim()
+  const { error } = await supabase.from('technician').insert({
+    name,
+    firstname: newManager.firstname,
+    email: newManager.email,
+    phone: newManager.phone,
+    company_id: activeCompanyId.value,
+    can_manage_affairs: true,
+  })
+  if (error) {
+    showMessage('Erreur: ' + error.message, 'error')
+  } else {
+    Object.assign(newManager, { firstname: '', lastname: '', email: '', phone: '' })
+    showAddManager.value = false
+    showMessage(`${name} ajouté`, 'success')
+    await loadEmployees()
+  }
+}
+
+function startEditManager(mgr) {
+  editManagerId.value = mgr.techid
+  const fn = mgr.firstname || ''
+  Object.assign(editManager, {
+    firstname: fn,
+    lastname: fn ? (mgr.name || '').replace(fn, '').trim() : (mgr.name || ''),
+    email: mgr.email || '',
+    phone: mgr.phone || '',
+  })
+}
+
+async function saveManager(mgr) {
+  const name = `${editManager.firstname} ${editManager.lastname}`.trim()
+  const { error } = await supabase.from('technician').update({
+    name,
+    firstname: editManager.firstname,
+    email: editManager.email,
+    phone: editManager.phone,
+  }).eq('techid', mgr.techid)
+  if (error) {
+    showMessage('Erreur: ' + error.message, 'error')
+  } else {
+    editManagerId.value = null
+    showMessage('Gestionnaire modifié', 'success')
+    await loadEmployees()
+  }
+}
+
+async function deleteManager(mgr) {
+  if (!confirm(`Retirer ${mgr.name} ?`)) return
+  await supabase.from('technician').delete().eq('techid', mgr.techid)
+  await loadEmployees()
+  showMessage(`${mgr.name} retiré`, 'success')
 }
 
 function showMessage(msg, type) {
@@ -660,6 +787,47 @@ h3 {
 .message.error {
   background: #fecaca;
   color: #dc2626;
+}
+.managers-section {
+  margin-top: 20px;
+}
+.manager-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  border: 1px solid var(--color1);
+  border-radius: 8px;
+  padding: 10px;
+  margin-bottom: 6px;
+  background: var(--color1-light);
+}
+.mgr-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text, #333);
+}
+.mgr-contact {
+  font-size: 12px;
+  color: var(--text-light, #888);
+}
+.mgr-actions {
+  display: flex;
+  gap: 6px;
+}
+.mgr-edit-btn, .mgr-delete-btn {
+  background: transparent;
+  border: 1px solid var(--border-light, #ccc);
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 2px 8px;
+  box-shadow: none;
+  min-width: auto;
+}
+.manager-card .form-grid,
+.manager-card .form-actions {
+  width: 100%;
 }
 .employees-section {
   margin-top: 20px;
