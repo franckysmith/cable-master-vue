@@ -192,6 +192,7 @@ const employerItems = computed(() => {
     items.push(
       { label: 'CableList', to: '/CableList', icon: 'settings_input_component' },
       { label: 'Cablekit', to: '/FlightType', icon: 'inventory_2' },
+      { label: 'TechList', to: '/techlist', icon: 'groups' },
       { label: 'MasterAffaire', to: '/MasterAffaire', icon: 'event_note' },
     )
   }

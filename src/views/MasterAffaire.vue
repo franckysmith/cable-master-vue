@@ -58,16 +58,13 @@
 
       <div class="form-grid three">
         <div class="form-row">
-          <label>Prépa</label>
-          <input type="date" v-model="form.prep_date" />
+          <DateField v-model="form.prep_date" label="Prépa" />
         </div>
         <div class="form-row">
-          <label>Sortie *</label>
-          <input type="date" v-model="form.receipt_date" required />
+          <DateField v-model="form.receipt_date" label="Sortie *" />
         </div>
         <div class="form-row">
-          <label>Retour</label>
-          <input type="date" v-model="form.return_date" />
+          <DateField v-model="form.return_date" label="Retour" />
         </div>
       </div>
 
@@ -117,6 +114,25 @@
         <div v-if="form.tech_name_monitor" class="zone-tech-info">{{ form.tech_firstname_monitor || '' }} {{ form.tech_name_monitor }} <span v-if="form.tech_phone_monitor">· {{ form.tech_phone_monitor }}</span></div>
       </div>
 
+      <div v-if="form.system" class="zone-tech-block systeme">
+        <div class="zone-tech-header">🟣 System</div>
+        <div class="zone-tech-select">
+          <select v-model="form.tech_email_system" @change="onTechSelect('system')">
+            <option value="">-- Choisir --</option>
+            <option v-for="t in technicians" :key="t.techid" :value="t.email">{{ t.firstname || '' }} {{ t.name }}</option>
+          </select>
+          <button class="btn-new-tech" @click="openNewTech('system')">+</button>
+        </div>
+        <div v-if="newTechZone === 'system'" class="new-tech-form">
+          <input v-model="newTech.firstname" placeholder="Prénom" />
+          <input v-model="newTech.name" placeholder="Nom" />
+          <input v-model="newTech.phone" placeholder="Téléphone" />
+          <input v-model="newTech.email" placeholder="Email" />
+          <button @click="addTechForZone('system')">Ajouter</button>
+        </div>
+        <div v-if="form.tech_name_system" class="zone-tech-info">{{ form.tech_firstname_system || '' }} {{ form.tech_name_system }} <span v-if="form.tech_phone_system">· {{ form.tech_phone_system }}</span></div>
+      </div>
+
       <div v-if="form.stage" class="zone-tech-block scene">
         <div class="zone-tech-header">🟢 Stage</div>
         <div class="zone-tech-select">
@@ -153,7 +169,7 @@
           {{ editing ? 'Enregistrer' : 'Créer' }}
         </button>
         <button v-if="editing" class="btn-draft" @click="setStatus('draft')">📝 Brouillon</button>
-        <button v-if="editing" class="btn-delete" @click="deleteAffair">✕</button>
+        <button v-if="editing" class="btn-delete" @click="deleteAffair">🗑 Supprimer</button>
       </div>
     </div>
 
@@ -188,6 +204,10 @@
             <div v-if="affair.monitor" class="tech-zone-item">
               <span class="zone-dot retour"></span>
               <span class="tech-firstname">{{ affair.tech_name_monitor || '?' }}</span>
+            </div>
+            <div v-if="affair.system" class="tech-zone-item">
+              <span class="zone-dot systeme"></span>
+              <span class="tech-firstname">{{ affair.tech_name_system || '?' }}</span>
             </div>
             <div v-if="affair.stage" class="tech-zone-item">
               <span class="zone-dot scene"></span>
@@ -287,7 +307,7 @@
             </div>
             <!-- System -->
             <div v-if="affair.system" class="zone-block">
-              <div class="zone-banner systeme">🟣 System</div>
+              <div class="zone-banner systeme">🟣 System — {{ affair.tech_name_system || '?' }}</div>
               <div class="zone-empty">Aucun matériel préparé</div>
             </div>
             <!-- Stage -->
@@ -312,6 +332,7 @@ import { ref, reactive, computed, watch, onMounted, nextTick } from 'vue'
 import { supabase } from '../lib/supabase'
 import AllCasesView from '../components/AllCasesView.vue'
 import AmpCalculator from '../components/AmpCalculator.vue'
+import DateField from '../components/DateField.vue'
 
 const tab = ref('all')
 const affairs = ref([])
@@ -331,6 +352,7 @@ const form = reactive({
   reference: '',
   tech_name: '', tech_firstname: '', tech_email: '', tech_phone: '',
   tech_name_monitor: '', tech_firstname_monitor: '', tech_email_monitor: '', tech_phone_monitor: '',
+  tech_name_system: '', tech_firstname_system: '', tech_email_system: '', tech_phone_system: '',
   tech_name_stage: '', tech_firstname_stage: '', tech_email_stage: '', tech_phone_stage: '',
   prep_date: '',
   receipt_date: '',
@@ -566,6 +588,15 @@ function getAffairZones(affair) {
       email: affair.tech_email_monitor || '',
     })
   }
+  if (affair.system) {
+    zones.push({
+      key: 'system', css: 'systeme', icon: '🟣', label: 'System',
+      name: affair.tech_name_system || '?',
+      firstname: affair.tech_firstname_system || '',
+      phone: affair.tech_phone_system || '',
+      email: affair.tech_email_system || '',
+    })
+  }
   if (affair.stage) {
     zones.push({
       key: 'stage', css: 'scene', icon: '🟢', label: 'Stage',
@@ -582,6 +613,7 @@ function getAllEmails(affair) {
   const emails = []
   if (affair.tech_email) emails.push(affair.tech_email)
   if (affair.tech_email_monitor && !emails.includes(affair.tech_email_monitor)) emails.push(affair.tech_email_monitor)
+  if (affair.tech_email_system && !emails.includes(affair.tech_email_system)) emails.push(affair.tech_email_system)
   if (affair.tech_email_stage && !emails.includes(affair.tech_email_stage)) emails.push(affair.tech_email_stage)
   return emails
 }
@@ -591,7 +623,7 @@ async function sendZoneInvite(affair, zone) {
   const techName = affair.tech_name || 'Technicien'
   const affairName = affair.name
   const dateStr = formatDate(affair.receipt_date)
-  const zoneName = zone === 'front' ? 'Façade' : zone === 'monitor' ? 'Retours' : 'Scène'
+  const zoneName = zone === 'front' ? 'Façade' : zone === 'monitor' ? 'Retours' : zone === 'system' ? 'Système' : 'Scène'
   const link = `${window.location.origin}/?affair=${affair.affairid}`
 
   const subject = encodeURIComponent(`Invitation : ${affairName} - ${zoneName}`)
@@ -662,6 +694,8 @@ async function selectAffair(affair) {
     tech_email: affair.tech_email || '', tech_phone: affair.tech_phone || '',
     tech_name_monitor: affair.tech_name_monitor || '', tech_firstname_monitor: affair.tech_firstname_monitor || '',
     tech_email_monitor: affair.tech_email_monitor || '', tech_phone_monitor: affair.tech_phone_monitor || '',
+    tech_name_system: affair.tech_name_system || '', tech_firstname_system: affair.tech_firstname_system || '',
+    tech_email_system: affair.tech_email_system || '', tech_phone_system: affair.tech_phone_system || '',
     tech_name_stage: affair.tech_name_stage || '', tech_firstname_stage: affair.tech_firstname_stage || '',
     tech_email_stage: affair.tech_email_stage || '', tech_phone_stage: affair.tech_phone_stage || '',
     prep_date: affair.prep_date || '',
@@ -756,6 +790,11 @@ async function saveAffair() {
     tech_firstname_monitor: form.tech_firstname_monitor || '',
     tech_email_monitor: form.tech_email_monitor || '',
     tech_phone_monitor: form.tech_phone_monitor || '',
+    // Tech système
+    tech_name_system: form.tech_name_system || '',
+    tech_firstname_system: form.tech_firstname_system || '',
+    tech_email_system: form.tech_email_system || '',
+    tech_phone_system: form.tech_phone_system || '',
     // Tech scène
     tech_name_stage: form.tech_name_stage || '',
     tech_firstname_stage: form.tech_firstname_stage || '',
@@ -841,24 +880,17 @@ function openNewTech(zone) {
   Object.assign(newTech, { firstname: '', name: '', email: '', phone: '' })
 }
 
+// Suffixe des champs technicien selon la zone : front → '', autres → '_<zone>'
+function zoneSuffix(zone) { return zone === 'front' ? '' : `_${zone}` }
+
 function onTechSelect(zone) {
-  const emailField = zone === 'front' ? 'tech_email' : `tech_email_${zone}`
-  const email = form[emailField]
+  const s = zoneSuffix(zone)
+  const email = form[`tech_email${s}`]
   const tech = technicians.value.find(t => t.email === email)
   if (!tech) return
-  if (zone === 'front') {
-    form.tech_name = tech.name || ''
-    form.tech_firstname = tech.firstname || ''
-    form.tech_phone = tech.phone || ''
-  } else if (zone === 'monitor') {
-    form.tech_name_monitor = tech.name || ''
-    form.tech_firstname_monitor = tech.firstname || ''
-    form.tech_phone_monitor = tech.phone || ''
-  } else {
-    form.tech_name_stage = tech.name || ''
-    form.tech_firstname_stage = tech.firstname || ''
-    form.tech_phone_stage = tech.phone || ''
-  }
+  form[`tech_name${s}`] = tech.name || ''
+  form[`tech_firstname${s}`] = tech.firstname || ''
+  form[`tech_phone${s}`] = tech.phone || ''
 }
 
 async function addTechForZone(zone) {
@@ -868,27 +900,17 @@ async function addTechForZone(zone) {
     firstname: newTech.firstname,
     email: newTech.email,
     phone: newTech.phone,
+    poste: zone,
     company_id: companyId,
   })
   if (!error) {
     await loadTechnicians()
     // Auto-sélectionner
-    if (zone === 'front') {
-      form.tech_email = newTech.email
-      form.tech_name = newTech.name
-      form.tech_firstname = newTech.firstname
-      form.tech_phone = newTech.phone
-    } else if (zone === 'monitor') {
-      form.tech_email_monitor = newTech.email
-      form.tech_name_monitor = newTech.name
-      form.tech_firstname_monitor = newTech.firstname
-      form.tech_phone_monitor = newTech.phone
-    } else {
-      form.tech_email_stage = newTech.email
-      form.tech_name_stage = newTech.name
-      form.tech_firstname_stage = newTech.firstname
-      form.tech_phone_stage = newTech.phone
-    }
+    const s = zoneSuffix(zone)
+    form[`tech_email${s}`] = newTech.email
+    form[`tech_name${s}`] = newTech.name
+    form[`tech_firstname${s}`] = newTech.firstname
+    form[`tech_phone${s}`] = newTech.phone
     newTechZone.value = ''
     Object.assign(newTech, { firstname: '', name: '', email: '', phone: '' })
     showMessage('Technicien ajouté', 'success')
@@ -1037,12 +1059,13 @@ h3 { font-size: 16px; margin: 0; }
 .zone-toggles button.active.scene { border-color: #10b981; background: #10b981; color: #fff; }
 .zone-toggles button.active.systeme { border-color: #8b5cf6; background: #8b5cf6; color: #fff; }
 .zone-toggles button.active { border-color: var(--color1); background: var(--color1); color: #fff; }
-.form-grid.three { display: flex; gap: 6px; }
-.form-grid.three .form-row { flex: 1; }
+.form-grid.three { display: flex; gap: 6px; flex-wrap: wrap; }
+.form-grid.three .form-row { flex: 1 1 150px; min-width: 150px; }
 .form-section-title { font-size: 13px; font-weight: 700; color: var(--text-light, #888); text-transform: uppercase; margin: 10px 0 6px; }
 .zone-tech-block { margin: 6px 0; padding: 8px; border-radius: 8px; border: 1px solid var(--border-light, #eee); }
 .zone-tech-block.facade { border-left: 3px solid #3b82f6; }
 .zone-tech-block.retour { border-left: 3px solid #f59e0b; }
+.zone-tech-block.systeme { border-left: 3px solid #8b5cf6; }
 .zone-tech-block.scene { border-left: 3px solid #10b981; }
 .zone-tech-header { font-size: 13px; font-weight: 700; margin-bottom: 6px; }
 .zone-tech-select { display: flex; gap: 4px; align-items: center; }
@@ -1077,6 +1100,7 @@ h3 { font-size: 16px; margin: 0; }
 .zone-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 .zone-dot.facade { background: #3b82f6; }
 .zone-dot.retour { background: #f59e0b; }
+.zone-dot.systeme { background: #8b5cf6; }
 .zone-dot.scene { background: #10b981; }
 .tech-firstname { font-size: 12px; color: var(--text, #333); font-weight: 600; }
 .invite-btn { width: 22px; height: 22px; border-radius: 50%; border: none; font-size: 11px; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; min-width: auto; box-shadow: none; color: #fff; transition: all 0.15s; }

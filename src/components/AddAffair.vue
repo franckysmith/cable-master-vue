@@ -20,36 +20,13 @@
 
       <div class="row q-col-gutter-xs">
         <div class="col-6">
-          <q-input v-model="form.receipt_date" label="Sortie" type="date" dense outlined stack-label :rules="[val => !!val || 'Requis']" />
+          <DateField v-model="form.prep_date" label="Prépa" />
         </div>
         <div class="col-6">
-          <q-input v-model="form.return_date" label="Retour" type="date" dense outlined stack-label :rules="[val => !!val || 'Requis']" />
+          <DateField v-model="form.receipt_date" label="Sortie" />
         </div>
         <div class="col-6">
-          <q-input v-model="form.prep_date" label="Prépa" type="date" dense outlined stack-label />
-        </div>
-      </div>
-
-      <q-btn
-        flat
-        dense
-        no-caps
-        :icon="showFcNames ? 'expand_more' : 'chevron_right'"
-        label="Noms des flight-cases"
-        class="q-mt-sm"
-        @click="showFcNames = !showFcNames"
-      />
-      <div v-if="showFcNames" class="row q-col-gutter-xs q-mt-xs">
-        <div class="col-6" v-for="i in 7" :key="'lfc'+i">
-          <q-input
-            v-model="form[`lfc${i}`]"
-            :label="`FC${i}`"
-            :placeholder="`FC${i}`"
-            dense
-            outlined
-            stack-label
-            maxlength="20"
-          />
+          <DateField v-model="form.return_date" label="Retour" />
         </div>
       </div>
 
@@ -66,9 +43,9 @@
 <script setup>
 import { ref, reactive, computed, onMounted, watch } from 'vue'
 import AmpCalculator from './AmpCalculator.vue'
+import DateField from './DateField.vue'
 import { useAffairStore } from '../stores/affairs'
 import { useCatalogStore } from '../stores/catalogs'
-import { useSettingsStore } from '../stores/settings'
 
 const props = defineProps({
   affair: { type: Object, default: null },
@@ -77,7 +54,6 @@ const props = defineProps({
 const emit = defineEmits(['close', 'created'])
 const affairStore = useAffairStore()
 const catalogStore = useCatalogStore()
-const settingsStore = useSettingsStore()
 
 const isEditing = computed(() => !!props.affair)
 
@@ -89,11 +65,6 @@ const activeCatalogName = computed(() => {
 
 onMounted(() => {
   catalogStore.fetchCatalogs()
-  // Nouvelle affaire : pré-remplir les noms de flight-cases avec les défauts
-  if (!isEditing.value) {
-    const df = settingsStore.defaultFcLabels
-    for (let i = 1; i <= 7; i++) form[`lfc${i}`] = df[`lfc${i}`] || ''
-  }
 })
 
 const form = reactive({
@@ -117,7 +88,6 @@ const form = reactive({
   lfc1: '', lfc2: '', lfc3: '', lfc4: '', lfc5: '', lfc6: '', lfc7: '',
 })
 
-const showFcNames = ref(false)
 
 // Pré-remplir en mode édition
 watch(() => props.affair, (affair) => {

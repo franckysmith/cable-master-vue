@@ -1,6 +1,7 @@
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import { Quasar } from 'quasar'
+import quasarLangFr from 'quasar/lang/fr'
 import { router } from './router'
 import App from './App.vue'
 
@@ -13,7 +14,7 @@ import { startSyncListener, flushQueue } from './lib/syncService'
 
 const app = createApp(App)
 app.use(createPinia())
-app.use(Quasar, {})
+app.use(Quasar, { lang: quasarLangFr })
 app.use(router)
 app.mount('#app')
 
