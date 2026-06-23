@@ -5,11 +5,19 @@
     <!-- Liste des affaires avec statut -->
     <button v-if="!selected && !showForm" class="btn-create-affair" @click="openNewAffair">＋ Nouvelle affaire</button>
     <div v-if="!selected" class="affair-tabs">
-      <button :class="{ active: tab === 'all' }" @click="tab = 'all'">Toutes</button>
-      <button :class="{ active: tab === 'draft' }" @click="tab = 'draft'">Brouillons</button>
-      <button :class="{ active: tab === 'sent' }" @click="tab = 'sent'">Envoyées</button>
-      <button :class="{ active: tab === 'done' }" @click="tab = 'done'">Terminées</button>
-      <button :class="{ active: tab === 'trash' }" @click="tab = 'trash'">🗑</button>
+      <button :class="{ active: tab === 'draft' }" @click="tab = 'draft'">NEW</button>
+      <button :class="{ active: tab === 'sent' }" @click="tab = 'sent'">Envoyé</button>
+      <select
+        class="tab-select"
+        :class="{ active: ['done', 'all', 'trash'].includes(tab) }"
+        :value="['done', 'all', 'trash'].includes(tab) ? tab : ''"
+        @change="tab = $event.target.value"
+      >
+        <option value="" disabled>Plus…</option>
+        <option value="all">Tout</option>
+        <option value="done">Terminé</option>
+        <option value="trash">🗑 Poubelle</option>
+      </select>
     </div>
     <button v-if="selected" class="btn-back" @click="selected = null; showForm = false; showChatOnly = false">
       ← Retour aux affaires
@@ -92,7 +100,7 @@
         <div class="cal-modal">
           <div class="cal-modal-head">
             <span>📅 {{ form.name || 'Événement' }} — {{ form.tour_dates.length }} date(s)</span>
-            <button class="close-btn" @click="showCalendar = false">✕</button>
+            <button class="btn-valider" @click="showCalendar = false">Valider</button>
           </div>
           <TourCalendar
             :tour-dates="form.tour_dates"
@@ -110,16 +118,11 @@
         </div>
       </div>
 
-      <div class="form-grid three">
-        <div class="form-row">
-          <DateField v-model="form.prep_date" label="Prépa" />
-        </div>
-        <div class="form-row">
-          <DateField v-model="form.receipt_date" label="Chargement *" />
-        </div>
-        <div class="form-row">
-          <DateField v-model="form.return_date" label="Déchargement" />
-        </div>
+      <!-- Lecture seule : tout se règle dans le calendrier ci-dessus -->
+      <div class="dates-readonly">
+        <div class="dr-row"><span class="dr-label">Prépa</span><span class="dr-val">{{ prepSummary(form) || '—' }}</span></div>
+        <div class="dr-row"><span class="dr-label">Chargement</span><span class="dr-val">{{ outSummary(form) || '—' }}</span></div>
+        <div class="dr-row"><span class="dr-label">Déchargement</span><span class="dr-val">{{ backSummary(form) || '—' }}</span></div>
       </div>
 
       <div class="form-section-title">Zones & Techniciens</div>
@@ -222,7 +225,7 @@
         <button class="btn-save" @click="saveAffair" :disabled="!form.name">
           {{ editing ? 'Enregistrer' : 'Créer' }}
         </button>
-        <button v-if="editing" class="btn-draft" @click="setStatus('draft')">📝 Brouillon</button>
+        <button v-if="editing" class="btn-draft" @click="setStatus('draft')">↩ NEW</button>
         <button v-if="editing" class="btn-delete" @click="deleteAffair">🗑 Supprimer</button>
       </div>
     </div>
@@ -242,11 +245,9 @@
           <span v-if="unreadAffairs[affair.affairid]" class="unread-star" @click.stop="openChatOnly(affair)">★</span>
           <span class="card-name">{{ affair.name }}</span>
           <div class="card-dates" @click.stop="showTimeline = !showTimeline">
-            <span v-if="prepSummary(affair)" class="date-prep">🔧 {{ prepSummary(affair) }}</span>
-            <span v-if="prepSummary(affair)" class="date-sep"></span>
-            <span v-if="outSummary(affair)" class="date-event">📦→ {{ outSummary(affair) }}</span>
-            <span v-if="backSummary(affair)" class="date-arrow">·</span>
-            <span v-if="backSummary(affair)" class="date-return">←📦 {{ backSummary(affair) }}</span>
+            <span v-if="prepSummary(affair)" class="date-prep">Prépa {{ prepSummary(affair) }}</span>
+            <span v-if="outSummary(affair)" class="date-event">Charg. {{ outSummary(affair) }}</span>
+            <span v-if="backSummary(affair)" class="date-return">Déch. {{ backSummary(affair) }}</span>
           </div>
         </div>
         <div class="card-bottom">
@@ -388,7 +389,6 @@ import { ref, reactive, computed, watch, onMounted, nextTick } from 'vue'
 import { supabase } from '../lib/supabase'
 import AllCasesView from '../components/AllCasesView.vue'
 import AmpCalculator from '../components/AmpCalculator.vue'
-import DateField from '../components/DateField.vue'
 import TourCalendar from '../components/TourCalendar.vue'
 
 const tab = ref('all')
@@ -407,6 +407,7 @@ function toggleTourDate(dateStr) {
     ? form.tour_dates.filter(d => d !== dateStr)
     : [...form.tour_dates, dateStr].sort()
   form.tour_dates = arr
+  updateNbDays()
 }
 
 // Cycle un jour : rien → après-midi (pm, flèche haut) → matin (am, flèche bas) → rien
@@ -424,13 +425,22 @@ function cycleDayPeriod(datesKey, periodsKey, dateStr) {
   }
 }
 
-// Nb de jours = de la 1ʳᵉ sortie (ou prépa) au dernier retour, inclus
+// Nb de jours = jours de PRÉSENCE des techniciens :
+//  - si des jours de concert sont cochés → leur nombre
+//  - sinon → les jours ENTRE chargement et déchargement (exclus). Ex. 17→20 = 2 (18,19)
 function updateNbDays() {
-  const all = [...(form.out_dates || []), ...(form.back_dates || [])].filter(Boolean).sort()
-  if (!all.length) return
-  const d1 = new Date(all[0] + 'T00:00:00')
-  const d2 = new Date(all[all.length - 1] + 'T00:00:00')
-  form.nb_days = Math.round((d2 - d1) / 86400000) + 1
+  if (form.tour_dates && form.tour_dates.length) {
+    form.nb_days = form.tour_dates.length
+    return
+  }
+  const outs = (form.out_dates || []).filter(Boolean).sort()
+  const backs = (form.back_dates || []).filter(Boolean).sort()
+  if (outs.length && backs.length) {
+    const d1 = new Date(outs[0] + 'T00:00:00')
+    const d2 = new Date(backs[backs.length - 1] + 'T00:00:00')
+    const diff = Math.round((d2 - d1) / 86400000)
+    form.nb_days = Math.max(0, diff - 1)
+  }
 }
 
 function toggleOutDate(dateStr) {
@@ -742,7 +752,13 @@ function formatDate(dateStr) {
 }
 
 // Résumés issus du calendrier (jours multiples + AM/PM) pour la carte
-function shortDate(d) { const [, m, dd] = (d || '').split('-'); return dd ? `${dd}/${m}` : '' }
+const WEEKDAYS = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi']
+function shortDate(d) {
+  const [, m, dd] = (d || '').split('-')
+  if (!dd) return ''
+  const wd = WEEKDAYS[new Date(d + 'T00:00:00').getDay()]
+  return `${wd} ${dd}/${m}`
+}
 function prepTag(p) { return p === 'top' ? ' après-midi' : p === 'bottom' ? ' matin' : ' (journée)' }
 function periodTag(p) { return p === 'pm' ? ' après-midi' : p === 'am' ? ' matin' : '' }
 
@@ -1186,6 +1202,23 @@ h3 { font-size: 16px; margin: 0; }
   color: #fff;
   border-color: var(--color1);
 }
+.tab-select {
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid var(--border-light, #ccc);
+  border-radius: 6px;
+  background: var(--bg-card, #f5f5f5);
+  color: var(--text, #333);
+  cursor: pointer;
+  box-shadow: none;
+  min-width: auto;
+}
+.tab-select.active {
+  background: var(--color1);
+  color: #fff;
+  border-color: var(--color1);
+}
 .affair-list { margin-bottom: 10px; }
 .affair-card {
   padding: 10px;
@@ -1292,6 +1325,14 @@ h3 { font-size: 16px; margin: 0; }
   background: var(--color1-light); color: var(--color1-dark); font-size: 14px; font-weight: 700;
   cursor: pointer; box-shadow: none;
 }
+.dates-readonly {
+  border: 1px solid var(--border-light, #ddd); border-radius: 8px;
+  padding: 8px 10px; margin-top: 8px; background: var(--bg-card, #fafafa);
+}
+.dr-row { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding: 3px 0; }
+.dr-row + .dr-row { border-top: 1px dashed var(--border-light, #eee); }
+.dr-label { font-size: 12px; font-weight: 700; color: var(--text-light, #666); white-space: nowrap; }
+.dr-val { font-size: 13px; font-weight: 600; color: var(--text, #333); text-align: right; }
 .cal-overlay {
   position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 2000;
   display: flex; align-items: center; justify-content: center; padding: 10px;
@@ -1301,6 +1342,7 @@ h3 { font-size: 16px; margin: 0; }
   width: 100%; max-width: 380px; max-height: 80vh; display: flex; flex-direction: column;
 }
 .cal-modal-head { display: flex; justify-content: space-between; align-items: center; font-size: 14px; font-weight: 700; margin-bottom: 8px; }
+.btn-valider { padding: 7px 16px; background: #22c55e; color: #fff; border: none; border-radius: 8px; font-size: 14px; font-weight: 800; cursor: pointer; box-shadow: none; }
 .type-picker { display: flex; gap: 6px; flex-wrap: wrap; }
 .type-btn {
   padding: 7px 14px; border: 2px solid var(--border-light, #ccc); border-radius: 8px;

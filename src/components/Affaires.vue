@@ -37,7 +37,7 @@
         <div class="cal-modal">
           <div class="cal-modal-head">
             <span>📅 {{ affairStore.selectedAffair.name }} — {{ tourDates.length }} date(s)</span>
-            <button class="cal-close" @click="showCalendar = false">✕</button>
+            <button class="cal-valider" @click="showCalendar = false">Valider</button>
           </div>
           <TourCalendar
             :tour-dates="tourDates"
@@ -635,14 +635,15 @@ function deselectAffair() {
   font-size: 14px;
   margin-bottom: 4px;
 }
-.cal-close {
-  background: transparent;
+.cal-valider {
+  padding: 7px 16px;
+  background: #22c55e;
+  color: #fff;
   border: none;
-  font-size: 18px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 800;
   cursor: pointer;
-  color: var(--text, #333);
-  padding: 0 6px;
-  min-width: auto;
   box-shadow: none;
 }
 .sel-dates {
