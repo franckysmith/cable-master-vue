@@ -3,12 +3,13 @@
     <h2>Master Affaire</h2>
 
     <!-- Liste des affaires avec statut -->
+    <button v-if="!selected && !showForm" class="btn-create-affair" @click="openNewAffair">＋ Nouvelle affaire</button>
     <div v-if="!selected" class="affair-tabs">
       <button :class="{ active: tab === 'all' }" @click="tab = 'all'">Toutes</button>
       <button :class="{ active: tab === 'draft' }" @click="tab = 'draft'">Brouillons</button>
       <button :class="{ active: tab === 'sent' }" @click="tab = 'sent'">Envoyées</button>
       <button :class="{ active: tab === 'done' }" @click="tab = 'done'">Terminées</button>
-      <button class="btn-create-inline" @click="showForm = true; editing = null; selected = null">+</button>
+      <button :class="{ active: tab === 'trash' }" @click="tab = 'trash'">🗑</button>
     </div>
     <button v-if="selected" class="btn-back" @click="selected = null; showForm = false; showChatOnly = false">
       ← Retour aux affaires
@@ -56,9 +57,59 @@
         <input v-model="form.reference" placeholder="Code référence" />
       </div>
 
+      <div class="form-row">
+        <label>Type d'événement</label>
+        <div class="type-picker">
+          <button
+            v-for="t in eventTypes"
+            :key="t"
+            type="button"
+            class="type-btn"
+            :class="{ active: form.event_type === t }"
+            @click="form.event_type = form.event_type === t ? '' : t"
+          >{{ t }}</button>
+        </div>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-row" style="flex: 2">
+          <label>Lieu / salle</label>
+          <input v-model="form.venue" placeholder="ex: Zénith de Paris" />
+        </div>
+        <div class="form-row" style="flex: 1">
+          <label>Nb de jours</label>
+          <input v-model.number="form.nb_days" type="number" min="1" placeholder="1" />
+        </div>
+      </div>
+
+      <div class="form-row">
+        <button type="button" class="btn-dates" @click="showCalendar = true">
+          📅 Dates de l'événement<span v-if="form.tour_dates.length"> ({{ form.tour_dates.length }})</span>
+        </button>
+      </div>
+
+      <div v-if="showCalendar" class="cal-overlay" @click.self="showCalendar = false">
+        <div class="cal-modal">
+          <div class="cal-modal-head">
+            <span>📅 {{ form.name || 'Événement' }} — {{ form.tour_dates.length }} date(s)</span>
+            <button class="close-btn" @click="showCalendar = false">✕</button>
+          </div>
+          <TourCalendar
+            :tour-dates="form.tour_dates"
+            :receipt-date="form.receipt_date"
+            :return-date="form.return_date"
+            :prep-date="form.prep_date"
+            @toggle="toggleTourDate"
+          />
+        </div>
+      </div>
+
       <div class="form-grid three">
         <div class="form-row">
           <DateField v-model="form.prep_date" label="Prépa" />
+        </div>
+        <div class="form-row">
+          <DateField v-model="form.load_date" label="Chargement" />
         </div>
         <div class="form-row">
           <DateField v-model="form.receipt_date" label="Sortie *" />
@@ -180,8 +231,8 @@
         :key="affair.affairid"
         v-show="!selected || selected.affairid === affair.affairid"
         class="affair-card"
-        :class="{ selected: selected?.affairid === affair.affairid }"
-        @click="selectAffair(affair)"
+        :class="{ selected: selected?.affairid === affair.affairid, trashed: tab === 'trash' }"
+        @click="tab !== 'trash' && selectAffair(affair)"
       >
         <div class="card-top">
           <span class="card-status" :class="affair.status || 'draft'">{{ statusLabel(affair.status) }}</span>
@@ -189,7 +240,8 @@
           <span class="card-name">{{ affair.name }}</span>
           <div class="card-dates" @click.stop="showTimeline = !showTimeline">
             <span v-if="affair.prep_date" class="date-prep">Prépa {{ formatDate(affair.prep_date) }}</span>
-            <span v-if="affair.prep_date" class="date-sep"></span>
+            <span v-if="affair.load_date" class="date-prep">Charg. {{ formatDate(affair.load_date) }}</span>
+            <span v-if="affair.prep_date || affair.load_date" class="date-sep"></span>
             <span class="date-event">{{ formatDate(affair.receipt_date) }}</span>
             <span v-if="affair.return_date" class="date-arrow">➡</span>
             <span v-if="affair.return_date" class="date-return">{{ formatDate(affair.return_date) }}</span>
@@ -214,14 +266,16 @@
               <span class="tech-firstname">{{ affair.tech_name_stage || '?' }}</span>
             </div>
           </div>
-          <!-- Boutons d'action -->
-          <div class="card-action-btns">
-            <button class="action-tab-btn" :class="{ active: expandedTab === 'chat' && selected?.affairid === affair.affairid }" @click.stop="toggleTab(affair, 'chat')">
-              💬
-              <span v-if="unreadAffairs[affair.affairid]" class="tab-dot"></span>
-            </button>
-            <button class="action-tab-btn" :class="{ active: expandedTab === 'fiche' && selected?.affairid === affair.affairid }" @click.stop="toggleTab(affair, 'fiche')">📋</button>
-            <button class="action-tab-btn" :class="{ active: expandedTab === 'materiel' && selected?.affairid === affair.affairid }" @click.stop="toggleTab(affair, 'materiel')">🔧</button>
+          <!-- Infos : type · lieu · nb jours · dates (sous les dates, à droite) -->
+          <div class="card-meta">
+            <span v-if="affair.event_type" class="meta-type">{{ affair.event_type }}</span>
+            <span v-if="affair.venue" class="meta-venue">📍 {{ affair.venue }}</span>
+            <span v-if="affair.nb_days" class="meta-days">📆 {{ affair.nb_days }} j</span>
+            <span v-if="affair.tour_dates && affair.tour_dates.length" class="meta-dates">🗓 {{ affair.tour_dates.length }} dates</span>
+          </div>
+          <div v-if="tab === 'trash'" class="card-action-btns">
+            <button class="action-tab-btn" @click.stop="restoreAffair(affair)" title="Restaurer">♻️</button>
+            <button class="action-tab-btn danger" @click.stop="purgeAffair(affair)" title="Supprimer définitivement">⊗</button>
           </div>
         </div>
         <!-- Aperçu message non lu -->
@@ -320,7 +374,7 @@
           </template>
         </div>
       </div>
-      <div v-if="filteredAffairs.length === 0" class="empty">Aucune affaire</div>
+      <div v-if="filteredAffairs.length === 0" class="empty">{{ tab === 'trash' ? 'Corbeille vide' : 'Aucune affaire' }}</div>
     </div>
     <!-- Message -->
     <div v-if="message" class="message" :class="messageType">{{ message }}</div>
@@ -333,6 +387,7 @@ import { supabase } from '../lib/supabase'
 import AllCasesView from '../components/AllCasesView.vue'
 import AmpCalculator from '../components/AmpCalculator.vue'
 import DateField from '../components/DateField.vue'
+import TourCalendar from '../components/TourCalendar.vue'
 
 const tab = ref('all')
 const affairs = ref([])
@@ -343,18 +398,33 @@ const showAddTech = ref(false)
 const editing = ref(null)
 const message = ref('')
 const messageType = ref('')
+const showCalendar = ref(false)
+
+function toggleTourDate(dateStr) {
+  const arr = form.tour_dates.includes(dateStr)
+    ? form.tour_dates.filter(d => d !== dateStr)
+    : [...form.tour_dates, dateStr].sort()
+  form.tour_dates = arr
+}
 
 const companyId = parseInt(localStorage.getItem('cablemaster-companyid')) || null
 const catalogId = parseInt(localStorage.getItem('cablemaster-catalogid')) || null
 
+const eventTypes = ['Concert', 'Tournée', 'Festival', 'Événement']
+
 const form = reactive({
   name: '',
   reference: '',
+  event_type: '',
+  venue: '',
+  nb_days: null,
+  tour_dates: [],
   tech_name: '', tech_firstname: '', tech_email: '', tech_phone: '',
   tech_name_monitor: '', tech_firstname_monitor: '', tech_email_monitor: '', tech_phone_monitor: '',
   tech_name_system: '', tech_firstname_system: '', tech_email_system: '', tech_phone_system: '',
   tech_name_stage: '', tech_firstname_stage: '', tech_email_stage: '', tech_phone_stage: '',
   prep_date: '',
+  load_date: '',
   receipt_date: '',
   return_date: '',
   front: false,
@@ -367,6 +437,28 @@ const form = reactive({
 })
 
 const newTech = reactive({ firstname: '', name: '', email: '', phone: '' })
+
+function resetForm() {
+  Object.assign(form, {
+    name: '', reference: '', event_type: '', venue: '', nb_days: null, tour_dates: [],
+    tech_name: '', tech_firstname: '', tech_email: '', tech_phone: '',
+    tech_name_monitor: '', tech_firstname_monitor: '', tech_email_monitor: '', tech_phone_monitor: '',
+    tech_name_system: '', tech_firstname_system: '', tech_email_system: '', tech_phone_system: '',
+    tech_name_stage: '', tech_firstname_stage: '', tech_email_stage: '', tech_phone_stage: '',
+    prep_date: '', load_date: '', receipt_date: '', return_date: '',
+    front: false, monitor: false, system: false, stage: false,
+    description: '', attachment_name: '', attachment_url: '',
+  })
+  existingAttachments.value = []
+  attachmentFiles.value = []
+}
+
+function openNewAffair() {
+  resetForm()
+  editing.value = null
+  selected.value = null
+  showForm.value = true
+}
 const newTechZone = ref('')
 const attachmentFiles = ref([])
 const existingAttachments = ref([])
@@ -513,7 +605,7 @@ function formatTime(dateStr) {
 }
 
 async function loadAffairs() {
-  let query = supabase.from('affair').select('*').order('prep_date', { ascending: true, nullsFirst: false }).order('receipt_date', { ascending: true })
+  let query = supabase.from('affair').select('*').is('deleted_at', null).order('prep_date', { ascending: true, nullsFirst: false }).order('receipt_date', { ascending: true })
   if (catalogId) query = query.eq('catalog_id', catalogId)
   const { data } = await query
   const now = new Date()
@@ -550,10 +642,36 @@ async function loadTechnicians() {
   technicians.value = data || []
 }
 
+const trashedAffairs = ref([])
+async function loadTrashed() {
+  let query = supabase.from('affair').select('*').not('deleted_at', 'is', null).order('deleted_at', { ascending: false })
+  if (catalogId) query = query.eq('catalog_id', catalogId)
+  const { data } = await query
+  trashedAffairs.value = data || []
+}
+
 const filteredAffairs = computed(() => {
+  if (tab.value === 'trash') return trashedAffairs.value
   if (tab.value === 'all') return affairs.value
   return affairs.value.filter(a => (a.status || 'draft') === tab.value)
 })
+
+watch(tab, (t) => { if (t === 'trash') loadTrashed() })
+
+async function restoreAffair(affair) {
+  const { error } = await supabase.from('affair').update({ deleted_at: null }).eq('affairid', affair.affairid)
+  if (error) { showMessage('Erreur: ' + error.message, 'error'); return }
+  await Promise.all([loadAffairs(), loadTrashed()])
+  showMessage('Affaire restaurée', 'success')
+}
+
+async function purgeAffair(affair) {
+  if (!confirm(`Supprimer DÉFINITIVEMENT "${affair.name}" ? Cette action est irréversible.`)) return
+  const { error } = await supabase.from('affair').delete().eq('affairid', affair.affairid)
+  if (error) { showMessage('Erreur: ' + error.message, 'error'); return }
+  await loadTrashed()
+  showMessage('Affaire supprimée définitivement', 'success')
+}
 
 function statusLabel(s) {
   const labels = { draft: '📝', sent: '📩', in_progress: '🔧', done: '✅' }
@@ -690,6 +808,10 @@ async function selectAffair(affair) {
   Object.assign(form, {
     name: affair.name || '',
     reference: affair.reference || '',
+    event_type: affair.event_type || '',
+    venue: affair.venue || '',
+    nb_days: affair.nb_days ?? null,
+    tour_dates: Array.isArray(affair.tour_dates) ? [...affair.tour_dates] : [],
     tech_name: affair.tech_name || '', tech_firstname: affair.tech_firstname || '',
     tech_email: affair.tech_email || '', tech_phone: affair.tech_phone || '',
     tech_name_monitor: affair.tech_name_monitor || '', tech_firstname_monitor: affair.tech_firstname_monitor || '',
@@ -699,6 +821,7 @@ async function selectAffair(affair) {
     tech_name_stage: affair.tech_name_stage || '', tech_firstname_stage: affair.tech_firstname_stage || '',
     tech_email_stage: affair.tech_email_stage || '', tech_phone_stage: affair.tech_phone_stage || '',
     prep_date: affair.prep_date || '',
+    load_date: affair.load_date || '',
     receipt_date: affair.receipt_date || '',
     return_date: affair.return_date || '',
     front: affair.front || false,
@@ -772,6 +895,7 @@ async function saveAffair() {
     name: form.name,
     tech_id: parseInt(localStorage.getItem('cablemaster-techid')) || 0,
     prep_date: form.prep_date || null,
+    load_date: form.load_date || null,
     receipt_date: form.receipt_date || null,
     return_date: form.return_date || null,
     front: form.front,
@@ -802,6 +926,10 @@ async function saveAffair() {
     tech_phone_stage: form.tech_phone_stage || '',
     // Nouvelles colonnes
     reference: form.reference || '',
+    event_type: form.event_type || '',
+    venue: form.venue || '',
+    nb_days: form.nb_days || null,
+    tour_dates: form.tour_dates || [],
     attachment_name: form.attachment_name || '',
     attachment_url: form.attachment_url || '',
   }
@@ -866,9 +994,18 @@ async function setStatus(status) {
   showForm.value = false
 }
 
+async function deleteAffairCard(affair) {
+  if (!confirm(`Mettre l'affaire "${affair.name}" à la corbeille ?`)) return
+  const { error } = await supabase.from('affair').update({ deleted_at: new Date().toISOString() }).eq('affairid', affair.affairid)
+  if (error) { showMessage('Erreur: ' + error.message, 'error'); return }
+  if (selected.value?.affairid === affair.affairid) { selected.value = null; showForm.value = false; editing.value = null }
+  await loadAffairs()
+  showMessage('Affaire mise à la corbeille', 'success')
+}
+
 async function deleteAffair() {
-  if (!editing.value || !confirm('Supprimer cette affaire ?')) return
-  await supabase.from('affair').delete().eq('affairid', editing.value.affairid)
+  if (!editing.value || !confirm('Mettre cette affaire à la corbeille ?')) return
+  await supabase.from('affair').update({ deleted_at: new Date().toISOString() }).eq('affairid', editing.value.affairid)
   showMessage('Affaire supprimée', 'success')
   await loadAffairs()
   showForm.value = false
@@ -982,7 +1119,7 @@ h3 { font-size: 16px; margin: 0; }
 .date-arrow { font-size: 11px; color: var(--text-muted, #999); }
 .date-return { font-size: 11px; color: var(--text-light, #888); }
 .btn-back { width: 100%; padding: 8px; background: transparent; border: 1px solid var(--border-light, #ccc); border-radius: 6px; color: var(--text, #333); font-size: 14px; font-weight: 600; cursor: pointer; margin-bottom: 8px; box-shadow: none; min-width: auto; text-align: left; }
-.card-bottom { display: flex; align-items: center; justify-content: space-between; margin-top: 4px; padding-left: 22px; }
+.card-bottom { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-top: 4px; padding-left: 22px; }
 .card-tech { font-size: 12px; color: var(--text-light, #888); }
 .card-tags { display: flex; gap: 3px; }
 .tag-sm { font-size: 9px; font-weight: 700; padding: 1px 4px; border-radius: 3px; color: #fff; }
@@ -1007,6 +1144,21 @@ h3 { font-size: 16px; margin: 0; }
   box-shadow: none;
   flex-shrink: 0;
 }
+.btn-create-affair {
+  width: 100%;
+  padding: 14px;
+  margin-bottom: 10px;
+  background: var(--color1);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  font-size: 17px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(139, 92, 246, 0.4);
+}
+.btn-create-affair:active { transform: scale(0.98); }
+.affair-card.trashed { opacity: 0.65; }
 .btn-create {
   width: 100%;
   padding: 10px;
@@ -1048,6 +1200,27 @@ h3 { font-size: 16px; margin: 0; }
 .form-row input:focus, .form-row select:focus, .form-row textarea:focus { border-color: var(--color1); }
 .form-grid { display: flex; gap: 8px; }
 .form-row.half { flex: 1; }
+.btn-dates {
+  width: 100%; padding: 10px; border: 2px dashed var(--color1); border-radius: 8px;
+  background: var(--color1-light); color: var(--color1-dark); font-size: 14px; font-weight: 700;
+  cursor: pointer; box-shadow: none;
+}
+.cal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 2000;
+  display: flex; align-items: center; justify-content: center; padding: 10px;
+}
+.cal-modal {
+  background: var(--bg, #fff); border-radius: 14px; padding: 12px;
+  width: 100%; max-width: 380px; max-height: 80vh; display: flex; flex-direction: column;
+}
+.cal-modal-head { display: flex; justify-content: space-between; align-items: center; font-size: 14px; font-weight: 700; margin-bottom: 8px; }
+.type-picker { display: flex; gap: 6px; flex-wrap: wrap; }
+.type-btn {
+  padding: 7px 14px; border: 2px solid var(--border-light, #ccc); border-radius: 8px;
+  background: var(--bg-input, #fff); color: var(--text, #333); font-size: 13px; font-weight: 600;
+  cursor: pointer; box-shadow: none; min-width: auto;
+}
+.type-btn.active { border-color: var(--color1); background: var(--color1); color: #fff; }
 .zone-toggles { display: flex; gap: 6px; }
 .zone-toggles button {
   padding: 6px 14px; border: 2px solid var(--border-light, #ccc); border-radius: 6px;
@@ -1095,8 +1268,8 @@ h3 { font-size: 16px; margin: 0; }
 .btn-draft { padding: 10px 14px; background: var(--bg-card, #eee); color: var(--text, #333); border: 1px solid var(--border-light, #ccc); border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; box-shadow: none; min-width: auto; }
 .btn-send { padding: 10px 14px; background: #3b82f6; color: #fff; border: none; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; box-shadow: none; min-width: auto; }
 .btn-delete { padding: 10px; background: #ef4444; color: #fff; border: none; border-radius: 8px; font-size: 14px; cursor: pointer; box-shadow: none; min-width: auto; }
-.card-techs { display: flex; gap: 8px; flex-wrap: wrap; }
-.tech-zone-item { display: flex; align-items: center; gap: 3px; }
+.card-techs { display: flex; flex-direction: column; gap: 3px; align-items: flex-start; }
+.tech-zone-item { display: flex; align-items: center; gap: 5px; }
 .zone-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 .zone-dot.facade { background: #3b82f6; }
 .zone-dot.retour { background: #f59e0b; }
@@ -1110,9 +1283,14 @@ h3 { font-size: 16px; margin: 0; }
 .invite-btn.sent { background: #ccc; color: #666; }
 .invite-btn:active { transform: scale(0.85); }
 .card-action-btns { display: flex; gap: 4px; margin-left: auto; }
+.card-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; margin-left: auto; text-align: right; }
+.meta-type { font-size: 11px; font-weight: 800; color: #fff; background: var(--color1); border-radius: 10px; padding: 1px 8px; }
+.meta-venue, .meta-days, .meta-dates { font-size: 11px; color: var(--text-light, #888); font-weight: 600; }
 .action-tab-btn { width: 30px; height: 30px; border-radius: 6px; border: 1px solid var(--border-light, #ccc); background: var(--bg-card, #f5f5f5); font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; min-width: auto; box-shadow: none; position: relative; transition: all 0.15s; }
 .action-tab-btn.active { background: var(--color1); border-color: var(--color1); }
 .action-tab-btn:active { transform: scale(0.9); }
+.action-tab-btn.danger { border-color: #ef4444; }
+.action-tab-btn.danger:active { background: #fee2e2; }
 .tab-dot { position: absolute; top: -2px; right: -2px; width: 8px; height: 8px; border-radius: 50%; background: #ef4444; }
 .fiche-description { font-size: 13px; color: var(--text, #333); padding: 6px 0; border-bottom: 1px solid var(--border-light, #eee); margin-bottom: 6px; }
 .fiche-dates { font-size: 12px; color: var(--text-light, #888); }

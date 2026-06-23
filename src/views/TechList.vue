@@ -122,6 +122,11 @@ const edit = reactive({ firstname: '', lastname: '', email: '', phone: '', poste
 onMounted(load)
 
 async function load() {
+  // Repli : si aucune entreprise active (ex. Super Admin), prendre la 1ʳᵉ entreprise
+  if (!companyId.value) {
+    const { data: comps } = await supabase.from('company').select('companyid').order('companyid').limit(1)
+    if (comps?.[0]) companyId.value = comps[0].companyid
+  }
   if (!companyId.value) return
   const { data } = await supabase
     .from('technician')
