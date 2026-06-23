@@ -158,7 +158,7 @@ const months = computed(() => {
 .cal-mode.concert.active { border-color: #22c55e; background: #22c55e; color: #fff; }
 .cal-mode.prep.active { border-color: #ea580c; background: #ea580c; color: #fff; }
 .cal-mode.out.active { border-color: #3b82f6; background: #3b82f6; color: #fff; }
-.cal-mode.back.active { border-color: #ef4444; background: #ef4444; color: #fff; }
+.cal-mode.back.active { border-color: #15803d; background: #15803d; color: #fff; }
 .cal-legend {
   display: flex;
   flex-wrap: wrap;
@@ -170,7 +170,7 @@ const months = computed(() => {
 .lg-concert { color: #22c55e; }
 .lg-out { color: #3b82f6; }
 .lg-range { color: #93c5fd; }
-.lg-back { color: #ef4444; }
+.lg-back { color: #22c55e; }
 .lg-prep { color: #f59e0b; }
 .cal-hint { font-size: 10px; color: var(--text-muted, #999); padding: 0 4px 4px; font-style: italic; }
 .cal-scroll {
@@ -260,7 +260,7 @@ const months = computed(() => {
   text-shadow: 0 0 3px rgba(0, 0, 0, 0.85), 0 1px 2px rgba(0, 0, 0, 0.7);
 }
 .cal-arrow.out { left: 2px; color: #60a5fa; }
-.cal-arrow.back { right: 2px; color: #f87171; }
+.cal-arrow.back { right: 2px; color: #22c55e; }
 .cal-arrow.pos-top { top: 0; bottom: auto; }
 .cal-arrow.pos-bottom { bottom: 0; top: auto; }
 .cal-day.concert .cal-arrow { text-shadow: 0 0 3px rgba(0, 0, 0, 0.9); }

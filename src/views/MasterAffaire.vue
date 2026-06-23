@@ -1,6 +1,9 @@
 <template>
   <div class="master-affaire">
-    <h2>Master Affaire</h2>
+    <div class="page-title-row">
+      <h2>Master Affaire</h2>
+      <button class="page-switch" @click="router.push('/timeline')">Timeline →</button>
+    </div>
 
     <!-- Liste des affaires avec statut -->
     <div v-if="!selected && !showForm" class="top-actions">
@@ -8,6 +11,11 @@
       <button class="filter-soon prep" :class="{ active: sortMode === 'prep' }" @click="toggleSort('prep')">Prépa</button>
       <button class="filter-soon out" :class="{ active: sortMode === 'out' }" @click="toggleSort('out')">Charg.</button>
       <button class="filter-soon back" :class="{ active: sortMode === 'back' }" @click="toggleSort('back')">Déch.</button>
+    </div>
+    <div v-if="!selected && !showForm" class="time-filters">
+      <button class="time-btn today" :class="{ active: timeFilter === 'today' }" @click="toggleTime('today')">Aujourd'hui</button>
+      <button class="time-btn tomorrow" :class="{ active: timeFilter === 'tomorrow' }" @click="toggleTime('tomorrow')">Demain</button>
+      <button class="time-btn week" :class="{ active: timeFilter === 'week' }" @click="toggleTime('week')">Semaine</button>
     </div>
     <div v-if="!selected" class="affair-tabs">
       <button :class="{ active: tab === 'draft' }" @click="tab = 'draft'">NEW</button>
@@ -229,7 +237,7 @@
           <button class="card-cal-btn" @click.stop="openCalendarFor(affair)" title="Voir le calendrier">📅</button>
         </div>
 
-        <div v-if="cardDateLine(affair).val" class="cdl-badge" :class="'cdl-' + (sortMode || 'prep')">
+        <div v-if="cardDateLine(affair).val" class="cdl-badge" :class="'cdl-' + cardDateLine(affair).type">
           <span class="cdl-label">{{ cardDateLine(affair).label }}</span>
           <span class="cdl-val">{{ cardDateLine(affair).val }}</span>
         </div>
@@ -402,6 +410,7 @@
 
 <script setup>
 import { ref, reactive, computed, watch, onMounted, nextTick } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { supabase } from '../lib/supabase'
 import AllCasesView from '../components/AllCasesView.vue'
 import AmpCalculator from '../components/AmpCalculator.vue'
@@ -724,9 +733,17 @@ async function toggleTab(affair, tab) {
   }
 }
 
-onMounted(() => {
-  loadAffairs()
+const route = useRoute()
+const router = useRouter()
+onMounted(async () => {
+  await loadAffairs()
   loadTechnicians()
+  // Ouverture directe d'une affaire (depuis la Timeline : /MasterAffaire?affair=ID)
+  const id = parseInt(route.query.affair)
+  if (id) {
+    const a = affairs.value.find(x => x.affairid === id)
+    if (a) selectAffair(a)
+  }
 })
 
 function formatTime(dateStr) {
@@ -789,13 +806,52 @@ async function loadTrashed() {
 
 // Filtre "à venir" : Prépa / Chargement / Déchargement
 const sortMode = ref('')
+const timeFilter = ref('') // '' | 'today' | 'tomorrow' | 'week'
 function toggleSort(mode) {
   sortMode.value = sortMode.value === mode ? '' : mode
+  timeFilter.value = ''
+}
+function toggleTime(mode) {
+  timeFilter.value = timeFilter.value === mode ? '' : mode
+  sortMode.value = ''
+}
+function isoFromDate(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 function tomorrowISO() {
-  const d = new Date()
-  d.setDate(d.getDate() + 1)
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  const d = new Date(); d.setDate(d.getDate() + 1); return isoFromDate(d)
+}
+function plusDaysISO(n) {
+  const d = new Date(); d.setDate(d.getDate() + n); return isoFromDate(d)
+}
+// Une date est-elle dans la fenêtre temporelle choisie ?
+function inWindow(d) {
+  if (timeFilter.value === 'today') return d === todayISO()
+  if (timeFilter.value === 'tomorrow') return d === tomorrowISO()
+  if (timeFilter.value === 'week') return d > tomorrowISO() && d <= plusDaysISO(7)
+  return false
+}
+// Toutes les dates de l'affaire (prépa + chargement + déchargement) avec leur type
+function allEvents(a) {
+  const ev = []
+  const pk = Object.keys(a.prep_days || {})
+  if (pk.length) pk.forEach(d => ev.push({ type: 'prep', date: d }))
+  else if (a.prep_date) ev.push({ type: 'prep', date: a.prep_date })
+  const out = a.out_dates || []
+  if (out.length) out.forEach(d => ev.push({ type: 'out', date: d }))
+  else if (a.receipt_date) ev.push({ type: 'out', date: a.receipt_date })
+  const back = a.back_dates || []
+  if (back.length) back.forEach(d => ev.push({ type: 'back', date: d }))
+  else if (a.return_date) ev.push({ type: 'back', date: a.return_date })
+  return ev
+}
+function windowEvent(a) {
+  return allEvents(a).filter(e => inWindow(e.date)).sort((x, y) => (x.date < y.date ? -1 : 1))[0] || null
+}
+function eventMoment(a, ev) {
+  if (ev.type === 'prep') return prepMoment((a.prep_days || {})[ev.date])
+  const per = (ev.type === 'out' ? a.out_periods : a.back_periods) || {}
+  return periodTag(per[ev.date])
 }
 // Dates pertinentes de l'affaire selon le filtre actif (Prépa par défaut)
 function relevantDates(a) {
@@ -805,9 +861,12 @@ function relevantDates(a) {
   const k = Object.keys(a.prep_days || {})
   return k.length ? k : (a.prep_date ? [a.prep_date] : [])
 }
-// Aujourd'hui → jaune ; demain → jaune orangé
-function isTodayFor(a) { return relevantDates(a).includes(todayISO()) }
-function isTomorrowFor(a) { return relevantDates(a).includes(tomorrowISO()) }
+// Aujourd'hui → jaune ; demain → ambre. En vue temporelle : tous types confondus
+function datesForHighlight(a) {
+  return timeFilter.value ? allEvents(a).map(e => e.date) : relevantDates(a)
+}
+function isTodayFor(a) { return datesForHighlight(a).includes(todayISO()) }
+function isTomorrowFor(a) { return datesForHighlight(a).includes(tomorrowISO()) }
 
 // Résumés COMPACTS pour la carte : 1 jour → date + moment ; plusieurs jours → « … »
 function prepMoment(v) { return v === 'full' ? ' journée entière' : v === 'bottom' ? ' matin' : ' après-midi' }
@@ -836,10 +895,16 @@ function compactList(arr0, periods, fallback) {
 }
 
 // Ligne de date affichée sur la carte selon le filtre actif (Prépa par défaut)
+const TYPE_LABELS = { prep: 'Prépa', out: 'Chargement', back: 'Déchargement' }
 function cardDateLine(a) {
-  if (sortMode.value === 'out') return { label: 'Chargement', val: compactList(a.out_dates, a.out_periods, a.receipt_date) }
-  if (sortMode.value === 'back') return { label: 'Déchargement', val: compactList(a.back_dates, a.back_periods, a.return_date) }
-  return { label: 'Prépa', val: compactPrep(a) }
+  if (timeFilter.value) {
+    const ev = windowEvent(a)
+    if (!ev) return { label: '', val: '', type: 'prep' }
+    return { label: TYPE_LABELS[ev.type], val: shortDate(ev.date) + eventMoment(a, ev), type: ev.type }
+  }
+  if (sortMode.value === 'out') return { label: 'Chargement', val: compactList(a.out_dates, a.out_periods, a.receipt_date), type: 'out' }
+  if (sortMode.value === 'back') return { label: 'Déchargement', val: compactList(a.back_dates, a.back_periods, a.return_date), type: 'back' }
+  return { label: 'Prépa', val: compactPrep(a), type: 'prep' }
 }
 function todayISO() {
   const d = new Date()
@@ -862,6 +927,15 @@ function keyDate(a, mode) {
 
 const filteredAffairs = computed(() => {
   if (tab.value === 'trash') return trashedAffairs.value
+  // Vue temporelle : aujourd'hui / demain / semaine (tous types confondus)
+  if (timeFilter.value) {
+    return affairs.value
+      .filter(a => (a.status || 'draft') !== 'done')
+      .map(a => ({ a, k: (windowEvent(a) || {}).date }))
+      .filter(x => x.k)
+      .sort((x, y) => (x.k < y.k ? -1 : x.k > y.k ? 1 : 0))
+      .map(x => x.a)
+  }
   // Mode "à venir" : parmi toutes les affaires actives non terminées, triées par date
   if (sortMode.value) {
     return affairs.value
@@ -1331,6 +1405,12 @@ function showMessage(msg, type) {
 </script>
 
 <style scoped>
+.page-title-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.page-switch {
+  padding: 6px 12px; border: 1px solid var(--color1); border-radius: 8px;
+  background: var(--color1-light, #e8f5e9); color: var(--color1-dark, #2e7d32);
+  font-size: 13px; font-weight: 700; cursor: pointer; box-shadow: none; min-width: auto; white-space: nowrap;
+}
 .master-affaire {
   max-width: 500px;
   margin: 0 auto;
@@ -1508,9 +1588,31 @@ h3 { font-size: 16px; margin: 0; }
   min-width: 0;
   white-space: nowrap;
 }
+.time-filters {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+.time-btn {
+  flex: 1 1 0;
+  padding: 5px 4px;
+  background: var(--bg-card, #f5f5f5);
+  color: var(--text, #333);
+  border: 1px solid var(--border-light, #ccc);
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: none;
+  min-width: 0;
+  white-space: nowrap;
+}
+.time-btn.today.active { background: #eab308; border-color: #eab308; color: #000; }
+.time-btn.tomorrow.active { background: #f59e0b; border-color: #f59e0b; color: #000; }
+.time-btn.week.active { background: var(--color1-dark); border-color: var(--color1-dark); color: #fff; }
 .filter-soon.prep.active { background: #ea580c; border-color: #ea580c; color: #fff; }
 .filter-soon.out.active { background: #3b82f6; border-color: #3b82f6; color: #fff; }
-.filter-soon.back.active { background: #ef4444; border-color: #ef4444; color: #fff; }
+.filter-soon.back.active { background: #15803d; border-color: #15803d; color: #fff; }
 .affair-card.trashed { opacity: 0.65; }
 .btn-create {
   width: 100%;
