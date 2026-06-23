@@ -55,7 +55,7 @@
     </div>
 
     <!-- Formulaire création/édition -->
-    <div v-if="showForm && !selected" class="form-panel">
+    <div v-if="showForm" class="form-panel">
       <div class="form-header">
         <h3>{{ editing ? 'Modifier' : 'Nouvelle affaire' }}</h3>
         <button class="close-btn" @click="showForm = false">✕</button>
@@ -85,61 +85,39 @@
       </div>
 
       <div class="form-grid">
-        <div class="form-row" style="flex: 2">
-          <label>Lieu / salle</label>
-          <input v-model="form.venue" placeholder="ex: Zénith de Paris" />
+        <div class="form-row" style="flex: 1">
+          <label>Ville</label>
+          <input v-model="form.city" placeholder="ex: Paris" />
         </div>
         <div class="form-row" style="flex: 1">
-          <label>Nb de jours</label>
-          <input v-model.number="form.nb_days" type="number" min="1" placeholder="1" />
+          <label>Salle</label>
+          <input v-model="form.venue" placeholder="ex: Zénith" />
         </div>
       </div>
 
       <div class="form-row">
-        <button type="button" class="btn-dates" @click="showCalendar = true">
+        <button type="button" class="btn-dates" @click="calAffairId = null; showCalendar = true">
           📅 Dates de l'événement<span v-if="form.tour_dates.length"> ({{ form.tour_dates.length }})</span>
         </button>
       </div>
 
-      <div v-if="showCalendar" class="cal-overlay" @click.self="showCalendar = false">
-        <div class="cal-modal">
-          <div class="cal-modal-head">
-            <span>📅 {{ form.name || 'Événement' }} — {{ form.tour_dates.length }} date(s)</span>
-            <button class="btn-valider" @click="showCalendar = false">Valider</button>
-          </div>
-          <TourCalendar
-            :tour-dates="form.tour_dates"
-            :out-dates="form.out_dates"
-            :back-dates="form.back_dates"
-            :out-periods="form.out_periods"
-            :back-periods="form.back_periods"
-            :prep-days="form.prep_days"
-            :prep-date="form.prep_date"
-            @toggle="toggleTourDate"
-            @toggle-out="toggleOutDate"
-            @toggle-back="toggleBackDate"
-            @cycle-prep="cyclePrepDay"
-          />
-        </div>
-      </div>
-
       <!-- Lecture seule : tout se règle dans le calendrier ci-dessus -->
       <div class="dates-readonly">
-        <div class="dr-row"><span class="dr-label">Prépa</span><span class="dr-val">{{ prepSummary(form) || '—' }}</span></div>
-        <div class="dr-row"><span class="dr-label">Chargement</span><span class="dr-val">{{ outSummary(form) || '—' }}</span></div>
-        <div class="dr-row"><span class="dr-label">Déchargement</span><span class="dr-val">{{ backSummary(form) || '—' }}</span></div>
+        <div class="dr-row"><span class="dr-label cdl-prep-bg">Prépa</span><span class="dr-val">{{ compactPrep(form) || '—' }}</span></div>
+        <div class="dr-row"><span class="dr-label cdl-out-bg">Chargement</span><span class="dr-val">{{ compactList(form.out_dates, form.out_periods, form.receipt_date) || '—' }}</span></div>
+        <div class="dr-row"><span class="dr-label cdl-back-bg">Déchargement</span><span class="dr-val">{{ compactList(form.back_dates, form.back_periods, form.return_date) || '—' }}</span></div>
       </div>
 
       <div class="form-section-title">Zones & Techniciens</div>
       <div class="zone-toggles">
-        <button :class="{ active: form.front }" @click="form.front = !form.front" class="zone-btn facade">Front</button>
+        <button :class="{ active: form.front }" @click="form.front = !form.front" class="zone-btn facade">Façade</button>
         <button :class="{ active: form.monitor }" @click="form.monitor = !form.monitor" class="zone-btn retour">Monitor</button>
         <button :class="{ active: form.system }" @click="form.system = !form.system" class="zone-btn systeme">System</button>
-        <button :class="{ active: form.stage }" @click="form.stage = !form.stage" class="zone-btn scene">Stage</button>
+        <button :class="{ active: form.stage }" @click="form.stage = !form.stage" class="zone-btn scene">Scène</button>
       </div>
 
       <div v-if="form.front" class="zone-tech-block facade">
-        <div class="zone-tech-header">🔵 Front</div>
+        <div class="zone-tech-header">🔵 Façade</div>
         <div class="zone-tech-select">
           <select v-model="form.tech_email" @change="onTechSelect('front')">
             <option value="">-- Choisir --</option>
@@ -196,7 +174,7 @@
       </div>
 
       <div v-if="form.stage" class="zone-tech-block scene">
-        <div class="zone-tech-header">🟢 Stage</div>
+        <div class="zone-tech-header">🟢 Scène</div>
         <div class="zone-tech-select">
           <select v-model="form.tech_email_stage" @change="onTechSelect('stage')">
             <option value="">-- Choisir --</option>
@@ -236,7 +214,7 @@
     </div>
 
     <!-- Liste -->
-    <div class="affair-list" v-show="!showForm || selected">
+    <div class="affair-list" v-show="!showForm">
       <div
         v-for="affair in filteredAffairs"
         :key="affair.affairid"
@@ -247,12 +225,14 @@
       >
         <div class="card-head">
           <span v-if="unreadAffairs[affair.affairid]" class="unread-star" @click.stop="openChatOnly(affair)">★</span>
-          <span class="card-name">{{ affair.name || '(Sans nom)' }}</span>
-          <span v-if="affair.event_type" class="meta-type">{{ affair.event_type }}</span>
+          <span class="card-name" :class="{ 'is-today': isTodayFor(affair), 'is-tomorrow': !isTodayFor(affair) && isTomorrowFor(affair) }">{{ affair.name || '(Sans nom)' }}</span>
           <button class="card-cal-btn" @click.stop="openCalendarFor(affair)" title="Voir le calendrier">📅</button>
         </div>
 
-        <div v-if="prepSummary(affair)" class="card-prep">Prépa : {{ prepSummary(affair) }}</div>
+        <div v-if="cardDateLine(affair).val" class="cdl-badge" :class="'cdl-' + (sortMode || 'prep')">
+          <span class="cdl-label">{{ cardDateLine(affair).label }}</span>
+          <span class="cdl-val">{{ cardDateLine(affair).val }}</span>
+        </div>
 
         <div class="card-bottom">
           <div class="card-techs">
@@ -274,21 +254,27 @@
             </div>
           </div>
           <div class="card-meta">
-            <span v-if="affair.nb_days" class="meta-days">📆 {{ affair.nb_days }} j</span>
-            <span v-if="affair.venue" class="meta-venue">📍 {{ affair.venue }}</span>
+            <span v-if="affair.event_type" class="meta-type">{{ affair.event_type }}</span>
+            <span v-if="affair.city" class="meta-venue">📍 {{ affair.city }}</span>
+            <span v-if="affair.venue" class="meta-venue">🏛 {{ affair.venue }}</span>
           </div>
           <div v-if="tab === 'trash'" class="card-action-btns">
             <button class="action-tab-btn" @click.stop="restoreAffair(affair)" title="Restaurer">♻️</button>
             <button class="action-tab-btn danger" @click.stop="purgeAffair(affair)" title="Supprimer définitivement">⊗</button>
           </div>
         </div>
-        <!-- Aperçu message non lu -->
-        <div v-if="unreadAffairs[affair.affairid] && expandedTab !== 'chat'" class="card-unread-msg">
+        <!-- Aperçu message non lu (seulement quand la carte n'est pas ouverte) -->
+        <div v-if="unreadAffairs[affair.affairid] && selected?.affairid !== affair.affairid" class="card-unread-msg">
           💬 {{ unreadAffairs[affair.affairid] }}
         </div>
 
+        <!-- Détail : bouton Modifier -->
+        <div v-if="selected?.affairid === affair.affairid" class="detail-actions" @click.stop>
+          <button class="btn-edit-detail" @click="editCurrentAffair">✏️ Modifier l'affaire</button>
+        </div>
+
         <!-- Panneau Chat -->
-        <div v-if="selected?.affairid === affair.affairid && expandedTab === 'chat'" class="card-expanded" @click.stop>
+        <div v-if="selected?.affairid === affair.affairid" class="card-expanded" @click.stop>
           <div class="master-chat">
             <div class="chat-messages-master">
               <div v-for="msg in affairMessages" :key="msg.messageid" class="chat-msg-m" :class="msg.sender_role">
@@ -310,8 +296,8 @@
           </div>
         </div>
 
-        <!-- Panneau Fiche -->
-        <div v-if="selected?.affairid === affair.affairid && expandedTab === 'fiche'" class="card-expanded" @click.stop>
+        <!-- Panneau Fiche (détails) -->
+        <div v-if="selected?.affairid === affair.affairid" class="card-expanded" @click.stop>
           <!-- Contacter tous -->
           <a v-if="getAllEmails(affair).length > 0" :href="'mailto:' + getAllEmails(affair).join(',')" class="fiche-contact-all">📩 Contacter tous</a>
 
@@ -332,11 +318,16 @@
               <div v-if="!zone.phone && !zone.email" class="fiche-no-contact">Pas de coordonnées renseignées</div>
             </div>
           </div>
-          <!-- Dates -->
+          <!-- Lieu + dates -->
           <div class="fiche-dates">
-            <div v-if="affair.prep_date">🔧 Prépa : {{ formatDate(affair.prep_date) }}</div>
-            <div>📦 Chargement : {{ formatDate(affair.receipt_date) }}</div>
-            <div v-if="affair.return_date">↩ Déchargement : {{ formatDate(affair.return_date) }}</div>
+            <div v-if="affair.event_type || affair.city || affair.venue">
+              <span v-if="affair.event_type">🎤 {{ affair.event_type }}</span>
+              <span v-if="affair.city"> · 📍 {{ affair.city }}</span>
+              <span v-if="affair.venue"> · 🏛 {{ affair.venue }}</span>
+            </div>
+            <div v-if="compactPrep(affair)">🔧 Prépa : {{ compactPrep(affair) }}</div>
+            <div v-if="compactList(affair.out_dates, affair.out_periods, affair.receipt_date)">📦 Chargement : {{ compactList(affair.out_dates, affair.out_periods, affair.receipt_date) }}</div>
+            <div v-if="compactList(affair.back_dates, affair.back_periods, affair.return_date)">↩ Déchargement : {{ compactList(affair.back_dates, affair.back_periods, affair.return_date) }}</div>
           </div>
           <div v-if="affair.description" class="fiche-description">
             <strong>Notes :</strong> {{ affair.description }}
@@ -349,7 +340,7 @@
           <template v-else>
             <!-- Front -->
             <div v-if="affair.front" class="zone-block">
-              <div class="zone-banner facade">🔵 Front — {{ affair.tech_name || '?' }}</div>
+              <div class="zone-banner facade">🔵 Façade — {{ affair.tech_name || '?' }}</div>
               <AllCasesView
                 v-if="allCables.length > 0"
                 :cables="allCables"
@@ -370,7 +361,7 @@
             </div>
             <!-- Stage -->
             <div v-if="affair.stage" class="zone-block">
-              <div class="zone-banner scene">🟢 Stage — {{ affair.tech_name_stage || '?' }}</div>
+              <div class="zone-banner scene">🟢 Scène — {{ affair.tech_name_stage || '?' }}</div>
               <div class="zone-empty">Aucun matériel préparé</div>
             </div>
             <!-- Calculateur amplis -->
@@ -380,6 +371,30 @@
       </div>
       <div v-if="filteredAffairs.length === 0" class="empty">{{ tab === 'trash' ? 'Corbeille vide' : sortMode ? 'Rien à venir' : 'Aucune affaire' }}</div>
     </div>
+    <!-- Calendrier (modal global) : édition depuis le formulaire, lecture seule depuis une carte -->
+    <div v-if="showCalendar" class="cal-overlay" @click.self="cancelCalendar">
+      <div class="cal-modal">
+        <div class="cal-modal-head">
+          <button class="cal-cancel" @click="cancelCalendar" title="Fermer sans enregistrer">✕</button>
+          <span class="cal-modal-title">📅 {{ form.name || 'Événement' }} — {{ form.tour_dates.length }} date(s)</span>
+          <button class="btn-valider" @click="closeCalendar">Valider</button>
+        </div>
+        <TourCalendar
+          :tour-dates="form.tour_dates"
+          :out-dates="form.out_dates"
+          :back-dates="form.back_dates"
+          :out-periods="form.out_periods"
+          :back-periods="form.back_periods"
+          :prep-days="form.prep_days"
+          :prep-date="form.prep_date"
+          @toggle="toggleTourDate"
+          @toggle-out="toggleOutDate"
+          @toggle-back="toggleBackDate"
+          @cycle-prep="cyclePrepDay"
+        />
+      </div>
+    </div>
+
     <!-- Message -->
     <div v-if="message" class="message" :class="messageType">{{ message }}</div>
   </div>
@@ -402,6 +417,8 @@ const editing = ref(null)
 const message = ref('')
 const messageType = ref('')
 const showCalendar = ref(false)
+// Affaire éditée via le 📅 d'une carte (sauvegarde auto à la fermeture) ; null = mode formulaire
+const calAffairId = ref(null)
 
 function toggleTourDate(dateStr) {
   const arr = form.tour_dates.includes(dateStr)
@@ -478,6 +495,7 @@ const form = reactive({
   name: '',
   reference: '',
   event_type: '',
+  city: '',
   venue: '',
   nb_days: null,
   tour_dates: [],
@@ -506,7 +524,7 @@ const newTech = reactive({ firstname: '', name: '', email: '', phone: '' })
 
 function resetForm() {
   Object.assign(form, {
-    name: '', reference: '', event_type: '', venue: '', nb_days: null, tour_dates: [], out_dates: [], back_dates: [], out_periods: {}, back_periods: {}, prep_days: {},
+    name: '', reference: '', event_type: '', city: '', venue: '', nb_days: null, tour_dates: [], out_dates: [], back_dates: [], out_periods: {}, back_periods: {}, prep_days: {},
     tech_name: '', tech_firstname: '', tech_email: '', tech_phone: '',
     tech_name_monitor: '', tech_firstname_monitor: '', tech_email_monitor: '', tech_phone_monitor: '',
     tech_name_system: '', tech_firstname_system: '', tech_email_system: '', tech_phone_system: '',
@@ -527,9 +545,50 @@ function openNewAffair() {
 }
 
 // Accès rapide au calendrier depuis une carte
+// 📅 depuis une carte : charge les dates de l'affaire dans le calendrier (ÉDITABLE pour le master)
 function openCalendarFor(affair) {
-  if (selected.value?.affairid !== affair.affairid) selectAffair(affair)
+  form.name = affair.name || ''
+  form.prep_date = affair.prep_date || ''
+  form.receipt_date = affair.receipt_date || ''
+  form.return_date = affair.return_date || ''
+  form.nb_days = affair.nb_days ?? null
+  form.tour_dates = Array.isArray(affair.tour_dates) ? [...affair.tour_dates] : []
+  form.out_dates = Array.isArray(affair.out_dates) ? [...affair.out_dates] : []
+  form.back_dates = Array.isArray(affair.back_dates) ? [...affair.back_dates] : []
+  form.out_periods = affair.out_periods && typeof affair.out_periods === 'object' ? { ...affair.out_periods } : {}
+  form.back_periods = affair.back_periods && typeof affair.back_periods === 'object' ? { ...affair.back_periods } : {}
+  form.prep_days = affair.prep_days && typeof affair.prep_days === 'object' ? { ...affair.prep_days } : {}
+  calAffairId.value = affair.affairid
   showCalendar.value = true
+}
+
+// Fermer SANS enregistrer (annule les modifs accidentelles)
+function cancelCalendar() {
+  calAffairId.value = null
+  showCalendar.value = false
+}
+
+// Fermer le calendrier : si ouvert depuis une carte, on sauvegarde les dates dans l'affaire
+async function closeCalendar() {
+  if (calAffairId.value) {
+    const payload = {
+      tour_dates: form.tour_dates || [],
+      out_dates: form.out_dates || [],
+      back_dates: form.back_dates || [],
+      out_periods: form.out_periods || {},
+      back_periods: form.back_periods || {},
+      prep_days: form.prep_days || {},
+      prep_date: form.prep_date || null,
+      receipt_date: form.receipt_date || null,
+      return_date: form.return_date || null,
+      nb_days: form.nb_days || null,
+    }
+    const { error } = await supabase.from('affair').update(payload).eq('affairid', calAffairId.value)
+    if (error) showMessage('Erreur: ' + error.message, 'error')
+    else { await loadAffairs(); showMessage('Calendrier enregistré', 'success') }
+    calAffairId.value = null
+  }
+  showCalendar.value = false
 }
 const newTechZone = ref('')
 const attachmentFiles = ref([])
@@ -708,9 +767,15 @@ async function loadAffairs() {
   unreadAffairs.value = unread
 }
 
+// Repli : si le master actif n'a pas d'entreprise attachée, prendre la 1ʳᵉ entreprise
+const resolvedCompanyId = ref(companyId)
 async function loadTechnicians() {
-  if (!companyId) return
-  const { data } = await supabase.from('technician').select('*').eq('company_id', companyId).order('name')
+  if (!resolvedCompanyId.value) {
+    const { data: comps } = await supabase.from('company').select('companyid').order('companyid').limit(1)
+    if (comps?.[0]) resolvedCompanyId.value = comps[0].companyid
+  }
+  if (!resolvedCompanyId.value) return
+  const { data } = await supabase.from('technician').select('*').eq('company_id', resolvedCompanyId.value).order('name')
   technicians.value = data || []
 }
 
@@ -726,6 +791,55 @@ async function loadTrashed() {
 const sortMode = ref('')
 function toggleSort(mode) {
   sortMode.value = sortMode.value === mode ? '' : mode
+}
+function tomorrowISO() {
+  const d = new Date()
+  d.setDate(d.getDate() + 1)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+// Dates pertinentes de l'affaire selon le filtre actif (Prépa par défaut)
+function relevantDates(a) {
+  const mode = sortMode.value || 'prep'
+  if (mode === 'out') return (a.out_dates && a.out_dates.length) ? a.out_dates : (a.receipt_date ? [a.receipt_date] : [])
+  if (mode === 'back') return (a.back_dates && a.back_dates.length) ? a.back_dates : (a.return_date ? [a.return_date] : [])
+  const k = Object.keys(a.prep_days || {})
+  return k.length ? k : (a.prep_date ? [a.prep_date] : [])
+}
+// Aujourd'hui → jaune ; demain → jaune orangé
+function isTodayFor(a) { return relevantDates(a).includes(todayISO()) }
+function isTomorrowFor(a) { return relevantDates(a).includes(tomorrowISO()) }
+
+// Résumés COMPACTS pour la carte : 1 jour → date + moment ; plusieurs jours → « … »
+function prepMoment(v) { return v === 'full' ? ' journée entière' : v === 'bottom' ? ' matin' : ' après-midi' }
+// La date "montrée" = la prochaine à venir (≥ aujourd'hui), sinon la dernière passée
+function nextShown(arr) {
+  const t = todayISO()
+  return arr.find(d => d >= t) || arr[arr.length - 1]
+}
+function compactPrep(a) {
+  const map = a.prep_days && typeof a.prep_days === 'object' ? a.prep_days : {}
+  const keys = Object.keys(map).sort()
+  if (!keys.length) return a.prep_date ? shortDate(a.prep_date) : ''
+  const shown = nextShown(keys)
+  const v = map[shown]
+  const moreAfter = keys.some(d => d > shown)
+  // demi-journée seule → on affiche le moment ; journée entière ou d'autres jours → …
+  if (v !== 'full' && !moreAfter) return shortDate(shown) + prepMoment(v)
+  return shortDate(shown) + ' …'
+}
+function compactList(arr0, periods, fallback) {
+  const arr = (arr0 && arr0.length) ? [...arr0].sort() : (fallback ? [fallback] : [])
+  if (!arr.length) return ''
+  const shown = nextShown(arr)
+  const base = shortDate(shown) + periodTag((periods || {})[shown])
+  return arr.some(d => d > shown) ? base + ' …' : base
+}
+
+// Ligne de date affichée sur la carte selon le filtre actif (Prépa par défaut)
+function cardDateLine(a) {
+  if (sortMode.value === 'out') return { label: 'Chargement', val: compactList(a.out_dates, a.out_periods, a.receipt_date) }
+  if (sortMode.value === 'back') return { label: 'Déchargement', val: compactList(a.back_dates, a.back_periods, a.return_date) }
+  return { label: 'Prépa', val: compactPrep(a) }
 }
 function todayISO() {
   const d = new Date()
@@ -825,7 +939,7 @@ function getAffairZones(affair) {
   const zones = []
   if (affair.front) {
     zones.push({
-      key: 'front', css: 'facade', icon: '🔵', label: 'Front',
+      key: 'front', css: 'facade', icon: '🔵', label: 'Façade',
       name: affair.tech_name || '?',
       firstname: affair.tech_firstname || '',
       phone: affair.tech_phone || '',
@@ -852,7 +966,7 @@ function getAffairZones(affair) {
   }
   if (affair.stage) {
     zones.push({
-      key: 'stage', css: 'scene', icon: '🟢', label: 'Stage',
+      key: 'stage', css: 'scene', icon: '🟢', label: 'Scène',
       name: affair.tech_name_stage || '?',
       firstname: affair.tech_firstname_stage || '',
       phone: affair.tech_phone_stage || '',
@@ -928,8 +1042,13 @@ async function openChatOnly(affair) {
   affairMessages.value = data || []
 }
 
+// Bouton "Modifier" depuis la fiche détail : ouvre le formulaire (déjà pré-rempli par selectAffair)
+function editCurrentAffair() {
+  showForm.value = true
+}
+
 async function selectAffair(affair) {
-  if (selected.value?.affairid === affair.affairid) {
+  if (selected.value?.affairid === affair.affairid && !showForm.value) {
     selected.value = null
     showForm.value = false
     showChatOnly.value = false
@@ -938,12 +1057,13 @@ async function selectAffair(affair) {
   showChatOnly.value = false
   selected.value = affair
   editing.value = affair
-  showForm.value = true
+  showForm.value = false
   masterReply.value = ''
   Object.assign(form, {
     name: affair.name || '',
     reference: affair.reference || '',
     event_type: affair.event_type || '',
+    city: affair.city || '',
     venue: affair.venue || '',
     nb_days: affair.nb_days ?? null,
     tour_dates: Array.isArray(affair.tour_dates) ? [...affair.tour_dates] : [],
@@ -1065,6 +1185,7 @@ async function saveAffair() {
     // Nouvelles colonnes
     reference: form.reference || '',
     event_type: form.event_type || '',
+    city: form.city || '',
     venue: form.venue || '',
     nb_days: form.nb_days || null,
     tour_dates: form.tour_dates || [],
@@ -1181,7 +1302,7 @@ async function addTechForZone(zone) {
     email: newTech.email,
     phone: newTech.phone,
     poste: zone,
-    company_id: companyId,
+    company_id: resolvedCompanyId.value || companyId,
   })
   if (!error) {
     await loadTechnicians()
@@ -1262,9 +1383,9 @@ h3 { font-size: 16px; margin: 0; }
 .affair-list { margin-bottom: 10px; }
 .affair-card {
   padding: 10px;
-  border: 1px solid var(--border, #e0e0e0);
+  border: 1.5px solid #d1d5db;
   border-radius: 8px;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
   cursor: pointer;
   background: var(--bg-card, #fafafa);
 }
@@ -1273,18 +1394,52 @@ h3 { font-size: 16px; margin: 0; }
 .card-status { font-size: 14px; }
 .card-head { display: flex; align-items: center; gap: 8px; }
 .card-name {
-  flex: 1; font-size: 16px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  flex: 0 0 auto; width: 30ch; max-width: 100%;
+  font-size: 16px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   color: var(--text, #333);
   border: 2px solid #e5e7eb; border-radius: 8px;
-  padding: 4px 10px;
+  padding: 4px 10px; box-sizing: border-box;
+}
+.card-name.is-today {
+  background: #fde047;
+  color: #000;
+  border-color: #eab308;
+  font-weight: 800;
+}
+.card-name.is-tomorrow {
+  background: #fbbf24;
+  color: #000;
+  border-color: #d97706;
+  font-weight: 800;
 }
 .card-cal-btn {
   background: transparent; border: none; border-radius: 6px;
   font-size: 18px; line-height: 1; padding: 2px 4px; cursor: pointer; box-shadow: none; min-width: auto; flex-shrink: 0;
 }
-.card-prep {
-  font-size: 15px; font-weight: 800; color: #c2410c;
-  margin: 6px 0; padding-left: 2px;
+.cdl-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0;
+  padding: 4px 8px 4px 4px;
+  background: var(--bg-input, #fff);
+  border: 1px solid var(--border-light, #e5e7eb);
+  border-radius: 10px;
+}
+.cdl-label {
+  font-size: 11px;
+  font-weight: 800;
+  color: #fff;
+  border-radius: 7px;
+  padding: 2px 8px;
+}
+.cdl-prep .cdl-label, .cdl-prep-bg { background: #ea580c; }
+.cdl-out .cdl-label, .cdl-out-bg { background: #3b82f6; }
+.cdl-back .cdl-label, .cdl-back-bg { background: #15803d; }
+.cdl-val {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text, #333);
 }
 .card-dates { display: flex; align-items: center; gap: 6px; margin-left: auto; flex-shrink: 0; }
 .date-prep { font-size: 11px; color: var(--text-light, #888); }
@@ -1407,19 +1562,24 @@ h3 { font-size: 16px; margin: 0; }
   border: 1px solid var(--border-light, #ddd); border-radius: 8px;
   padding: 8px 10px; margin-top: 8px; background: var(--bg-card, #fafafa);
 }
-.dr-row { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding: 3px 0; }
+.dr-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 5px 0; }
 .dr-row + .dr-row { border-top: 1px dashed var(--border-light, #eee); }
-.dr-label { font-size: 12px; font-weight: 700; color: var(--text-light, #666); white-space: nowrap; }
-.dr-val { font-size: 13px; font-weight: 600; color: var(--text, #333); text-align: right; }
+.dr-label { font-size: 11px; font-weight: 800; color: #fff; white-space: nowrap; border-radius: 7px; padding: 2px 8px; }
+.dr-val { font-size: 14px; font-weight: 700; color: var(--text, #333); text-align: right; }
 .cal-overlay {
   position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 2000;
   display: flex; align-items: center; justify-content: center; padding: 10px;
 }
 .cal-modal {
   background: var(--bg, #fff); border-radius: 14px; padding: 12px;
-  width: 100%; max-width: 380px; max-height: 80vh; display: flex; flex-direction: column;
+  width: 100%; max-width: 380px; height: 80vh; max-height: 80vh;
+  display: flex; flex-direction: column; overflow: hidden;
 }
-.cal-modal-head { display: flex; justify-content: space-between; align-items: center; font-size: 14px; font-weight: 700; margin-bottom: 8px; }
+/* Le calendrier remplit l'espace et défile à l'intérieur du modal */
+.cal-modal :deep(.tour-cal) { flex: 1; min-height: 0; }
+.cal-modal-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; margin-bottom: 8px; flex-shrink: 0; }
+.cal-modal-title { flex: 1; text-align: center; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cal-cancel { background: transparent; border: none; font-size: 20px; line-height: 1; cursor: pointer; color: var(--text, #333); padding: 0 6px; min-width: auto; box-shadow: none; flex-shrink: 0; }
 .btn-valider { padding: 7px 16px; background: #22c55e; color: #fff; border: none; border-radius: 8px; font-size: 14px; font-weight: 800; cursor: pointer; box-shadow: none; }
 .type-picker { display: flex; gap: 6px; flex-wrap: wrap; }
 .type-btn {
@@ -1513,6 +1673,11 @@ h3 { font-size: 16px; margin: 0; }
 @keyframes blink-star { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
 .card-unread-msg { padding: 4px 8px 4px 22px; font-size: 12px; color: #ef4444; font-style: italic; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .card-expanded { padding: 8px; border-top: 1px solid var(--border-light, #eee); margin-top: 6px; }
+.detail-actions { margin-top: 8px; }
+.btn-edit-detail {
+  width: 100%; padding: 9px; background: var(--color1-dark); color: #fff; border: none;
+  border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; box-shadow: none;
+}
 .fiche-person { margin-bottom: 10px; border: 1px solid var(--border-light, #eee); border-radius: 8px; overflow: hidden; }
 .fiche-person-header { padding: 6px 10px; font-size: 13px; font-weight: 700; }
 .fiche-person-header.facade { background: rgba(59,130,246,0.1); color: #3b82f6; }

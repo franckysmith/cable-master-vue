@@ -2,21 +2,21 @@
   <div class="tour-cal">
     <!-- Mode : que marque-t-on au clic ? -->
     <div v-if="editable" class="cal-modes">
-      <button type="button" class="cal-mode concert" :class="{ active: mode === 'concert' }" @click="mode = 'concert'">🟢 Concert</button>
+      <button type="button" class="cal-mode concert" :class="{ active: mode === 'concert' }" @click="mode = 'concert'">🟢 Show</button>
       <button type="button" class="cal-mode prep" :class="{ active: mode === 'prep' }" @click="mode = 'prep'">▦ Prépa</button>
       <button type="button" class="cal-mode out" :class="{ active: mode === 'out' }" @click="mode = 'out'">→ Chargement</button>
       <button type="button" class="cal-mode back" :class="{ active: mode === 'back' }" @click="mode = 'back'">← Déchargement</button>
     </div>
 
     <div class="cal-legend">
-      <span class="lg lg-concert">● Concert</span>
+      <span class="lg lg-concert">● Show</span>
       <span class="lg lg-prep">▦ Prépa</span>
       <span class="lg lg-out">→ Chargement</span>
       <span class="lg lg-range">▒ Sorti</span>
       <span class="lg lg-back">← Déchargement</span>
     </div>
     <div v-if="editable" class="cal-hint">Clic répété : haut = après-midi, bas = matin (prépa : haut → bas → journée), puis efface.</div>
-    <div class="cal-scroll">
+    <div class="cal-scroll" @touchstart="onTouchStart" @touchmove="onTouchMove">
       <div v-for="m in months" :key="m.key" class="cal-month">
         <div class="cal-month-title">{{ m.label }}</div>
         <div class="cal-grid">
@@ -81,12 +81,32 @@ function inRange(d) {
   return outs > backs
 }
 
+// Anti-tap accidentel : si le doigt a bougé (scroll), on n'enregistre pas le clic
+let touchStartY = 0
+let touchMoved = false
+function onTouchStart(e) { touchStartY = e.touches[0].clientY; touchMoved = false }
+function onTouchMove(e) { if (Math.abs(e.touches[0].clientY - touchStartY) > 8) touchMoved = true }
+
+// Fenêtre "matériel sorti" ouverte à la date d : plus de chargements que de déchargements (≤ d)
+function windowOpenAt(d) {
+  const outs = (props.outDates || []).filter(x => x <= d).length
+  const backs = (props.backDates || []).filter(x => x <= d).length
+  return outs > backs
+}
+
 function onDayClick(cell) {
   if (!props.editable) return
+  if (touchMoved) { touchMoved = false; return }
   if (mode.value === 'out') emit('toggle-out', cell)
   else if (mode.value === 'back') emit('toggle-back', cell)
   else if (mode.value === 'prep') emit('cycle-prep', cell)
-  else emit('toggle', cell)
+  else {
+    // Show : ajout autorisé seulement si une fenêtre chargement→déchargement est ouverte
+    // (s'il n'y a aucun chargement, Show reste libre). La suppression est toujours permise.
+    const adding = !isConcert(cell)
+    if (adding && (props.outDates || []).length && !windowOpenAt(cell)) return
+    emit('toggle', cell)
+  }
 }
 
 const months = computed(() => {
@@ -155,8 +175,10 @@ const months = computed(() => {
 .cal-hint { font-size: 10px; color: var(--text-muted, #999); padding: 0 4px 4px; font-style: italic; }
 .cal-scroll {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 .cal-month { margin-bottom: 16px; }
 .cal-month-title {
@@ -199,8 +221,8 @@ const months = computed(() => {
 }
 /* Période matériel sorti (entre Sortie et Retour) */
 .cal-day.in-range {
-  background: rgba(59, 130, 246, 0.18);
-  border-color: rgba(59, 130, 246, 0.35);
+  background: rgba(96, 165, 250, 0.45);
+  border-color: rgba(96, 165, 250, 0.7);
 }
 .cal-day.concert {
   background: #22c55e;
