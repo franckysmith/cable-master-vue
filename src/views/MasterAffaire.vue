@@ -96,10 +96,16 @@
           </div>
           <TourCalendar
             :tour-dates="form.tour_dates"
-            :receipt-date="form.receipt_date"
-            :return-date="form.return_date"
+            :out-dates="form.out_dates"
+            :back-dates="form.back_dates"
+            :out-periods="form.out_periods"
+            :back-periods="form.back_periods"
+            :prep-days="form.prep_days"
             :prep-date="form.prep_date"
             @toggle="toggleTourDate"
+            @toggle-out="toggleOutDate"
+            @toggle-back="toggleBackDate"
+            @cycle-prep="cyclePrepDay"
           />
         </div>
       </div>
@@ -109,13 +115,10 @@
           <DateField v-model="form.prep_date" label="Prépa" />
         </div>
         <div class="form-row">
-          <DateField v-model="form.load_date" label="Chargement" />
+          <DateField v-model="form.receipt_date" label="Chargement *" />
         </div>
         <div class="form-row">
-          <DateField v-model="form.receipt_date" label="Sortie *" />
-        </div>
-        <div class="form-row">
-          <DateField v-model="form.return_date" label="Retour" />
+          <DateField v-model="form.return_date" label="Déchargement" />
         </div>
       </div>
 
@@ -239,12 +242,11 @@
           <span v-if="unreadAffairs[affair.affairid]" class="unread-star" @click.stop="openChatOnly(affair)">★</span>
           <span class="card-name">{{ affair.name }}</span>
           <div class="card-dates" @click.stop="showTimeline = !showTimeline">
-            <span v-if="affair.prep_date" class="date-prep">Prépa {{ formatDate(affair.prep_date) }}</span>
-            <span v-if="affair.load_date" class="date-prep">Charg. {{ formatDate(affair.load_date) }}</span>
-            <span v-if="affair.prep_date || affair.load_date" class="date-sep"></span>
-            <span class="date-event">{{ formatDate(affair.receipt_date) }}</span>
-            <span v-if="affair.return_date" class="date-arrow">➡</span>
-            <span v-if="affair.return_date" class="date-return">{{ formatDate(affair.return_date) }}</span>
+            <span v-if="prepSummary(affair)" class="date-prep">🔧 {{ prepSummary(affair) }}</span>
+            <span v-if="prepSummary(affair)" class="date-sep"></span>
+            <span v-if="outSummary(affair)" class="date-event">📦→ {{ outSummary(affair) }}</span>
+            <span v-if="backSummary(affair)" class="date-arrow">·</span>
+            <span v-if="backSummary(affair)" class="date-return">←📦 {{ backSummary(affair) }}</span>
           </div>
         </div>
         <div class="card-bottom">
@@ -331,8 +333,8 @@
           <!-- Dates -->
           <div class="fiche-dates">
             <div v-if="affair.prep_date">🔧 Prépa : {{ formatDate(affair.prep_date) }}</div>
-            <div>📦 Sortie : {{ formatDate(affair.receipt_date) }}</div>
-            <div v-if="affair.return_date">↩ Retour : {{ formatDate(affair.return_date) }}</div>
+            <div>📦 Chargement : {{ formatDate(affair.receipt_date) }}</div>
+            <div v-if="affair.return_date">↩ Déchargement : {{ formatDate(affair.return_date) }}</div>
           </div>
           <div v-if="affair.description" class="fiche-description">
             <strong>Notes :</strong> {{ affair.description }}
@@ -407,6 +409,55 @@ function toggleTourDate(dateStr) {
   form.tour_dates = arr
 }
 
+// Cycle un jour : rien → après-midi (pm, flèche haut) → matin (am, flèche bas) → rien
+function cycleDayPeriod(datesKey, periodsKey, dateStr) {
+  const has = form[datesKey].includes(dateStr)
+  const period = form[periodsKey]?.[dateStr]
+  if (!has) {
+    form[datesKey] = [...form[datesKey], dateStr].sort()
+    form[periodsKey] = { ...form[periodsKey], [dateStr]: 'pm' }
+  } else if (period !== 'am') {
+    form[periodsKey] = { ...form[periodsKey], [dateStr]: 'am' }
+  } else {
+    form[datesKey] = form[datesKey].filter(d => d !== dateStr)
+    const p = { ...form[periodsKey] }; delete p[dateStr]; form[periodsKey] = p
+  }
+}
+
+// Nb de jours = de la 1ʳᵉ sortie (ou prépa) au dernier retour, inclus
+function updateNbDays() {
+  const all = [...(form.out_dates || []), ...(form.back_dates || [])].filter(Boolean).sort()
+  if (!all.length) return
+  const d1 = new Date(all[0] + 'T00:00:00')
+  const d2 = new Date(all[all.length - 1] + 'T00:00:00')
+  form.nb_days = Math.round((d2 - d1) / 86400000) + 1
+}
+
+function toggleOutDate(dateStr) {
+  cycleDayPeriod('out_dates', 'out_periods', dateStr)
+  form.receipt_date = form.out_dates[0] || ''
+  updateNbDays()
+}
+
+function toggleBackDate(dateStr) {
+  cycleDayPeriod('back_dates', 'back_periods', dateStr)
+  form.return_date = form.back_dates[form.back_dates.length - 1] || ''
+  updateNbDays()
+}
+
+// Prépa : rien → demi-haut → demi-bas → journée pleine → rien
+function cyclePrepDay(dateStr) {
+  const cur = form.prep_days?.[dateStr]
+  const next = { top: 'bottom', bottom: 'full', full: null }
+  const nv = cur ? next[cur] : 'top'
+  const p = { ...form.prep_days }
+  if (nv) p[dateStr] = nv; else delete p[dateStr]
+  form.prep_days = p
+  // La 1ʳᵉ prépa alimente le champ "Prépa"
+  const keys = Object.keys(form.prep_days).sort()
+  form.prep_date = keys[0] || form.prep_date
+}
+
 const companyId = parseInt(localStorage.getItem('cablemaster-companyid')) || null
 const catalogId = parseInt(localStorage.getItem('cablemaster-catalogid')) || null
 
@@ -419,12 +470,16 @@ const form = reactive({
   venue: '',
   nb_days: null,
   tour_dates: [],
+  out_dates: [],
+  back_dates: [],
+  out_periods: {},
+  back_periods: {},
+  prep_days: {},
   tech_name: '', tech_firstname: '', tech_email: '', tech_phone: '',
   tech_name_monitor: '', tech_firstname_monitor: '', tech_email_monitor: '', tech_phone_monitor: '',
   tech_name_system: '', tech_firstname_system: '', tech_email_system: '', tech_phone_system: '',
   tech_name_stage: '', tech_firstname_stage: '', tech_email_stage: '', tech_phone_stage: '',
   prep_date: '',
-  load_date: '',
   receipt_date: '',
   return_date: '',
   front: false,
@@ -440,12 +495,12 @@ const newTech = reactive({ firstname: '', name: '', email: '', phone: '' })
 
 function resetForm() {
   Object.assign(form, {
-    name: '', reference: '', event_type: '', venue: '', nb_days: null, tour_dates: [],
+    name: '', reference: '', event_type: '', venue: '', nb_days: null, tour_dates: [], out_dates: [], back_dates: [], out_periods: {}, back_periods: {}, prep_days: {},
     tech_name: '', tech_firstname: '', tech_email: '', tech_phone: '',
     tech_name_monitor: '', tech_firstname_monitor: '', tech_email_monitor: '', tech_phone_monitor: '',
     tech_name_system: '', tech_firstname_system: '', tech_email_system: '', tech_phone_system: '',
     tech_name_stage: '', tech_firstname_stage: '', tech_email_stage: '', tech_phone_stage: '',
-    prep_date: '', load_date: '', receipt_date: '', return_date: '',
+    prep_date: '', receipt_date: '', return_date: '',
     front: false, monitor: false, system: false, stage: false,
     description: '', attachment_name: '', attachment_url: '',
   })
@@ -686,6 +741,30 @@ function formatDate(dateStr) {
   return `${d.getDate()} ${months[d.getMonth()]}`
 }
 
+// Résumés issus du calendrier (jours multiples + AM/PM) pour la carte
+function shortDate(d) { const [, m, dd] = (d || '').split('-'); return dd ? `${dd}/${m}` : '' }
+function prepTag(p) { return p === 'top' ? ' après-midi' : p === 'bottom' ? ' matin' : ' (journée)' }
+function periodTag(p) { return p === 'pm' ? ' après-midi' : p === 'am' ? ' matin' : '' }
+
+function prepSummary(a) {
+  const map = a.prep_days && typeof a.prep_days === 'object' ? a.prep_days : {}
+  const keys = Object.keys(map).sort()
+  if (!keys.length) return a.prep_date ? shortDate(a.prep_date) : ''
+  return keys.map(d => shortDate(d) + prepTag(map[d])).join(' · ')
+}
+function outSummary(a) {
+  const arr = Array.isArray(a.out_dates) ? [...a.out_dates].sort() : []
+  const per = a.out_periods || {}
+  if (!arr.length) return a.receipt_date ? shortDate(a.receipt_date) : ''
+  return arr.map(d => shortDate(d) + periodTag(per[d])).join(' · ')
+}
+function backSummary(a) {
+  const arr = Array.isArray(a.back_dates) ? [...a.back_dates].sort() : []
+  const per = a.back_periods || {}
+  if (!arr.length) return a.return_date ? shortDate(a.return_date) : ''
+  return arr.map(d => shortDate(d) + periodTag(per[d])).join(' · ')
+}
+
 function getAffairZones(affair) {
   const zones = []
   if (affair.front) {
@@ -812,6 +891,11 @@ async function selectAffair(affair) {
     venue: affair.venue || '',
     nb_days: affair.nb_days ?? null,
     tour_dates: Array.isArray(affair.tour_dates) ? [...affair.tour_dates] : [],
+    out_dates: Array.isArray(affair.out_dates) ? [...affair.out_dates] : [],
+    back_dates: Array.isArray(affair.back_dates) ? [...affair.back_dates] : [],
+    out_periods: affair.out_periods && typeof affair.out_periods === 'object' ? { ...affair.out_periods } : {},
+    back_periods: affair.back_periods && typeof affair.back_periods === 'object' ? { ...affair.back_periods } : {},
+    prep_days: affair.prep_days && typeof affair.prep_days === 'object' ? { ...affair.prep_days } : {},
     tech_name: affair.tech_name || '', tech_firstname: affair.tech_firstname || '',
     tech_email: affair.tech_email || '', tech_phone: affair.tech_phone || '',
     tech_name_monitor: affair.tech_name_monitor || '', tech_firstname_monitor: affair.tech_firstname_monitor || '',
@@ -821,7 +905,6 @@ async function selectAffair(affair) {
     tech_name_stage: affair.tech_name_stage || '', tech_firstname_stage: affair.tech_firstname_stage || '',
     tech_email_stage: affair.tech_email_stage || '', tech_phone_stage: affair.tech_phone_stage || '',
     prep_date: affair.prep_date || '',
-    load_date: affair.load_date || '',
     receipt_date: affair.receipt_date || '',
     return_date: affair.return_date || '',
     front: affair.front || false,
@@ -895,7 +978,6 @@ async function saveAffair() {
     name: form.name,
     tech_id: parseInt(localStorage.getItem('cablemaster-techid')) || 0,
     prep_date: form.prep_date || null,
-    load_date: form.load_date || null,
     receipt_date: form.receipt_date || null,
     return_date: form.return_date || null,
     front: form.front,
@@ -930,6 +1012,11 @@ async function saveAffair() {
     venue: form.venue || '',
     nb_days: form.nb_days || null,
     tour_dates: form.tour_dates || [],
+    out_dates: form.out_dates || [],
+    back_dates: form.back_dates || [],
+    out_periods: form.out_periods || {},
+    back_periods: form.back_periods || {},
+    prep_days: form.prep_days || {},
     attachment_name: form.attachment_name || '',
     attachment_url: form.attachment_url || '',
   }

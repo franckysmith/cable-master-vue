@@ -1,29 +1,42 @@
 <template>
   <div class="tour-cal">
+    <!-- Mode : que marque-t-on au clic ? -->
+    <div v-if="editable" class="cal-modes">
+      <button type="button" class="cal-mode concert" :class="{ active: mode === 'concert' }" @click="mode = 'concert'">🟢 Concert</button>
+      <button type="button" class="cal-mode prep" :class="{ active: mode === 'prep' }" @click="mode = 'prep'">▦ Prépa</button>
+      <button type="button" class="cal-mode out" :class="{ active: mode === 'out' }" @click="mode = 'out'">→ Chargement</button>
+      <button type="button" class="cal-mode back" :class="{ active: mode === 'back' }" @click="mode = 'back'">← Déchargement</button>
+    </div>
+
     <div class="cal-legend">
       <span class="lg lg-concert">● Concert</span>
-      <span class="lg lg-prep">● Prépa</span>
-      <span class="lg lg-out">● Sortie</span>
-      <span class="lg lg-back">● Retour</span>
+      <span class="lg lg-prep">▦ Prépa</span>
+      <span class="lg lg-out">→ Chargement</span>
+      <span class="lg lg-range">▒ Sorti</span>
+      <span class="lg lg-back">← Déchargement</span>
     </div>
+    <div v-if="editable" class="cal-hint">Clic répété : haut = après-midi, bas = matin (prépa : haut → bas → journée), puis efface.</div>
     <div class="cal-scroll">
       <div v-for="m in months" :key="m.key" class="cal-month">
         <div class="cal-month-title">{{ m.label }}</div>
         <div class="cal-grid">
-          <div v-for="d in weekdays" :key="d" class="cal-wd">{{ d }}</div>
+          <div v-for="(d, i) in weekdays" :key="'wd'+i" class="cal-wd">{{ d }}</div>
           <div v-for="(cell, idx) in m.cells" :key="idx" class="cal-cell">
             <button
               v-if="cell"
               class="cal-day"
               :class="{
                 concert: isConcert(cell),
-                out: cell === receiptDate,
-                back: cell === returnDate,
-                prep: cell === prepDate,
+                'in-range': inRange(cell),
                 disabled: !editable,
               }"
-              @click="editable && $emit('toggle', cell)"
-            >{{ Number(cell.slice(-2)) }}</button>
+              @click="onDayClick(cell)"
+            >
+              <span v-if="prepDays[cell]" class="cal-prep" :class="'prep-' + prepDays[cell]"></span>
+              <span v-if="isOut(cell)" class="cal-arrow out" :class="outPeriods[cell] === 'am' ? 'pos-bottom' : 'pos-top'">→</span>
+              <span v-if="isBack(cell)" class="cal-arrow back" :class="backPeriods[cell] === 'am' ? 'pos-bottom' : 'pos-top'">←</span>
+              <span class="cal-num">{{ Number(cell.slice(-2)) }}</span>
+            </button>
           </div>
         </div>
       </div>
@@ -32,27 +45,53 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
 
 const props = defineProps({
   tourDates: { type: Array, default: () => [] },
-  receiptDate: { type: String, default: '' },
-  returnDate: { type: String, default: '' },
+  outDates: { type: Array, default: () => [] },
+  backDates: { type: Array, default: () => [] },
+  outPeriods: { type: Object, default: () => ({}) },
+  backPeriods: { type: Object, default: () => ({}) },
+  prepDays: { type: Object, default: () => ({}) },
   prepDate: { type: String, default: '' },
   editable: { type: Boolean, default: true },
 })
-defineEmits(['toggle'])
+const emit = defineEmits(['toggle', 'toggle-out', 'toggle-back', 'cycle-prep'])
+
+const mode = ref('concert')
 
 const weekdays = ['L', 'M', 'M', 'J', 'V', 'S', 'D']
 const monthNames = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre']
 
 const pad = (n) => String(n).padStart(2, '0')
-const set = computed(() => new Set(props.tourDates || []))
-function isConcert(d) { return set.value.has(d) }
+const concertSet = computed(() => new Set(props.tourDates || []))
+const outSet = computed(() => new Set(props.outDates || []))
+const backSet = computed(() => new Set(props.backDates || []))
+function isConcert(d) { return concertSet.value.has(d) }
+function isOut(d) { return outSet.value.has(d) }
+function isBack(d) { return backSet.value.has(d) }
+
+// Matériel "sorti" : à une date donnée, nb de départs (≤ d) > nb de retours (≤ d).
+// On teinte les jours intermédiaires (les jours de départ/retour portent déjà la flèche).
+function inRange(d) {
+  if (isOut(d) || isBack(d)) return false
+  const outs = (props.outDates || []).filter(x => x <= d).length
+  const backs = (props.backDates || []).filter(x => x <= d).length
+  return outs > backs
+}
+
+function onDayClick(cell) {
+  if (!props.editable) return
+  if (mode.value === 'out') emit('toggle-out', cell)
+  else if (mode.value === 'back') emit('toggle-back', cell)
+  else if (mode.value === 'prep') emit('cycle-prep', cell)
+  else emit('toggle', cell)
+}
 
 const months = computed(() => {
-  // Mois de départ : le plus tôt entre prépa / sortie / aujourd'hui
-  const candidates = [props.prepDate, props.receiptDate].filter(Boolean).sort()
+  // Mois de départ : le plus tôt entre prépa / 1ʳᵉ sortie / 1ʳᵉ date / aujourd'hui
+  const candidates = [props.prepDate, ...Object.keys(props.prepDays || {}), ...(props.outDates || []), ...(props.tourDates || [])].filter(Boolean).sort()
   const start = candidates[0] ? new Date(candidates[0] + 'T00:00:00') : new Date()
   let y = start.getFullYear()
   let mo = start.getMonth()
@@ -77,26 +116,49 @@ const months = computed(() => {
   flex-direction: column;
   height: 100%;
 }
+.cal-modes {
+  display: flex;
+  gap: 6px;
+  padding: 4px 2px 8px;
+}
+.cal-mode {
+  flex: 1;
+  padding: 7px 4px;
+  border: 2px solid var(--border-light, #ccc);
+  border-radius: 8px;
+  background: var(--bg-input, #fff);
+  color: var(--text, #333);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: none;
+  min-width: auto;
+}
+.cal-mode { flex: 1 1 calc(50% - 3px); }
+.cal-mode.concert.active { border-color: #22c55e; background: #22c55e; color: #fff; }
+.cal-mode.prep.active { border-color: #2563eb; background: #2563eb; color: #fff; }
+.cal-mode.out.active { border-color: #3b82f6; background: #3b82f6; color: #fff; }
+.cal-mode.back.active { border-color: #ef4444; background: #ef4444; color: #fff; }
 .cal-legend {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px;
   padding: 6px 4px;
   font-size: 11px;
   font-weight: 700;
 }
 .lg-concert { color: #22c55e; }
-.lg-prep { color: #f59e0b; }
 .lg-out { color: #3b82f6; }
-.lg-back { color: #8b5cf6; }
+.lg-range { color: #93c5fd; }
+.lg-back { color: #ef4444; }
+.lg-prep { color: #f59e0b; }
+.cal-hint { font-size: 10px; color: var(--text-muted, #999); padding: 0 4px 4px; font-style: italic; }
 .cal-scroll {
   flex: 1;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
-.cal-month {
-  margin-bottom: 16px;
-}
+.cal-month { margin-bottom: 16px; }
 .cal-month-title {
   font-size: 15px;
   font-weight: 800;
@@ -116,10 +178,9 @@ const months = computed(() => {
   color: var(--text-muted, #999);
   padding-bottom: 2px;
 }
-.cal-cell {
-  aspect-ratio: 1;
-}
+.cal-cell { aspect-ratio: 1; }
 .cal-day {
+  position: relative;
   width: 100%;
   height: 100%;
   border: 1px solid var(--border-light, #ddd);
@@ -132,6 +193,14 @@ const months = computed(() => {
   padding: 0;
   min-width: auto;
   box-shadow: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+/* Période matériel sorti (entre Sortie et Retour) */
+.cal-day.in-range {
+  background: rgba(59, 130, 246, 0.18);
+  border-color: rgba(59, 130, 246, 0.35);
 }
 .cal-day.concert {
   background: #22c55e;
@@ -143,15 +212,35 @@ const months = computed(() => {
   border-color: #f59e0b;
   border-width: 2px;
 }
-.cal-day.out {
-  border-color: #3b82f6;
-  border-width: 2px;
+.cal-day.disabled { cursor: default; }
+/* Prépa : demi-cases bleues (haut / bas / pleine) */
+.cal-prep {
+  position: absolute;
+  left: 0;
+  right: 0;
+  background: rgba(37, 99, 235, 0.55);
+  z-index: 0;
+  pointer-events: none;
+  border-radius: 5px;
 }
-.cal-day.back {
-  border-color: #8b5cf6;
-  border-width: 2px;
+.cal-prep.prep-top { top: 0; height: 50%; border-radius: 5px 5px 0 0; }
+.cal-prep.prep-bottom { bottom: 0; height: 50%; border-radius: 0 0 5px 5px; }
+.cal-prep.prep-full { top: 0; height: 100%; }
+/* Flèches Chargement (→) / Déchargement (←) — bien voyantes sur fond sombre */
+.cal-arrow {
+  position: absolute;
+  top: 0;
+  z-index: 2;
+  font-size: 19px;
+  font-weight: 900;
+  line-height: 1;
+  -webkit-text-stroke: 1px currentColor;
+  text-shadow: 0 0 3px rgba(0, 0, 0, 0.85), 0 1px 2px rgba(0, 0, 0, 0.7);
 }
-.cal-day.disabled {
-  cursor: default;
-}
+.cal-arrow.out { left: 2px; color: #60a5fa; }
+.cal-arrow.back { right: 2px; color: #f87171; }
+.cal-arrow.pos-top { top: 0; bottom: auto; }
+.cal-arrow.pos-bottom { bottom: 0; top: auto; }
+.cal-day.concert .cal-arrow { text-shadow: 0 0 3px rgba(0, 0, 0, 0.9); }
+.cal-num { margin-top: 0; position: relative; z-index: 1; }
 </style>

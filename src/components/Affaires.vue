@@ -17,8 +17,8 @@
           <span class="tag tag-stage role-tag" :class="{ 'role-active': activeRole === 'stage' }" @click.stop="$emit('select-role', 'stage')">Stage</span>
         </div>
         <div class="sel-dates">
-          <span class="sel-date-item">🚚 Sortie <b>{{ formatDate(affairStore.selectedAffair.receipt_date) || '—' }}</b></span>
-          <span class="sel-date-item">↩️ Retour <b>{{ formatDate(affairStore.selectedAffair.return_date) || '—' }}</b></span>
+          <span class="sel-date-item">🚚 Chargement <b>{{ formatDate(affairStore.selectedAffair.receipt_date) || '—' }}</b></span>
+          <span class="sel-date-item">↩️ Déchargement <b>{{ formatDate(affairStore.selectedAffair.return_date) || '—' }}</b></span>
           <span class="sel-date-item" v-if="affairStore.selectedAffair.prep_date">🔧 Prépa <b>{{ formatDate(affairStore.selectedAffair.prep_date) }}</b></span>
         </div>
         <span class="sel-catalog">{{ getCatalogName(affairStore.selectedAffair) }}</span>
@@ -41,10 +41,16 @@
           </div>
           <TourCalendar
             :tour-dates="tourDates"
-            :receipt-date="affairStore.selectedAffair.receipt_date"
-            :return-date="affairStore.selectedAffair.return_date"
+            :out-dates="outDates"
+            :back-dates="backDates"
+            :out-periods="outPeriods"
+            :back-periods="backPeriods"
+            :prep-days="prepDays"
             :prep-date="affairStore.selectedAffair.prep_date"
             @toggle="toggleTourDate"
+            @toggle-out="toggleOutDate"
+            @toggle-back="toggleBackDate"
+            @cycle-prep="cyclePrepDay"
           />
         </div>
       </div>
@@ -188,24 +194,72 @@ const currentUser = inject('currentUser', ref('T'))
 // --- Calendrier de tournée ---
 const showCalendar = ref(false)
 const tourDates = ref([])
+const outDates = ref([])
+const backDates = ref([])
+const outPeriods = ref({})
+const backPeriods = ref({})
+const prepDays = ref({})
 
 function openCalendar() {
-  tourDates.value = Array.isArray(affairStore.selectedAffair?.tour_dates)
-    ? [...affairStore.selectedAffair.tour_dates]
-    : []
+  const a = affairStore.selectedAffair
+  tourDates.value = Array.isArray(a?.tour_dates) ? [...a.tour_dates] : []
+  outDates.value = Array.isArray(a?.out_dates) ? [...a.out_dates] : []
+  backDates.value = Array.isArray(a?.back_dates) ? [...a.back_dates] : []
+  outPeriods.value = a?.out_periods && typeof a.out_periods === 'object' ? { ...a.out_periods } : {}
+  backPeriods.value = a?.back_periods && typeof a.back_periods === 'object' ? { ...a.back_periods } : {}
+  prepDays.value = a?.prep_days && typeof a.prep_days === 'object' ? { ...a.prep_days } : {}
   showCalendar.value = true
 }
 
-async function toggleTourDate(dateStr) {
+async function saveAffairField(field, val) {
   const a = affairStore.selectedAffair
   if (!a) return
+  a[field] = val
+  const { supabase } = await import('../lib/supabase')
+  await supabase.from('affair').update({ [field]: val }).eq('affairid', a.affairid)
+}
+
+function toggleTourDate(dateStr) {
   const arr = tourDates.value.includes(dateStr)
     ? tourDates.value.filter(d => d !== dateStr)
     : [...tourDates.value, dateStr].sort()
   tourDates.value = arr
-  a.tour_dates = arr
-  const { supabase } = await import('../lib/supabase')
-  await supabase.from('affair').update({ tour_dates: arr }).eq('affairid', a.affairid)
+  saveAffairField('tour_dates', arr)
+}
+
+// Cycle : rien → après-midi (pm) → matin (am) → rien
+function cyclePeriod(datesRef, periodsRef, datesField, periodsField, dateStr) {
+  const has = datesRef.value.includes(dateStr)
+  const period = periodsRef.value[dateStr]
+  if (!has) {
+    datesRef.value = [...datesRef.value, dateStr].sort()
+    periodsRef.value = { ...periodsRef.value, [dateStr]: 'pm' }
+  } else if (period !== 'am') {
+    periodsRef.value = { ...periodsRef.value, [dateStr]: 'am' }
+  } else {
+    datesRef.value = datesRef.value.filter(d => d !== dateStr)
+    const p = { ...periodsRef.value }; delete p[dateStr]; periodsRef.value = p
+  }
+  saveAffairField(datesField, datesRef.value)
+  saveAffairField(periodsField, periodsRef.value)
+}
+
+function toggleOutDate(dateStr) {
+  cyclePeriod(outDates, outPeriods, 'out_dates', 'out_periods', dateStr)
+}
+
+function toggleBackDate(dateStr) {
+  cyclePeriod(backDates, backPeriods, 'back_dates', 'back_periods', dateStr)
+}
+
+function cyclePrepDay(dateStr) {
+  const cur = prepDays.value[dateStr]
+  const next = { top: 'bottom', bottom: 'full', full: null }
+  const nv = cur ? next[cur] : 'top'
+  const p = { ...prepDays.value }
+  if (nv) p[dateStr] = nv; else delete p[dateStr]
+  prepDays.value = p
+  saveAffairField('prep_days', p)
 }
 
 const search = ref('')

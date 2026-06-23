@@ -23,10 +23,10 @@
           <DateField v-model="form.prep_date" label="Prépa" />
         </div>
         <div class="col-6">
-          <DateField v-model="form.receipt_date" label="Sortie" />
+          <DateField v-model="form.receipt_date" label="Chargement" />
         </div>
         <div class="col-6">
-          <DateField v-model="form.return_date" label="Retour" />
+          <DateField v-model="form.return_date" label="Déchargement" />
         </div>
       </div>
 
