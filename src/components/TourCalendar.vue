@@ -136,7 +136,7 @@ const months = computed(() => {
 }
 .cal-mode { flex: 1 1 calc(50% - 3px); }
 .cal-mode.concert.active { border-color: #22c55e; background: #22c55e; color: #fff; }
-.cal-mode.prep.active { border-color: #2563eb; background: #2563eb; color: #fff; }
+.cal-mode.prep.active { border-color: #ea580c; background: #ea580c; color: #fff; }
 .cal-mode.out.active { border-color: #3b82f6; background: #3b82f6; color: #fff; }
 .cal-mode.back.active { border-color: #ef4444; background: #ef4444; color: #fff; }
 .cal-legend {
@@ -218,7 +218,7 @@ const months = computed(() => {
   position: absolute;
   left: 0;
   right: 0;
-  background: rgba(37, 99, 235, 0.55);
+  background: rgba(234, 88, 12, 0.6);
   z-index: 0;
   pointer-events: none;
   border-radius: 5px;

@@ -3,7 +3,12 @@
     <h2>Master Affaire</h2>
 
     <!-- Liste des affaires avec statut -->
-    <button v-if="!selected && !showForm" class="btn-create-affair" @click="openNewAffair">＋ Nouvelle affaire</button>
+    <div v-if="!selected && !showForm" class="top-actions">
+      <button class="btn-create-affair" @click="openNewAffair">＋ Nouvelle</button>
+      <button class="filter-soon prep" :class="{ active: sortMode === 'prep' }" @click="toggleSort('prep')">Prépa</button>
+      <button class="filter-soon out" :class="{ active: sortMode === 'out' }" @click="toggleSort('out')">Charg.</button>
+      <button class="filter-soon back" :class="{ active: sortMode === 'back' }" @click="toggleSort('back')">Déch.</button>
+    </div>
     <div v-if="!selected" class="affair-tabs">
       <button :class="{ active: tab === 'draft' }" @click="tab = 'draft'">NEW</button>
       <button :class="{ active: tab === 'sent' }" @click="tab = 'sent'">Envoyé</button>
@@ -240,16 +245,15 @@
         :class="{ selected: selected?.affairid === affair.affairid, trashed: tab === 'trash' }"
         @click="tab !== 'trash' && selectAffair(affair)"
       >
-        <div class="card-top">
-          <span class="card-status" :class="affair.status || 'draft'">{{ statusLabel(affair.status) }}</span>
+        <div class="card-head">
           <span v-if="unreadAffairs[affair.affairid]" class="unread-star" @click.stop="openChatOnly(affair)">★</span>
-          <span class="card-name">{{ affair.name }}</span>
-          <div class="card-dates" @click.stop="showTimeline = !showTimeline">
-            <span v-if="prepSummary(affair)" class="date-prep">Prépa {{ prepSummary(affair) }}</span>
-            <span v-if="outSummary(affair)" class="date-event">Charg. {{ outSummary(affair) }}</span>
-            <span v-if="backSummary(affair)" class="date-return">Déch. {{ backSummary(affair) }}</span>
-          </div>
+          <span class="card-name">{{ affair.name || '(Sans nom)' }}</span>
+          <span v-if="affair.event_type" class="meta-type">{{ affair.event_type }}</span>
+          <button class="card-cal-btn" @click.stop="openCalendarFor(affair)" title="Voir le calendrier">📅</button>
         </div>
+
+        <div v-if="prepSummary(affair)" class="card-prep">Prépa : {{ prepSummary(affair) }}</div>
+
         <div class="card-bottom">
           <div class="card-techs">
             <div v-if="affair.front" class="tech-zone-item">
@@ -269,12 +273,9 @@
               <span class="tech-firstname">{{ affair.tech_name_stage || '?' }}</span>
             </div>
           </div>
-          <!-- Infos : type · lieu · nb jours · dates (sous les dates, à droite) -->
           <div class="card-meta">
-            <span v-if="affair.event_type" class="meta-type">{{ affair.event_type }}</span>
-            <span v-if="affair.venue" class="meta-venue">📍 {{ affair.venue }}</span>
             <span v-if="affair.nb_days" class="meta-days">📆 {{ affair.nb_days }} j</span>
-            <span v-if="affair.tour_dates && affair.tour_dates.length" class="meta-dates">🗓 {{ affair.tour_dates.length }} dates</span>
+            <span v-if="affair.venue" class="meta-venue">📍 {{ affair.venue }}</span>
           </div>
           <div v-if="tab === 'trash'" class="card-action-btns">
             <button class="action-tab-btn" @click.stop="restoreAffair(affair)" title="Restaurer">♻️</button>
@@ -377,7 +378,7 @@
           </template>
         </div>
       </div>
-      <div v-if="filteredAffairs.length === 0" class="empty">{{ tab === 'trash' ? 'Corbeille vide' : 'Aucune affaire' }}</div>
+      <div v-if="filteredAffairs.length === 0" class="empty">{{ tab === 'trash' ? 'Corbeille vide' : sortMode ? 'Rien à venir' : 'Aucune affaire' }}</div>
     </div>
     <!-- Message -->
     <div v-if="message" class="message" :class="messageType">{{ message }}</div>
@@ -523,6 +524,12 @@ function openNewAffair() {
   editing.value = null
   selected.value = null
   showForm.value = true
+}
+
+// Accès rapide au calendrier depuis une carte
+function openCalendarFor(affair) {
+  if (selected.value?.affairid !== affair.affairid) selectAffair(affair)
+  showCalendar.value = true
 }
 const newTechZone = ref('')
 const attachmentFiles = ref([])
@@ -715,8 +722,41 @@ async function loadTrashed() {
   trashedAffairs.value = data || []
 }
 
+// Filtre "à venir" : Prépa / Chargement / Déchargement
+const sortMode = ref('')
+function toggleSort(mode) {
+  sortMode.value = sortMode.value === mode ? '' : mode
+}
+function todayISO() {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+// Date "clé" de l'affaire pour le mode : la plus proche À VENIR (sinon null)
+function keyDate(a, mode) {
+  let dates = []
+  if (mode === 'prep') dates = Object.keys(a.prep_days || {})
+  else if (mode === 'out') dates = [...(a.out_dates || [])]
+  else if (mode === 'back') dates = [...(a.back_dates || [])]
+  if (!dates.length) {
+    const fb = mode === 'prep' ? a.prep_date : mode === 'out' ? a.receipt_date : a.return_date
+    if (fb) dates = [fb]
+  }
+  const today = todayISO()
+  const upcoming = dates.filter(Boolean).filter(d => d >= today).sort()
+  return upcoming[0] || null
+}
+
 const filteredAffairs = computed(() => {
   if (tab.value === 'trash') return trashedAffairs.value
+  // Mode "à venir" : parmi toutes les affaires actives non terminées, triées par date
+  if (sortMode.value) {
+    return affairs.value
+      .filter(a => (a.status || 'draft') !== 'done')
+      .map(a => ({ a, k: keyDate(a, sortMode.value) }))
+      .filter(x => x.k)
+      .sort((x, y) => (x.k < y.k ? -1 : x.k > y.k ? 1 : 0))
+      .map(x => x.a)
+  }
   if (tab.value === 'all') return affairs.value
   return affairs.value.filter(a => (a.status || 'draft') === tab.value)
 })
@@ -1231,7 +1271,21 @@ h3 { font-size: 16px; margin: 0; }
 .affair-card.selected { border-color: var(--color1); }
 .card-top { display: flex; align-items: center; gap: 6px; }
 .card-status { font-size: 14px; }
-.card-name { flex: 1; font-size: 15px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text, #333); }
+.card-head { display: flex; align-items: center; gap: 8px; }
+.card-name {
+  flex: 1; font-size: 16px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  color: var(--text, #333);
+  border: 2px solid #e5e7eb; border-radius: 8px;
+  padding: 4px 10px;
+}
+.card-cal-btn {
+  background: transparent; border: none; border-radius: 6px;
+  font-size: 18px; line-height: 1; padding: 2px 4px; cursor: pointer; box-shadow: none; min-width: auto; flex-shrink: 0;
+}
+.card-prep {
+  font-size: 15px; font-weight: 800; color: #c2410c;
+  margin: 6px 0; padding-left: 2px;
+}
 .card-dates { display: flex; align-items: center; gap: 6px; margin-left: auto; flex-shrink: 0; }
 .date-prep { font-size: 11px; color: var(--text-light, #888); }
 .date-sep { width: 2px; height: 14px; background: #ef4444; border-radius: 1px; flex-shrink: 0; }
@@ -1264,20 +1318,44 @@ h3 { font-size: 16px; margin: 0; }
   box-shadow: none;
   flex-shrink: 0;
 }
+.top-actions {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 4px;
+  margin-bottom: 8px;
+  align-items: center;
+}
 .btn-create-affair {
-  width: 100%;
-  padding: 14px;
-  margin-bottom: 10px;
-  background: var(--color1);
+  padding: 5px 8px;
+  background: var(--color1-dark);
   color: #fff;
   border: none;
-  border-radius: 12px;
-  font-size: 17px;
-  font-weight: 800;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
   cursor: pointer;
-  box-shadow: 0 4px 14px rgba(139, 92, 246, 0.4);
+  box-shadow: none;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
-.btn-create-affair:active { transform: scale(0.98); }
+.btn-create-affair:active { transform: scale(0.97); }
+.filter-soon {
+  flex: 1 1 0;
+  padding: 5px 4px;
+  background: var(--bg-card, #f5f5f5);
+  color: var(--text, #333);
+  border: 1px solid var(--border-light, #ccc);
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: none;
+  min-width: 0;
+  white-space: nowrap;
+}
+.filter-soon.prep.active { background: #ea580c; border-color: #ea580c; color: #fff; }
+.filter-soon.out.active { background: #3b82f6; border-color: #3b82f6; color: #fff; }
+.filter-soon.back.active { background: #ef4444; border-color: #ef4444; color: #fff; }
 .affair-card.trashed { opacity: 0.65; }
 .btn-create {
   width: 100%;

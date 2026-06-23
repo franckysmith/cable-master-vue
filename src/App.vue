@@ -1,7 +1,7 @@
 <template>
-  <q-layout view="hHh LpR fFf">
-    <!-- ===== Header (le vrai haut) ===== -->
-    <q-header class="app-header">
+  <q-layout view="hHh LpR fFf" @scroll="onLayoutScroll">
+    <!-- ===== Header fixe — se cache au scroll vers le bas, revient en remontant ===== -->
+    <q-header class="app-header" :class="{ 'header-hidden': headerHidden }">
       <q-toolbar class="app-toolbar">
         <q-btn flat round icon="menu" class="hdr-nav-btn" aria-label="Menu" @click="drawer = !drawer" />
         <q-btn flat round icon="arrow_back" class="hdr-nav-btn" aria-label="Précédent" title="Précédent" @click="router.back()" />
@@ -25,6 +25,11 @@
         🏢 {{ companyName }}
       </div>
     </q-header>
+
+    <!-- Bouton menu flottant — visible quand le header est caché -->
+    <div v-show="headerHidden" class="floating-hamburger" @click="drawer = !drawer">
+      <q-icon name="menu" size="24px" />
+    </div>
 
     <!-- ===== Drawer (menu latéral) ===== -->
     <q-drawer v-model="drawer" side="left" bordered :width="230" :breakpoint="599" class="app-drawer">
@@ -150,6 +155,30 @@ const syncStatus = computed(() =>
   !online.value ? 'offline' : (pendingCount.value > 0 ? 'syncing' : 'online')
 )
 const helpMode = ref(false)
+
+// Header qui se cache au scroll (repris de Cinod L-Acoustics) :
+// vers le bas → se cache tout de suite ; vers le haut → réapparaît après un délai ;
+// tout en haut de page → toujours visible.
+// Header qui se cache au scroll — via l'événement @scroll de Quasar (fiable
+// quel que soit le conteneur de défilement). info = { position, direction,
+// directionChanged, inflectionPoint }. On utilise des seuils sur l'inflexion
+// pour éviter le tremblement (momentum) : cacher après 30px vers le bas,
+// remontrer après 60px vers le haut ; toujours visible tout en haut.
+const headerHidden = ref(false)
+const HIDE_AFTER = 30
+const SHOW_AFTER = 60
+function onLayoutScroll(info) {
+  const { position, direction, inflectionPoint } = info
+  if (position <= 10) {
+    headerHidden.value = false
+    return
+  }
+  if (direction === 'down' && position - inflectionPoint > HIDE_AFTER) {
+    headerHidden.value = true
+  } else if (direction === 'up' && inflectionPoint - position > SHOW_AFTER) {
+    headerHidden.value = false
+  }
+}
 // Desktop (web) : drawer ouvert par défaut et persistant (ferme uniquement via le bouton).
 // Mobile : overlay qui se referme après navigation.
 const isDesktop = computed(() => $q.screen.gt.sm)
@@ -322,6 +351,10 @@ select {
   background: var(--color1-dark);
   color: #fff;
   border-bottom: 1px solid var(--color1-dark);
+  transition: transform 0.4s ease;
+}
+.app-header.header-hidden {
+  transform: translateY(-100%);
 }
 .app-toolbar {
   min-height: 52px;
@@ -329,6 +362,24 @@ select {
   padding-right: 6px;
   overflow: hidden;
 }
+/* Bouton menu flottant quand le header est caché */
+.floating-hamburger {
+  position: fixed;
+  top: calc(8px + env(safe-area-inset-top, 0px));
+  left: 8px;
+  z-index: 2500;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color1-dark);
+  color: #fff;
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+.floating-hamburger:active { opacity: 0.8; }
 /* Boutons de navigation (hamburger + flèches) bien espacés pour le pouce */
 .hdr-nav-btn {
   margin-right: 10px;
