@@ -1533,9 +1533,9 @@ h3 { font-size: 16px; margin: 0; }
 .affair-list { margin-bottom: 10px; }
 .affair-card {
   padding: 10px;
-  border: 1.5px solid #d1d5db;
+  border: 2px solid rgba(255, 255, 255, 0.85);
   border-radius: 8px;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
   cursor: pointer;
   background: var(--bg-card, #fafafa);
 }

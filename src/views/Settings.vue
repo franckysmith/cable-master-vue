@@ -87,6 +87,15 @@
     </section>
 
     <section class="section">
+      <h3>🔔 Notifications</h3>
+      <p class="import-help">Activez les notifications pour recevoir les messages de prépa de l'entreprise (l'app doit être installée sur l'écran d'accueil).</p>
+      <button class="btn-import" :class="{ on: notifOn }" @click="toggleNotif">
+        {{ notifOn ? '✓ Notifications activées' : '🔔 Activer les notifications' }}
+      </button>
+      <div v-if="notifMsg" class="import-msg" :class="notifMsgType">{{ notifMsg }}</div>
+    </section>
+
+    <section class="section">
       <h3>Importer liste de techniciens (CSV)</h3>
       <p class="import-help">Colonnes reconnues : prénom, nom, email, téléphone, adresse, poste (l'ordre ou les en‑têtes sont détectés automatiquement).</p>
       <label class="btn-import">
@@ -128,6 +137,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useSettingsStore } from '../stores/settings'
 import { supabase } from '../lib/supabase'
+import { enableNotifications, notificationsActive } from '../lib/push'
 const settingsStore = useSettingsStore()
 const showLabels = ref(false)
 const profileSaved = ref(false)
@@ -248,6 +258,30 @@ onMounted(() => {
 
 function saveProfile() {
   localStorage.setItem(PROFILE_KEY, JSON.stringify({ ...profile }))
+}
+
+// --- Notifications ---
+const notifOn = ref(false)
+const notifMsg = ref('')
+const notifMsgType = ref('success')
+onMounted(async () => { try { notifOn.value = await notificationsActive() } catch {} })
+
+async function toggleNotif() {
+  notifMsg.value = ''
+  let companyId = parseInt(localStorage.getItem('cablemaster-companyid')) || null
+  if (!companyId) {
+    const { data: comps } = await supabase.from('company').select('companyid').order('companyid').limit(1)
+    companyId = comps?.[0]?.companyid || null
+  }
+  try {
+    await enableNotifications({ email: profile.email || '', companyId })
+    notifOn.value = true
+    notifMsg.value = '✓ Notifications activées sur cet appareil.'
+    notifMsgType.value = 'success'
+  } catch (e) {
+    notifMsg.value = e.message || 'Erreur.'
+    notifMsgType.value = 'error'
+  }
 }
 </script>
 
@@ -395,11 +429,13 @@ h2 {
   padding: 10px 14px;
   background: var(--color1);
   color: #fff;
+  border: none;
   border-radius: 8px;
   font-size: 14px;
   font-weight: 700;
   cursor: pointer;
 }
+.btn-import.on { background: #16a34a; }
 .import-msg {
   margin-top: 8px;
   padding: 8px 10px;
