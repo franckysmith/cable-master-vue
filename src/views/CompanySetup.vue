@@ -1,6 +1,5 @@
 <template>
   <div class="company-setup">
-    <h2>Inscription Entreprise</h2>
 
     <!-- Liste des entreprises existantes -->
     <div v-if="companies.length > 0" class="existing">

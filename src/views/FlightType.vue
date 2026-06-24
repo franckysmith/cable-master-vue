@@ -2,7 +2,6 @@
   <div class="caisse-type">
     <!-- Sélection de la caisse type -->
     <div class="ct-header">
-      <h2>Cablekit</h2>
       <div class="ct-tabs">
         <button
           v-for="i in 8"

@@ -1,6 +1,5 @@
 <template>
   <div class="mic-library">
-    <h2>🎤 Bibliothèque Micros</h2>
 
     <!-- Barre d'outils -->
     <div class="toolbar">

@@ -1,6 +1,5 @@
 <template>
   <div class="techlist">
-    <h2>TechList</h2>
     <p class="sub">Le registre des personnes que vous pouvez affecter aux postes d'une affaire.</p>
 
     <div v-if="!companyId" class="empty">
@@ -8,9 +7,10 @@
     </div>
 
     <template v-else>
-      <!-- Recherche + filtre par poste -->
+      <!-- Recherche + Undo -->
       <div class="search-bar">
         <input v-model="search" class="search-input" placeholder="🔍 Rechercher un nom..." />
+        <button class="undo-btn" :disabled="!lastDeleted" @click="undoDelete" title="Annuler la dernière suppression">↩︎ Undo</button>
       </div>
       <div class="filter-picker">
         <button type="button" class="filter-btn" :class="{ active: posteFilter === '' }" @click="posteFilter = ''">Tous</button>
@@ -30,10 +30,10 @@
             <div class="form-row half"><label>Téléphone</label><input v-model="edit.phone" placeholder="+33..." /></div>
           </div>
           <div class="form-row">
-            <label>Poste</label>
+            <label>Postes (le 1er = principal)</label>
             <div class="poste-picker">
               <button v-for="p in postes" :key="p.value" type="button" class="poste-btn"
-                :class="{ active: edit.poste === p.value }" @click="edit.poste = p.value">{{ p.label }}</button>
+                :class="posteClass(edit.postes, p.value)" @click="togglePoste(edit.postes, p.value)">{{ p.label }}</button>
             </div>
           </div>
           <div class="form-actions">
@@ -43,7 +43,10 @@
         </template>
         <template v-else>
           <div class="tech-info">
-            <div class="tech-name">{{ t.name }}<span v-if="t.poste" class="tech-poste">{{ posteLabel(t.poste) }}</span></div>
+            <div class="tech-name">
+              {{ t.name }}
+              <span v-for="(pv, i) in techPostes(t)" :key="pv" class="tech-poste" :class="{ secondary: i > 0 }">{{ posteLabel(pv) }}</span>
+            </div>
             <div class="tech-contact">{{ t.email }}{{ t.phone ? ' · ' + t.phone : '' }}</div>
           </div>
           <div class="tech-actions">
@@ -68,10 +71,10 @@
           <div class="form-row half"><label>Téléphone</label><input v-model="form.phone" placeholder="+33..." /></div>
         </div>
         <div class="form-row">
-          <label>Poste</label>
+          <label>Postes (le 1er = principal)</label>
           <div class="poste-picker">
             <button v-for="p in postes" :key="p.value" type="button" class="poste-btn"
-              :class="{ active: form.poste === p.value }" @click="form.poste = p.value">{{ p.label }}</button>
+              :class="posteClass(form.postes, p.value)" @click="togglePoste(form.postes, p.value)">{{ p.label }}</button>
           </div>
         </div>
         <div class="form-actions">
@@ -103,11 +106,16 @@ const techs = ref([])
 const search = ref('')
 const posteFilter = ref('')
 
+// Postes d'une personne (tableau ; repli sur l'ancien champ unique)
+function techPostes(t) {
+  if (Array.isArray(t.postes) && t.postes.length) return t.postes
+  return t.poste ? [t.poste] : []
+}
 const filteredTechs = computed(() => {
   const q = search.value.trim().toLowerCase()
   return techs.value.filter(t => {
     const matchName = !q || (t.name || '').toLowerCase().includes(q) || (t.email || '').toLowerCase().includes(q)
-    const matchPoste = !posteFilter.value || t.poste === posteFilter.value
+    const matchPoste = !posteFilter.value || techPostes(t).includes(posteFilter.value)
     return matchName && matchPoste
   })
 })
@@ -115,9 +123,24 @@ const showAdd = ref(false)
 const editId = ref(null)
 const message = ref('')
 const messageType = ref('')
+const lastDeleted = ref(null)
 
-const form = reactive({ firstname: '', lastname: '', email: '', phone: '', poste: 'front' })
-const edit = reactive({ firstname: '', lastname: '', email: '', phone: '', poste: 'front' })
+const form = reactive({ firstname: '', lastname: '', email: '', phone: '', postes: ['front'] })
+const edit = reactive({ firstname: '', lastname: '', email: '', phone: '', postes: ['front'] })
+
+// Multi-postes : 1er clic = principal ; clic d'un autre = secondaire ; reclic = promeut / retire
+function togglePoste(arr, value) {
+  const i = arr.indexOf(value)
+  if (i === -1) arr.push(value)
+  else if (i > 0) { arr.splice(i, 1); arr.unshift(value) }
+  else arr.shift()
+}
+function posteClass(arr, value) {
+  if (!arr || !arr.length) return ''
+  if (arr[0] === value) return 'primary'
+  if (arr.includes(value)) return 'secondary'
+  return ''
+}
 
 onMounted(load)
 
@@ -137,7 +160,7 @@ async function load() {
 }
 
 function resetAdd() {
-  Object.assign(form, { firstname: '', lastname: '', email: '', phone: '', poste: 'front' })
+  Object.assign(form, { firstname: '', lastname: '', email: '', phone: '', postes: ['front'] })
   showAdd.value = false
 }
 
@@ -149,7 +172,8 @@ async function add() {
     firstname: form.firstname,
     email: form.email,
     phone: form.phone,
-    poste: form.poste,
+    postes: form.postes,
+    poste: form.postes[0] || null,
     company_id: companyId.value,
   })
   if (error) { showMessage('Erreur: ' + error.message, 'error'); return }
@@ -166,7 +190,7 @@ function startEdit(t) {
     lastname: fn ? (t.name || '').replace(fn, '').trim() : (t.name || ''),
     email: t.email || '',
     phone: t.phone || '',
-    poste: t.poste || 'front',
+    postes: techPostes(t).length ? [...techPostes(t)] : ['front'],
   })
 }
 
@@ -177,7 +201,8 @@ async function saveEdit(t) {
     firstname: edit.firstname,
     email: edit.email,
     phone: edit.phone,
-    poste: edit.poste,
+    postes: edit.postes,
+    poste: edit.postes[0] || null,
   }).eq('techid', t.techid)
   if (error) { showMessage('Erreur: ' + error.message, 'error'); return }
   editId.value = null
@@ -187,9 +212,24 @@ async function saveEdit(t) {
 
 async function remove(t) {
   if (!confirm(`Retirer ${t.name} ?`)) return
+  // Mémoriser pour pouvoir annuler (undo)
+  lastDeleted.value = {
+    name: t.name, firstname: t.firstname, email: t.email, phone: t.phone,
+    postes: techPostes(t), poste: t.poste || null, company_id: t.company_id,
+  }
   await supabase.from('technician').delete().eq('techid', t.techid)
   await load()
-  showMessage(`${t.name} retiré`, 'success')
+  showMessage(`${t.name} retiré — Undo pour annuler`, 'success')
+}
+
+async function undoDelete() {
+  if (!lastDeleted.value) return
+  const { error } = await supabase.from('technician').insert(lastDeleted.value)
+  if (error) { showMessage('Erreur: ' + error.message, 'error'); return }
+  const nm = lastDeleted.value.name
+  lastDeleted.value = null
+  await load()
+  showMessage(`${nm} restauré`, 'success')
 }
 
 function showMessage(msg, type) {
@@ -217,17 +257,32 @@ h2 {
   color: var(--text-muted, #999);
   margin-bottom: 14px;
 }
-.search-bar { margin-bottom: 8px; }
+.search-bar { display: flex; gap: 6px; align-items: center; margin-bottom: 8px; }
 .search-input {
-  width: 100%;
-  padding: 8px 10px;
+  flex: 1;
+  min-width: 0;
+  padding: 6px 10px;
   border: 1px solid var(--border-light, #ccc);
   border-radius: 8px;
-  font-size: 15px;
+  font-size: 14px;
   outline: none;
   background: var(--bg-input, #fff);
   color: var(--text, #333);
 }
+.undo-btn {
+  flex-shrink: 0;
+  padding: 6px 10px;
+  border: 1px solid var(--border-light, #ccc);
+  border-radius: 8px;
+  background: var(--bg-card, #f5f5f5);
+  color: var(--text, #333);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: none;
+  min-width: auto;
+}
+.undo-btn:disabled { opacity: 0.4; cursor: default; }
 .search-input:focus { border-color: var(--color1); }
 .filter-picker {
   display: flex;
@@ -275,9 +330,14 @@ h2 {
   font-size: 11px;
   font-weight: 700;
   color: #fff;
-  background: var(--color1);
+  background: var(--color1-dark, #2e7d32);
   border-radius: 10px;
   padding: 1px 8px;
+}
+.tech-poste.secondary {
+  background: var(--color1-light, #e8f5e9);
+  color: var(--color1-dark, #2e7d32);
+  font-weight: 600;
 }
 .tech-contact {
   font-size: 12px;
@@ -331,10 +391,16 @@ h2 {
   box-shadow: none;
   min-width: auto;
 }
-.poste-btn.active {
-  border-color: var(--color1);
-  background: var(--color1);
+/* Principal : foncé ; secondaires : plus clairs */
+.poste-btn.primary {
+  border-color: var(--color1-dark, #2e7d32);
+  background: var(--color1-dark, #2e7d32);
   color: #fff;
+}
+.poste-btn.secondary {
+  border-color: var(--color1);
+  background: var(--color1-light, #e8f5e9);
+  color: var(--color1-dark, #2e7d32);
 }
 .btn-add {
   width: 100%;

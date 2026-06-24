@@ -1,7 +1,6 @@
 <template>
   <div class="master-affaire">
     <div class="page-title-row">
-      <h2>Master Affaire</h2>
       <button class="page-switch" :class="{ active: showGantt }" @click="showGantt = !showGantt">📊 Timeline</button>
     </div>
 
@@ -118,11 +117,11 @@
         <div class="dr-row"><span class="dr-label cdl-back-bg">Déchargement</span><span class="dr-val">{{ compactList(form.back_dates, form.back_periods, form.return_date) || '—' }}</span></div>
       </div>
 
-      <div class="form-section-title">Zones & Techniciens</div>
+      <div class="form-section-title">Postes</div>
       <div class="zone-toggles">
         <button :class="{ active: form.front }" @click="form.front = !form.front" class="zone-btn facade">Façade</button>
         <button :class="{ active: form.monitor }" @click="form.monitor = !form.monitor" class="zone-btn retour">Monitor</button>
-        <button :class="{ active: form.system }" @click="form.system = !form.system" class="zone-btn systeme">System</button>
+        <button :class="{ active: form.system }" @click="form.system = !form.system" class="zone-btn systeme">Système</button>
         <button :class="{ active: form.stage }" @click="form.stage = !form.stage" class="zone-btn scene">Scène</button>
       </div>
 
@@ -131,7 +130,7 @@
         <div class="zone-tech-select">
           <select v-model="form.tech_email" @change="onTechSelect('front')">
             <option value="">-- Choisir --</option>
-            <option v-for="t in technicians" :key="t.techid" :value="t.email">{{ t.firstname || '' }} {{ t.name }}</option>
+            <option v-for="o in techOptions('front')" :key="o.email" :value="o.email">{{ o.label }}</option>
           </select>
           <button class="btn-new-tech" @click="openNewTech('front')">+</button>
         </div>
@@ -150,7 +149,7 @@
         <div class="zone-tech-select">
           <select v-model="form.tech_email_monitor" @change="onTechSelect('monitor')">
             <option value="">-- Choisir --</option>
-            <option v-for="t in technicians" :key="t.techid" :value="t.email">{{ t.firstname || '' }} {{ t.name }}</option>
+            <option v-for="o in techOptions('monitor')" :key="o.email" :value="o.email">{{ o.label }}</option>
           </select>
           <button class="btn-new-tech" @click="openNewTech('monitor')">+</button>
         </div>
@@ -169,7 +168,7 @@
         <div class="zone-tech-select">
           <select v-model="form.tech_email_system" @change="onTechSelect('system')">
             <option value="">-- Choisir --</option>
-            <option v-for="t in technicians" :key="t.techid" :value="t.email">{{ t.firstname || '' }} {{ t.name }}</option>
+            <option v-for="o in techOptions('system')" :key="o.email" :value="o.email">{{ o.label }}</option>
           </select>
           <button class="btn-new-tech" @click="openNewTech('system')">+</button>
         </div>
@@ -188,7 +187,7 @@
         <div class="zone-tech-select">
           <select v-model="form.tech_email_stage" @change="onTechSelect('stage')">
             <option value="">-- Choisir --</option>
-            <option v-for="t in technicians" :key="t.techid" :value="t.email">{{ t.firstname || '' }} {{ t.name }}</option>
+            <option v-for="o in techOptions('stage')" :key="o.email" :value="o.email">{{ o.label }}</option>
           </select>
           <button class="btn-new-tech" @click="openNewTech('stage')">+</button>
         </div>
@@ -200,6 +199,25 @@
           <button @click="addTechForZone('stage')">Ajouter</button>
         </div>
         <div v-if="form.tech_name_stage" class="zone-tech-info">{{ form.tech_firstname_stage || '' }} {{ form.tech_name_stage }} <span v-if="form.tech_phone_stage">· {{ form.tech_phone_stage }}</span></div>
+      </div>
+
+      <!-- Assistants (illimités, chacun avec son poste) -->
+      <div class="assistants-block">
+        <div class="zone-tech-header">🟦 Assistants</div>
+        <div v-for="(a, i) in form.assistants" :key="i" class="assistant-row">
+          <select v-model="a.area" class="assistant-area">
+            <option value="front">Façade</option>
+            <option value="monitor">Monitor</option>
+            <option value="system">Système</option>
+            <option value="stage">Scène</option>
+          </select>
+          <select v-model="a.email" class="assistant-tech" @change="onAssistantSelect(a)">
+            <option value="">-- Choisir --</option>
+            <option v-for="o in techOptions('assistant')" :key="o.email" :value="o.email">{{ o.label }}</option>
+          </select>
+          <button class="assistant-del" @click="form.assistants.splice(i, 1)" title="Retirer">✕</button>
+        </div>
+        <button class="btn-add-assistant" @click="addAssistant">+ Ajouter un assistant</button>
       </div>
 
       <div class="form-row">
@@ -216,7 +234,7 @@
 
       <div class="form-actions">
         <button class="btn-save" @click="saveAffair" :disabled="!form.name">
-          {{ editing ? 'Enregistrer' : 'Créer' }}
+          {{ editing ? '✓ Valider' : 'Créer' }}
         </button>
         <button v-if="editing" class="btn-draft" @click="setStatus('draft')">↩ NEW</button>
         <button v-if="editing" class="btn-delete" @click="deleteAffair">🗑 Supprimer</button>
@@ -236,6 +254,7 @@
           <span v-if="unreadAffairs[affair.affairid]" class="unread-star" @click.stop="openChatOnly(affair)">★</span>
           <span class="card-name" :class="{ 'is-today': isTodayFor(affair), 'is-tomorrow': !isTodayFor(affair) && isTomorrowFor(affair) }">{{ affair.name || '(Sans nom)' }}</span>
           <button class="card-cal-btn" @click.stop="openCalendarFor(affair)" title="Voir le calendrier">📅</button>
+          <button v-if="selected?.affairid === affair.affairid && detailOpen" class="card-edit-btn" @click.stop="editCurrentAffair" title="Modifier l'affaire">✏️</button>
         </div>
 
         <div v-if="cardDateLine(affair).val" class="cdl-badge" :class="'cdl-' + cardDateLine(affair).type">
@@ -267,11 +286,6 @@
 
         <!-- Aperçu (1er clic) : invite à recliquer pour le détail -->
         <div v-if="selected?.affairid === affair.affairid && !detailOpen" class="detail-hint">👆 Recliquez pour ouvrir le détail</div>
-
-        <!-- Détail (2e clic) : bouton Modifier -->
-        <div v-if="selected?.affairid === affair.affairid && detailOpen" class="detail-actions" @click.stop>
-          <button class="btn-edit-detail" @click="editCurrentAffair">✏️ Modifier l'affaire</button>
-        </div>
 
         <!-- Panneau Chat -->
         <div v-if="selected?.affairid === affair.affairid && detailOpen" class="card-expanded" @click.stop>
@@ -510,6 +524,7 @@ const form = reactive({
   tech_name_monitor: '', tech_firstname_monitor: '', tech_email_monitor: '', tech_phone_monitor: '',
   tech_name_system: '', tech_firstname_system: '', tech_email_system: '', tech_phone_system: '',
   tech_name_stage: '', tech_firstname_stage: '', tech_email_stage: '', tech_phone_stage: '',
+  assistants: [],
   prep_date: '',
   receipt_date: '',
   return_date: '',
@@ -531,6 +546,7 @@ function resetForm() {
     tech_name_monitor: '', tech_firstname_monitor: '', tech_email_monitor: '', tech_phone_monitor: '',
     tech_name_system: '', tech_firstname_system: '', tech_email_system: '', tech_phone_system: '',
     tech_name_stage: '', tech_firstname_stage: '', tech_email_stage: '', tech_phone_stage: '',
+    assistants: [],
     prep_date: '', receipt_date: '', return_date: '',
     front: false, monitor: false, system: false, stage: false,
     description: '', attachment_name: '', attachment_url: '',
@@ -1058,6 +1074,16 @@ function getAffairZones(affair) {
       email: affair.tech_email_stage || '',
     })
   }
+  // Assistants
+  const areaLabel = { front: 'Façade', monitor: 'Monitor', system: 'Système', stage: 'Scène' }
+  const areaCss = { front: 'facade', monitor: 'retour', system: 'systeme', stage: 'scene' }
+  ;(Array.isArray(affair.assistants) ? affair.assistants : []).forEach((a, i) => {
+    zones.push({
+      key: 'assistant' + i, css: areaCss[a.area] || 'facade', icon: '🟦',
+      label: 'Assistant ' + (areaLabel[a.area] || ''),
+      name: a.name || '?', firstname: a.firstname || '', phone: a.phone || '', email: a.email || '',
+    })
+  })
   return zones
 }
 
@@ -1169,6 +1195,7 @@ async function selectAffair(affair) {
     tech_email_system: affair.tech_email_system || '', tech_phone_system: affair.tech_phone_system || '',
     tech_name_stage: affair.tech_name_stage || '', tech_firstname_stage: affair.tech_firstname_stage || '',
     tech_email_stage: affair.tech_email_stage || '', tech_phone_stage: affair.tech_phone_stage || '',
+    assistants: Array.isArray(affair.assistants) ? affair.assistants.map(a => ({ ...a })) : [],
     prep_date: affair.prep_date || '',
     receipt_date: affair.receipt_date || '',
     return_date: affair.return_date || '',
@@ -1271,6 +1298,7 @@ async function saveAffair() {
     tech_firstname_stage: form.tech_firstname_stage || '',
     tech_email_stage: form.tech_email_stage || '',
     tech_phone_stage: form.tech_phone_stage || '',
+    assistants: (form.assistants || []).filter(a => a.email || a.name),
     // Nouvelles colonnes
     reference: form.reference || '',
     event_type: form.event_type || '',
@@ -1373,6 +1401,32 @@ function openNewTech(zone) {
 // Suffixe des champs technicien selon la zone : front → '', autres → '_<zone>'
 function zoneSuffix(zone) { return zone === 'front' ? '' : `_${zone}` }
 
+// Options d'un menu, triées par pertinence du poste : principal (●) → secondaire (○) → autres
+function techOptions(poste) {
+  const list = Array.isArray(technicians.value) ? technicians.value : []
+  const has = (t) => (Array.isArray(t.postes) && t.postes.includes(poste)) || t.poste === poste
+  const isPrim = (t) => (Array.isArray(t.postes) && t.postes.length) ? t.postes[0] === poste : t.poste === poste
+  const rank = (t) => (isPrim(t) ? 0 : has(t) ? 1 : 2)
+  return [...list]
+    .map(t => ({ t, r: rank(t) }))
+    .sort((a, b) => a.r - b.r || (a.t.name || '').localeCompare(b.t.name || ''))
+    .map(({ t, r }) => ({
+      email: t.email,
+      label: (r === 0 ? '● ' : r === 1 ? '○ ' : '') + ((t.firstname ? t.firstname + ' ' : '') + (t.name || '')),
+    }))
+}
+
+function addAssistant() {
+  form.assistants.push({ area: 'front', email: '', name: '', firstname: '', phone: '' })
+}
+function onAssistantSelect(a) {
+  const tech = technicians.value.find(t => t.email === a.email)
+  if (!tech) return
+  a.name = tech.name || ''
+  a.firstname = tech.firstname || ''
+  a.phone = tech.phone || ''
+}
+
 function onTechSelect(zone) {
   const s = zoneSuffix(zone)
   const email = form[`tech_email${s}`]
@@ -1420,7 +1474,7 @@ function showMessage(msg, type) {
 </script>
 
 <style scoped>
-.page-title-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.page-title-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
 .page-switch {
   padding: 6px 12px; border: 1px solid var(--color1); border-radius: 8px;
   background: var(--color1-light, #e8f5e9); color: var(--color1-dark, #2e7d32);
@@ -1508,7 +1562,7 @@ h3 { font-size: 16px; margin: 0; }
   border-color: #d97706;
   font-weight: 800;
 }
-.card-cal-btn {
+.card-cal-btn, .card-edit-btn {
   background: transparent; border: none; border-radius: 6px;
   font-size: 18px; line-height: 1; padding: 2px 4px; cursor: pointer; box-shadow: none; min-width: auto; flex-shrink: 0;
 }
@@ -1724,6 +1778,12 @@ h3 { font-size: 16px; margin: 0; }
 .zone-tech-block.facade { border-left: 3px solid #3b82f6; }
 .zone-tech-block.retour { border-left: 3px solid #f59e0b; }
 .zone-tech-block.systeme { border-left: 3px solid #8b5cf6; }
+.assistants-block { margin: 6px 0; padding: 8px; border-radius: 8px; border: 1px solid var(--border-light, #eee); border-left: 3px solid #0ea5e9; }
+.assistant-row { display: flex; gap: 6px; align-items: center; margin-bottom: 6px; }
+.assistant-area { flex: 0 0 90px; }
+.assistant-tech { flex: 1; min-width: 0; }
+.assistant-del { flex-shrink: 0; background: transparent; border: 1px solid var(--border-light, #ccc); border-radius: 6px; padding: 4px 8px; cursor: pointer; box-shadow: none; min-width: auto; }
+.btn-add-assistant { width: 100%; padding: 8px; background: var(--color1-light, #e8f5e9); color: var(--color1-dark, #2e7d32); border: 1px dashed var(--color1); border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; box-shadow: none; }
 .zone-tech-block.scene { border-left: 3px solid #10b981; }
 .zone-tech-header { font-size: 13px; font-weight: 700; margin-bottom: 6px; }
 .zone-tech-select { display: flex; gap: 4px; align-items: center; }

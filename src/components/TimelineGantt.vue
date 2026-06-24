@@ -4,7 +4,6 @@
       <button class="tl-hidden-toggle" :class="{ active: showHidden }" @click="showHidden = !showHidden">
         {{ showHidden ? '👁 Masqués' : 'Masqués' }}
       </button>
-      <span class="tl-hint">↔ naviguer · ↕ zoomer</span>
     </div>
 
     <div v-if="!shown.length" class="tl-empty">Aucune affaire à afficher</div>

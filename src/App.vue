@@ -4,11 +4,13 @@
     <q-header class="app-header" :class="{ 'header-hidden': headerHidden }">
       <q-toolbar class="app-toolbar">
         <q-btn flat round icon="menu" class="hdr-nav-btn" aria-label="Menu" @click="drawer = !drawer" />
-        <q-btn flat round icon="arrow_back" class="hdr-nav-btn" aria-label="Précédent" title="Précédent" @click="router.back()" />
-        <q-btn flat round icon="arrow_forward" class="hdr-nav-btn" aria-label="Suivant" title="Suivant" @click="router.forward()" />
+        <span class="header-title">{{ pageTitle }}</span>
+        <span class="hdr-status" :class="'st-' + syncStatus" :title="syncStatus === 'offline' ? 'Hors-ligne' : syncStatus === 'syncing' ? 'Synchronisation en cours' : 'En ligne'">
+          <template v-if="syncStatus === 'offline'">⚠️ Hors-ligne</template>
+          <template v-else-if="syncStatus === 'syncing'">⟳ {{ pendingCount }}</template>
+          <template v-else>● En ligne</template>
+        </span>
         <q-space />
-        <router-link to="/" class="header-link" title="Accueil" @click="goHome">Home</router-link>
-        <router-link to="/settings" class="header-icon" title="Réglages">&#9881;</router-link>
         <span class="help-btn" :class="{ active: helpMode }" @click="helpMode = !helpMode" title="Aide">?</span>
         <span class="user-selector" @click="showUserMenu = !showUserMenu">
           {{ currentUserLabel }}
@@ -16,11 +18,6 @@
       </q-toolbar>
 
       <!-- Bandeaux d'état -->
-      <div class="status-bar" :class="'status-' + syncStatus">
-        <template v-if="syncStatus === 'offline'">⚠️ Hors-ligne{{ pendingCount ? ` — ${pendingCount} modif. en attente (envoyées au retour du réseau)` : ' — modifications enregistrées localement' }}</template>
-        <template v-else-if="syncStatus === 'syncing'">⟳ Synchronisation… {{ pendingCount }} modif. en attente</template>
-        <template v-else>● En ligne</template>
-      </div>
       <div v-if="userRole === 'master' && companyName" class="company-bar">
         🏢 {{ companyName }}
       </div>
@@ -93,12 +90,21 @@
             <q-item-section>Bibliothèque Micros</q-item-section>
           </q-item>
 
-          <!-- About (tout en bas) -->
+          <!-- Réglages + About (tout en bas) -->
+          <q-item
+            clickable
+            to="/settings"
+            active-class="drawer-active"
+            class="drawer-about"
+            @click="closeDrawerOnMobile"
+          >
+            <q-item-section avatar><q-icon name="settings" /></q-item-section>
+            <q-item-section>Réglages</q-item-section>
+          </q-item>
           <q-item
             clickable
             to="/about"
             active-class="drawer-active"
-            class="drawer-about"
             @click="closeDrawerOnMobile"
           >
             <q-item-section avatar><q-icon name="info" /></q-item-section>
@@ -134,13 +140,26 @@ import { ref, computed, onMounted, onUnmounted, provide } from 'vue'
 import { useQuasar } from 'quasar'
 import { supabase } from './lib/supabase'
 import { useAffairStore } from './stores/affairs'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { getQueue } from './lib/offlineCache'
 import { flushQueue } from './lib/syncService'
 
 const $q = useQuasar()
 const affairStore = useAffairStore()
 const router = useRouter()
+const currentRoute = useRoute()
+const PAGE_TITLES = {
+  '/': 'Cabletech',
+  '/CableList': 'CableList',
+  '/FlightType': 'Cablekit',
+  '/MasterAffaire': 'Master Affaire',
+  '/techlist': 'TechList',
+  '/micros': 'Bibliothèque Micros',
+  '/company': 'Entreprise',
+  '/settings': 'Réglages',
+  '/about': 'About',
+}
+const pageTitle = computed(() => PAGE_TITLES[currentRoute.path] || '')
 
 // « Home » : revenir à l'accueil = désélectionner l'affaire en cours
 function goHome() {
@@ -348,10 +367,14 @@ select {
 
 /* ===== Header ===== */
 .app-header {
-  background: var(--color1-dark);
+  background: #160a26; /* mauve quasi noir : zone de l'heure / safe-area en haut */
   color: #fff;
-  border-bottom: 1px solid var(--color1-dark);
+  border-bottom: 1px solid #160a26;
   transition: transform 0.4s ease;
+}
+.app-toolbar {
+  /* Dégradé mauve très foncé : presque noir en haut → mauve un peu plus visible en bas */
+  background: linear-gradient(180deg, #1c0f33 0%, #3d2470 100%);
 }
 .app-header.header-hidden {
   transform: translateY(-100%);
@@ -390,6 +413,28 @@ select {
   font-size: 20px;
   color: #fff;
 }
+.header-title {
+  font-weight: 800;
+  color: #fff;
+  font-size: 18px;
+  letter-spacing: 0.3px;
+  margin-left: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.hdr-status {
+  margin-left: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 10px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.hdr-status.st-online { background: rgba(34, 197, 94, 0.25); color: #bbf7d0; }
+.hdr-status.st-syncing { background: rgba(245, 158, 11, 0.3); color: #fde68a; }
+.hdr-status.st-offline { background: rgba(239, 68, 68, 0.3); color: #fecaca; }
 .header-link {
   font-weight: 800;
   color: #fff;
