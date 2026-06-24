@@ -3,6 +3,9 @@
   command = "npm run build"
   publish = "dist"
 
+[build.environment]
+  NODE_VERSION = "20"
+
 # SPA (vue-router en mode history) : toutes les routes → index.html
 [[redirects]]
   from = "/*"
