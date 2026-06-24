@@ -18,13 +18,23 @@ export function pushSupported() {
 }
 
 // Abonne l'appareil et enregistre l'abonnement en base (lié à l'email + entreprise)
-export async function enableNotifications({ email, companyId } = {}) {
-  if (!pushSupported()) throw new Error("Notifications non supportées sur cet appareil.")
-  const reg = await navigator.serviceWorker.getRegistration()
-  if (!reg) throw new Error("App non installée (service worker absent). Ajoute l'app à l'écran d'accueil puis réessaie.")
+export async function enableNotifications({ email } = {}) {
+  if (!pushSupported()) throw new Error("Notifications non supportées (installe l'app via l'écran d'accueil).")
 
+  // IMPORTANT iOS : requestPermission() doit être le 1er await, dans le geste du tap (pas d'await avant)
   const perm = await Notification.requestPermission()
   if (perm !== 'granted') throw new Error("Permission notifications refusée.")
+
+  // Entreprise active (repli 1ʳᵉ) — APRÈS la demande de permission
+  let companyId = parseInt(localStorage.getItem('cablemaster-companyid')) || null
+  if (!companyId) {
+    const { data } = await supabase.from('company').select('companyid').order('companyid').limit(1)
+    companyId = data && data[0] ? data[0].companyid : null
+  }
+
+  let reg = await navigator.serviceWorker.getRegistration()
+  if (!reg) reg = await navigator.serviceWorker.ready
+  if (!reg) throw new Error("Service worker absent (recharge l'app installée).")
 
   let sub = await reg.pushManager.getSubscription()
   if (!sub) {

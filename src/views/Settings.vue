@@ -268,13 +268,9 @@ onMounted(async () => { try { notifOn.value = await notificationsActive() } catc
 
 async function toggleNotif() {
   notifMsg.value = ''
-  let companyId = parseInt(localStorage.getItem('cablemaster-companyid')) || null
-  if (!companyId) {
-    const { data: comps } = await supabase.from('company').select('companyid').order('companyid').limit(1)
-    companyId = comps?.[0]?.companyid || null
-  }
   try {
-    await enableNotifications({ email: profile.email || '', companyId })
+    // Pas d'await avant : iOS exige requestPermission() dans le geste du tap
+    await enableNotifications({ email: profile.email || '' })
     notifOn.value = true
     notifMsg.value = '✓ Notifications activées sur cet appareil.'
     notifMsgType.value = 'success'
