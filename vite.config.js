@@ -32,8 +32,8 @@ export default defineConfig({
         ],
       },
       manifest: {
-        name: 'cinod CableLog',
-        short_name: 'CableLog',
+        name: 'Cinod-Prep',
+        short_name: 'Cinod-Prep',
         description: 'Gestion de câblage son professionnel',
         theme_color: '#160a26',
         background_color: '#160a26',

@@ -1,0 +1,10 @@
+# Déploiement Netlify (HTTPS automatique) — requis pour tester les notifications push iOS.
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+# SPA (vue-router en mode history) : toutes les routes → index.html
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

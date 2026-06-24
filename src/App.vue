@@ -35,8 +35,8 @@
           <q-btn flat dense round icon="chevron_left" aria-label="Fermer le menu" @click="drawer = false" />
         </div>
         <div class="drawer-brand">
-          <img src="/icon-512.png" alt="CableLog" class="drawer-logo" />
-          <span class="drawer-brand-name">CableLog</span>
+          <img src="/icon-512.png" alt="Cinod-Prep" class="drawer-logo" />
+          <span class="drawer-brand-name">Prep</span>
           <span class="drawer-brand-sub">cinod</span>
         </div>
         <q-list padding>
