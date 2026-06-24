@@ -750,7 +750,7 @@ async function removeFromMyList(mic) {
 .mic-library {
   max-width: 600px;
   margin: 0 auto;
-  padding: 10px;
+  padding: 10px 4px;
   text-align: left;
 }
 h2 {

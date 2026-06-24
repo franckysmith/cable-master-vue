@@ -223,7 +223,6 @@ const employerItems = computed(() => {
       { label: 'Cablekit', to: '/FlightType', icon: 'inventory_2' },
       { label: 'TechList', to: '/techlist', icon: 'groups' },
       { label: 'MasterAffaire', to: '/MasterAffaire', icon: 'event_note' },
-      { label: 'Timeline', to: '/timeline', icon: 'timeline' },
     )
   }
   return items
@@ -469,7 +468,7 @@ select {
   width: 100%;
   max-width: var(--app-max-width);
   margin: 0 auto;
-  padding: 10px 4px 24px;
+  padding: 10px 2px 24px;
   box-sizing: border-box;
 }
 

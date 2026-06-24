@@ -201,9 +201,9 @@ function showMessage(msg, type) {
 
 <style scoped>
 .techlist {
-  max-width: 500px;
+  max-width: 560px;
   margin: 0 auto;
-  padding: 10px;
+  padding: 10px 4px;
   text-align: left;
 }
 h2 {

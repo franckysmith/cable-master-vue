@@ -11,6 +11,19 @@ body {
 html, body, #app {
   max-width: 100%;
   overflow-x: hidden;
+  /* Désactive le zoom par pincement (pan seulement) → plus de flottement */
+  touch-action: pan-x pan-y;
+}
+
+/* Masquer l'ascenseur / les barres de défilement (le scroll reste actif) */
+* {
+  scrollbar-width: none;        /* Firefox */
+  -ms-overflow-style: none;     /* IE / vieux Edge */
+}
+*::-webkit-scrollbar {          /* Chrome / Safari / Edge */
+  width: 0;
+  height: 0;
+  display: none;
 }
 
 /* Empêcher la sélection accidentelle de texte (appui long, double-clic…) */

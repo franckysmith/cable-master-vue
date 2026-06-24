@@ -2,22 +2,24 @@
   <div class="master-affaire">
     <div class="page-title-row">
       <h2>Master Affaire</h2>
-      <button class="page-switch" @click="router.push('/timeline')">Timeline →</button>
+      <button class="page-switch" :class="{ active: showGantt }" @click="showGantt = !showGantt">📊 Timeline</button>
     </div>
 
+    <TimelineGantt v-if="showGantt" :selected-id="selected ? selected.affairid : null" @select="onGanttSelect" />
+
     <!-- Liste des affaires avec statut -->
-    <div v-if="!selected && !showForm" class="top-actions">
+    <div v-if="!showForm" class="top-actions">
       <button class="btn-create-affair" @click="openNewAffair">＋ Nouvelle</button>
       <button class="filter-soon prep" :class="{ active: sortMode === 'prep' }" @click="toggleSort('prep')">Prépa</button>
       <button class="filter-soon out" :class="{ active: sortMode === 'out' }" @click="toggleSort('out')">Charg.</button>
       <button class="filter-soon back" :class="{ active: sortMode === 'back' }" @click="toggleSort('back')">Déch.</button>
     </div>
-    <div v-if="!selected && !showForm" class="time-filters">
+    <div v-if="!showForm" class="time-filters">
       <button class="time-btn today" :class="{ active: timeFilter === 'today' }" @click="toggleTime('today')">Aujourd'hui</button>
       <button class="time-btn tomorrow" :class="{ active: timeFilter === 'tomorrow' }" @click="toggleTime('tomorrow')">Demain</button>
       <button class="time-btn week" :class="{ active: timeFilter === 'week' }" @click="toggleTime('week')">Semaine</button>
     </div>
-    <div v-if="!selected" class="affair-tabs">
+    <div v-if="!showForm" class="affair-tabs">
       <button :class="{ active: tab === 'draft' }" @click="tab = 'draft'">NEW</button>
       <button :class="{ active: tab === 'sent' }" @click="tab = 'sent'">Envoyé</button>
       <select
@@ -32,7 +34,7 @@
         <option value="trash">🗑 Poubelle</option>
       </select>
     </div>
-    <button v-if="selected" class="btn-back" @click="selected = null; showForm = false; showChatOnly = false">
+    <button v-if="showForm" class="btn-back" @click="showForm = false">
       ← Retour aux affaires
     </button>
 
@@ -226,10 +228,9 @@
       <div
         v-for="affair in filteredAffairs"
         :key="affair.affairid"
-        v-show="!selected || selected.affairid === affair.affairid"
         class="affair-card"
         :class="{ selected: selected?.affairid === affair.affairid, trashed: tab === 'trash' }"
-        @click="tab !== 'trash' && selectAffair(affair)"
+        @click="onCardClick(affair)"
       >
         <div class="card-head">
           <span v-if="unreadAffairs[affair.affairid]" class="unread-star" @click.stop="openChatOnly(affair)">★</span>
@@ -244,21 +245,9 @@
 
         <div class="card-bottom">
           <div class="card-techs">
-            <div v-if="affair.front" class="tech-zone-item">
-              <span class="zone-dot facade"></span>
-              <span class="tech-firstname">{{ affair.tech_name || '?' }}</span>
-            </div>
-            <div v-if="affair.monitor" class="tech-zone-item">
-              <span class="zone-dot retour"></span>
-              <span class="tech-firstname">{{ affair.tech_name_monitor || '?' }}</span>
-            </div>
-            <div v-if="affair.system" class="tech-zone-item">
-              <span class="zone-dot systeme"></span>
-              <span class="tech-firstname">{{ affair.tech_name_system || '?' }}</span>
-            </div>
-            <div v-if="affair.stage" class="tech-zone-item">
-              <span class="zone-dot scene"></span>
-              <span class="tech-firstname">{{ affair.tech_name_stage || '?' }}</span>
+            <div v-for="t in shownTechs(affair)" :key="t.cls" class="tech-zone-item">
+              <span class="zone-dot" :class="t.cls"></span>
+              <span class="tech-firstname">{{ t.name }}</span>
             </div>
           </div>
           <div class="card-meta">
@@ -276,13 +265,16 @@
           💬 {{ unreadAffairs[affair.affairid] }}
         </div>
 
-        <!-- Détail : bouton Modifier -->
-        <div v-if="selected?.affairid === affair.affairid" class="detail-actions" @click.stop>
+        <!-- Aperçu (1er clic) : invite à recliquer pour le détail -->
+        <div v-if="selected?.affairid === affair.affairid && !detailOpen" class="detail-hint">👆 Recliquez pour ouvrir le détail</div>
+
+        <!-- Détail (2e clic) : bouton Modifier -->
+        <div v-if="selected?.affairid === affair.affairid && detailOpen" class="detail-actions" @click.stop>
           <button class="btn-edit-detail" @click="editCurrentAffair">✏️ Modifier l'affaire</button>
         </div>
 
         <!-- Panneau Chat -->
-        <div v-if="selected?.affairid === affair.affairid" class="card-expanded" @click.stop>
+        <div v-if="selected?.affairid === affair.affairid && detailOpen" class="card-expanded" @click.stop>
           <div class="master-chat">
             <div class="chat-messages-master">
               <div v-for="msg in affairMessages" :key="msg.messageid" class="chat-msg-m" :class="msg.sender_role">
@@ -304,8 +296,8 @@
           </div>
         </div>
 
-        <!-- Panneau Fiche (détails) -->
-        <div v-if="selected?.affairid === affair.affairid" class="card-expanded" @click.stop>
+        <!-- Panneau Fiche (détails) — au 2e clic -->
+        <div v-if="selected?.affairid === affair.affairid && detailOpen" class="card-expanded" @click.stop>
           <!-- Contacter tous -->
           <a v-if="getAllEmails(affair).length > 0" :href="'mailto:' + getAllEmails(affair).join(',')" class="fiche-contact-all">📩 Contacter tous</a>
 
@@ -415,6 +407,7 @@ import { supabase } from '../lib/supabase'
 import AllCasesView from '../components/AllCasesView.vue'
 import AmpCalculator from '../components/AmpCalculator.vue'
 import TourCalendar from '../components/TourCalendar.vue'
+import TimelineGantt from '../components/TimelineGantt.vue'
 
 const tab = ref('all')
 const affairs = ref([])
@@ -735,6 +728,9 @@ async function toggleTab(affair, tab) {
 
 const route = useRoute()
 const router = useRouter()
+const showGantt = ref(false)
+const detailOpen = ref(false)
+function onGanttSelect(a) { selectAffair(a); detailOpen.value = true }
 onMounted(async () => {
   await loadAffairs()
   loadTechnicians()
@@ -742,8 +738,9 @@ onMounted(async () => {
   const id = parseInt(route.query.affair)
   if (id) {
     const a = affairs.value.find(x => x.affairid === id)
-    if (a) selectAffair(a)
+    if (a) { selectAffair(a); detailOpen.value = true }
   }
+  if (route.query.timeline) showGantt.value = true
 })
 
 function formatTime(dateStr) {
@@ -864,6 +861,20 @@ function relevantDates(a) {
 // Aujourd'hui → jaune ; demain → ambre. En vue temporelle : tous types confondus
 function datesForHighlight(a) {
   return timeFilter.value ? allEvents(a).map(e => e.date) : relevantDates(a)
+}
+// Techniciens d'une affaire (tous les postes actifs)
+function allTechs(a) {
+  const all = []
+  if (a.front) all.push({ cls: 'facade', name: a.tech_name || '?' })
+  if (a.monitor) all.push({ cls: 'retour', name: a.tech_name_monitor || '?' })
+  if (a.system) all.push({ cls: 'systeme', name: a.tech_name_system || '?' })
+  if (a.stage) all.push({ cls: 'scene', name: a.tech_name_stage || '?' })
+  return all
+}
+function topTechs(a) { return allTechs(a).slice(0, 2) }
+// Carte compacte → 2 techs ; carte sélectionnée (1er clic) → tous les techs
+function shownTechs(a) {
+  return selected.value?.affairid === a.affairid ? allTechs(a) : topTechs(a)
 }
 function isTodayFor(a) { return datesForHighlight(a).includes(todayISO()) }
 function isTomorrowFor(a) { return datesForHighlight(a).includes(tomorrowISO()) }
@@ -1121,13 +1132,17 @@ function editCurrentAffair() {
   showForm.value = true
 }
 
+// Clic sur une carte : 1er clic = ouvre l'aperçu, 2e clic = ouvre le détail complet, 3e = referme
+function onCardClick(affair) {
+  if (tab.value === 'trash') return
+  if (selected.value?.affairid !== affair.affairid) { selectAffair(affair); detailOpen.value = false; return }
+  if (!detailOpen.value) { detailOpen.value = true; return }
+  selected.value = null
+  detailOpen.value = false
+  showForm.value = false
+}
+
 async function selectAffair(affair) {
-  if (selected.value?.affairid === affair.affairid && !showForm.value) {
-    selected.value = null
-    showForm.value = false
-    showChatOnly.value = false
-    return
-  }
   showChatOnly.value = false
   selected.value = affair
   editing.value = affair
@@ -1411,10 +1426,11 @@ function showMessage(msg, type) {
   background: var(--color1-light, #e8f5e9); color: var(--color1-dark, #2e7d32);
   font-size: 13px; font-weight: 700; cursor: pointer; box-shadow: none; min-width: auto; white-space: nowrap;
 }
+.page-switch.active { background: var(--color1); color: #fff; }
 .master-affaire {
-  max-width: 500px;
+  max-width: 560px;
   margin: 0 auto;
-  padding: 10px;
+  padding: 10px 4px;
   text-align: left;
 }
 h2 { text-align: center; font-size: 18px; margin-bottom: 12px; }
@@ -1775,6 +1791,7 @@ h3 { font-size: 16px; margin: 0; }
 @keyframes blink-star { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
 .card-unread-msg { padding: 4px 8px 4px 22px; font-size: 12px; color: #ef4444; font-style: italic; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .card-expanded { padding: 8px; border-top: 1px solid var(--border-light, #eee); margin-top: 6px; }
+.detail-hint { margin-top: 6px; font-size: 11px; font-weight: 700; color: var(--color1-dark, #2e7d32); }
 .detail-actions { margin-top: 8px; }
 .btn-edit-detail {
   width: 100%; padding: 9px; background: var(--color1-dark); color: #fff; border: none;
