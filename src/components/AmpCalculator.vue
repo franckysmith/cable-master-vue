@@ -66,8 +66,8 @@
 
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
-// Règles de câblage : source unique partagée (cf. @cinod/shared)
-import { ENCLOSURE_DATA } from '@cinod/shared'
+// Règles de câblage : copie locale (autonome pour le déploiement) de @cinod/shared
+import { ENCLOSURE_DATA } from '../lib/cabling'
 
 const props = defineProps({
   description: { type: String, default: '' },
