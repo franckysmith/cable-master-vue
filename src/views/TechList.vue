@@ -7,11 +7,16 @@
     </div>
 
     <template v-else>
-      <!-- Recherche + Undo -->
+      <!-- Recherche + Select/Envoyer + Undo -->
       <div class="search-bar">
-        <input v-model="search" class="search-input" placeholder="🔍 Rechercher un nom..." />
-        <button class="undo-btn" :disabled="!lastDeleted" @click="undoDelete" title="Annuler la dernière suppression">↩︎ Undo</button>
+        <input v-model="search" class="search-input" placeholder="🔍 Nom..." />
+        <button v-if="!selectCount" class="sel-btn" :class="{ active: selectMode }" @click="toggleSelectMode">
+          {{ selectMode ? 'Annuler' : 'Select' }}
+        </button>
+        <button v-else class="sel-btn send" @click="sendInvites">✉️ Envoyer ({{ selectCount }})</button>
+        <button class="undo-btn" :disabled="!lastDeleted" @click="undoDelete" title="Annuler la dernière suppression">↩︎</button>
       </div>
+      <p v-if="selectMode" class="select-hint">Cochez les personnes à inviter (uniquement celles pas encore installées, en italique).</p>
       <div class="filter-picker">
         <button type="button" class="filter-btn" :class="{ active: posteFilter === '' }" @click="posteFilter = ''">Tous</button>
         <button v-for="p in postes" :key="p.value" type="button" class="filter-btn"
@@ -42,9 +47,16 @@
           </div>
         </template>
         <template v-else>
+          <input
+            v-if="selectMode && !t.installed"
+            type="checkbox"
+            class="sel-check"
+            :checked="selectedIds.includes(t.techid)"
+            @change="toggleSelected(t.techid)"
+          />
           <div class="tech-info">
-            <div class="tech-name">
-              {{ t.name }}
+            <div class="tech-name" :class="{ 'not-installed': !t.installed }">
+              <span v-if="t.installed" class="installed-dot" title="A installé l'app">📱</span>{{ t.name }}
               <span v-for="(pv, i) in techPostes(t)" :key="pv" class="tech-poste" :class="{ secondary: i > 0 }">{{ posteLabel(pv) }}</span>
             </div>
             <div class="tech-contact">{{ t.email }}{{ t.phone ? ' · ' + t.phone : '' }}</div>
@@ -124,6 +136,41 @@ const editId = ref(null)
 const message = ref('')
 const messageType = ref('')
 const lastDeleted = ref(null)
+const selectMode = ref(false)
+const selectedIds = ref([])
+const selectCount = computed(() => selectedIds.value.length)
+const companyName = ref(localStorage.getItem('cablemaster-company') || 'votre entreprise')
+
+function toggleSelectMode() {
+  selectMode.value = !selectMode.value
+  if (!selectMode.value) selectedIds.value = []
+}
+function toggleSelected(id) {
+  const i = selectedIds.value.indexOf(id)
+  if (i === -1) selectedIds.value.push(id)
+  else selectedIds.value.splice(i, 1)
+}
+function sendInvites() {
+  const chosen = techs.value.filter(t => selectedIds.value.includes(t.techid) && t.email)
+  const emails = chosen.map(t => t.email)
+  if (!emails.length) { showMessage('Aucun email valide sélectionné', 'error'); return }
+  const subject = encodeURIComponent(`${companyName.value} — Rejoignez l'application CableLog`)
+  const body = encodeURIComponent(
+`Bonjour,
+
+${companyName.value} souhaite préparer ses prochaines affaires avec vous via l'application CableLog.
+
+En installant l'application sur votre téléphone (Partager → « Sur l'écran d'accueil »), vous recevrez les informations de préparation : les jours où venir, et vous pourrez faire votre liste de câbles et de micros pour chaque affaire.
+
+Lien : ${window.location.origin}
+
+À bientôt,
+${companyName.value}`)
+  window.location.href = `mailto:${emails.join(',')}?subject=${subject}&body=${body}`
+  showMessage(`Invitation préparée pour ${emails.length} personne(s)`, 'success')
+  selectMode.value = false
+  selectedIds.value = []
+}
 
 const form = reactive({ firstname: '', lastname: '', email: '', phone: '', postes: ['front'] })
 const edit = reactive({ firstname: '', lastname: '', email: '', phone: '', postes: ['front'] })
@@ -151,6 +198,8 @@ async function load() {
     if (comps?.[0]) companyId.value = comps[0].companyid
   }
   if (!companyId.value) return
+  const { data: comp } = await supabase.from('company').select('name').eq('companyid', companyId.value).single()
+  if (comp?.name) companyName.value = comp.name
   const { data } = await supabase
     .from('technician')
     .select('*')
@@ -283,6 +332,25 @@ h2 {
   min-width: auto;
 }
 .undo-btn:disabled { opacity: 0.4; cursor: default; }
+.sel-btn {
+  flex-shrink: 0;
+  padding: 6px 10px;
+  border: 1px solid var(--color1);
+  border-radius: 8px;
+  background: var(--color1-light, #e8f5e9);
+  color: var(--color1-dark, #2e7d32);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: none;
+  min-width: auto;
+}
+.sel-btn.active { background: var(--color1); color: #fff; }
+.sel-btn.send { background: var(--color1); border-color: var(--color1); color: #fff; }
+.select-hint { font-size: 11px; color: var(--text-muted, #999); margin: -2px 0 8px; font-style: italic; }
+.sel-check { width: 18px; height: 18px; flex-shrink: 0; margin-right: 8px; }
+.tech-name.not-installed { font-style: italic; color: var(--text-light, #888); }
+.installed-dot { margin-right: 4px; }
 .search-input:focus { border-color: var(--color1); }
 .filter-picker {
   display: flex;

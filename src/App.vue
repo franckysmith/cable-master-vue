@@ -371,6 +371,8 @@ select {
   color: #fff;
   border-bottom: 1px solid #160a26;
   transition: transform 0.4s ease;
+  /* Descendre sous l'encoche / la barre d'état en plein écran (iOS) */
+  padding-top: env(safe-area-inset-top, 0px);
 }
 .app-toolbar {
   /* Dégradé mauve très foncé : presque noir en haut → mauve un peu plus visible en bas */
