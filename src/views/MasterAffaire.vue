@@ -255,6 +255,7 @@
           <span class="card-name" :class="{ 'is-today': isTodayFor(affair), 'is-tomorrow': !isTodayFor(affair) && isTomorrowFor(affair) }">{{ affair.name || '(Sans nom)' }}</span>
           <button class="card-cal-btn" @click.stop="openCalendarFor(affair)" title="Voir le calendrier">📅</button>
           <button v-if="selected?.affairid === affair.affairid && detailOpen" class="card-edit-btn" @click.stop="editCurrentAffair" title="Modifier l'affaire">✏️</button>
+          <button v-if="selected?.affairid === affair.affairid && detailOpen" class="card-edit-btn" @click.stop="sendTeamMessage(affair)" title="Message à l'équipe (notification)">🔔</button>
         </div>
 
         <div v-if="cardDateLine(affair).val" class="cdl-badge" :class="'cdl-' + cardDateLine(affair).type">
@@ -1156,6 +1157,18 @@ async function openChatOnly(affair) {
 // Bouton "Modifier" depuis la fiche détail : ouvre le formulaire (déjà pré-rempli par selectAffair)
 function editCurrentAffair() {
   showForm.value = true
+}
+
+// Notification push à l'équipe (tous les appareils installés de l'entreprise)
+async function sendTeamMessage(affair) {
+  const msg = prompt(`Message à l'équipe pour "${affair.name || 'affaire'}" :`, '')
+  if (!msg) return
+  const companyId = parseInt(localStorage.getItem('cablemaster-companyid')) || resolvedCompanyId.value || null
+  const { data, error } = await supabase.functions.invoke('send-push', {
+    body: { companyId, title: affair.name || 'Cinod-Prep', body: msg, url: '/MasterAffaire?affair=' + affair.affairid },
+  })
+  if (error) showMessage('Erreur envoi : ' + error.message, 'error')
+  else showMessage(`Notification envoyée (${data?.sent || 0} appareil·s)`, 'success')
 }
 
 // Clic sur une carte : 1er clic = ouvre l'aperçu, 2e clic = ouvre le détail complet, 3e = referme
