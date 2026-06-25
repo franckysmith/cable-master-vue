@@ -12,11 +12,19 @@
       <button class="filter-soon prep" :class="{ active: sortMode === 'prep' }" @click="toggleSort('prep')">Prépa</button>
       <button class="filter-soon out" :class="{ active: sortMode === 'out' }" @click="toggleSort('out')">Charg.</button>
       <button class="filter-soon back" :class="{ active: sortMode === 'back' }" @click="toggleSort('back')">Déch.</button>
+      <button class="filter-soon follow" :class="{ active: followOnly }" @click="followOnly = !followOnly" title="À suivre">★ À suivre</button>
     </div>
     <div v-if="!showForm" class="time-filters">
       <button class="time-btn today" :class="{ active: timeFilter === 'today' }" @click="toggleTime('today')">Aujourd'hui</button>
       <button class="time-btn tomorrow" :class="{ active: timeFilter === 'tomorrow' }" @click="toggleTime('tomorrow')">Demain</button>
-      <button class="time-btn week" :class="{ active: timeFilter === 'week' }" @click="toggleTime('week')">Semaine</button>
+      <button class="time-btn week" :class="{ active: timeFilter === 'week' }" @click="toggleTime('week')">Ensuite</button>
+    </div>
+    <div v-if="!showForm" class="affair-search-bar">
+      <div class="affair-search-field">
+        <input v-model="affairSearch" class="affair-search-input" :placeholder="searchPast ? '🔍 Rechercher dans le passé…' : '🔍 Rechercher une affaire à venir…'" />
+        <button v-if="affairSearch" class="affair-search-clear" @click="affairSearch = ''" title="Effacer">✕</button>
+      </div>
+      <label class="affair-search-past"><input type="checkbox" v-model="searchPast" /> passé</label>
     </div>
     <div v-if="!showForm" class="affair-tabs">
       <button :class="{ active: tab === 'draft' }" @click="tab = 'draft'">NEW</button>
@@ -141,7 +149,7 @@
           <input v-model="newTech.email" placeholder="Email" />
           <button @click="addTechForZone('front')">Ajouter</button>
         </div>
-        <div v-if="form.tech_name" class="zone-tech-info">{{ form.tech_firstname || '' }} {{ form.tech_name }} <span v-if="form.tech_phone">· {{ form.tech_phone }}</span></div>
+        <div v-if="form.tech_name" class="zone-tech-info">{{ personName(form.tech_firstname, form.tech_name) }} <span v-if="form.tech_phone">· {{ form.tech_phone }}</span></div>
       </div>
 
       <div v-if="form.monitor" class="zone-tech-block retour">
@@ -160,7 +168,7 @@
           <input v-model="newTech.email" placeholder="Email" />
           <button @click="addTechForZone('monitor')">Ajouter</button>
         </div>
-        <div v-if="form.tech_name_monitor" class="zone-tech-info">{{ form.tech_firstname_monitor || '' }} {{ form.tech_name_monitor }} <span v-if="form.tech_phone_monitor">· {{ form.tech_phone_monitor }}</span></div>
+        <div v-if="form.tech_name_monitor" class="zone-tech-info">{{ personName(form.tech_firstname_monitor, form.tech_name_monitor) }} <span v-if="form.tech_phone_monitor">· {{ form.tech_phone_monitor }}</span></div>
       </div>
 
       <div v-if="form.system" class="zone-tech-block systeme">
@@ -179,7 +187,7 @@
           <input v-model="newTech.email" placeholder="Email" />
           <button @click="addTechForZone('system')">Ajouter</button>
         </div>
-        <div v-if="form.tech_name_system" class="zone-tech-info">{{ form.tech_firstname_system || '' }} {{ form.tech_name_system }} <span v-if="form.tech_phone_system">· {{ form.tech_phone_system }}</span></div>
+        <div v-if="form.tech_name_system" class="zone-tech-info">{{ personName(form.tech_firstname_system, form.tech_name_system) }} <span v-if="form.tech_phone_system">· {{ form.tech_phone_system }}</span></div>
       </div>
 
       <div v-if="form.stage" class="zone-tech-block scene">
@@ -198,7 +206,7 @@
           <input v-model="newTech.email" placeholder="Email" />
           <button @click="addTechForZone('stage')">Ajouter</button>
         </div>
-        <div v-if="form.tech_name_stage" class="zone-tech-info">{{ form.tech_firstname_stage || '' }} {{ form.tech_name_stage }} <span v-if="form.tech_phone_stage">· {{ form.tech_phone_stage }}</span></div>
+        <div v-if="form.tech_name_stage" class="zone-tech-info">{{ personName(form.tech_firstname_stage, form.tech_name_stage) }} <span v-if="form.tech_phone_stage">· {{ form.tech_phone_stage }}</span></div>
       </div>
 
       <!-- Assistants (illimités, chacun avec son poste) -->
@@ -251,11 +259,16 @@
         @click="onCardClick(affair)"
       >
         <div class="card-head">
+          <span v-if="isNew(affair)" class="new-badge">NEW</span>
+          <button class="follow-btn" :class="{ on: affair.followed }" @click.stop="toggleFollow(affair)" :title="affair.followed ? 'Ne plus suivre' : 'À suivre'">{{ affair.followed ? '★' : '☆' }}</button>
           <span v-if="unreadAffairs[affair.affairid]" class="unread-star" @click.stop="openChatOnly(affair)">★</span>
           <span class="card-name" :class="{ 'is-today': isTodayFor(affair), 'is-tomorrow': !isTodayFor(affair) && isTomorrowFor(affair) }">{{ affair.name || '(Sans nom)' }}</span>
-          <button class="card-cal-btn" @click.stop="openCalendarFor(affair)" title="Voir le calendrier">📅</button>
+          <button v-if="selected?.affairid === affair.affairid && detailOpen" class="card-cal-btn" @click.stop="openCalendarFor(affair)" title="Voir le calendrier">📅</button>
           <button v-if="selected?.affairid === affair.affairid && detailOpen" class="card-edit-btn" @click.stop="editCurrentAffair" title="Modifier l'affaire">✏️</button>
-          <button v-if="selected?.affairid === affair.affairid && detailOpen" class="card-edit-btn" @click.stop="sendTeamMessage(affair)" title="Message à l'équipe (notification)">🔔</button>
+          <button v-if="selected?.affairid === affair.affairid && detailOpen" class="card-edit-btn" @click.stop="sendTeamMessage(affair)" title="Notification à l'équipe">🔔</button>
+          <button v-if="selected?.affairid === affair.affairid && detailOpen" class="card-edit-btn chat-btn" @click.stop="toggleChat" title="Chat">
+            💬<span v-if="chatUnreadCount" class="chat-badge">{{ chatUnreadCount }}</span>
+          </button>
         </div>
 
         <div v-if="cardDateLine(affair).val" class="cdl-badge" :class="'cdl-' + cardDateLine(affair).type">
@@ -263,10 +276,24 @@
           <span class="cdl-val">{{ cardDateLine(affair).val }}</span>
         </div>
 
+        <!-- Mini-calendrier des jours-clés sous la date (si l'affaire tient sur ≤ 1 semaine) -->
+        <div v-if="miniCalDays(affair)" class="mini-cal">
+          <div v-for="d in miniCalDays(affair)" :key="d.date" class="mini-cal-day">
+            <span class="mcd-dow">{{ dowLetter(d.date) }}</span>
+            <span class="mcd-num">{{ dayNum(d.date) }}</span>
+            <span class="mcd-bars">
+              <span v-for="t in d.types" :key="t" class="mcd-mark" :title="EVENT_LABELS[t]">
+                <span v-if="EVENT_ARROW[t]" class="mcd-arrow" :style="{ color: EVENT_COLORS[t] }">{{ EVENT_ARROW[t] }}</span>
+                <span v-else class="mcd-bar" :style="{ background: EVENT_COLORS[t] }"></span>
+              </span>
+            </span>
+          </div>
+        </div>
+
         <div class="card-bottom">
           <div class="card-techs">
             <div v-for="t in shownTechs(affair)" :key="t.cls" class="tech-zone-item">
-              <span class="zone-dot" :class="t.cls"></span>
+              <span class="zone-dot" :class="[t.cls, { installed: t.installed }]" :title="t.installed ? 'Joignable (app installée)' : 'App non installée'"></span>
               <span class="tech-firstname">{{ t.name }}</span>
             </div>
           </div>
@@ -285,29 +312,30 @@
           💬 {{ unreadAffairs[affair.affairid] }}
         </div>
 
-        <!-- Aperçu (1er clic) : invite à recliquer pour le détail -->
-        <div v-if="selected?.affairid === affair.affairid && !detailOpen" class="detail-hint">👆 Recliquez pour ouvrir le détail</div>
 
-        <!-- Panneau Chat -->
-        <div v-if="selected?.affairid === affair.affairid && detailOpen" class="card-expanded" @click.stop>
+        <!-- Panneau Chat (équipe + 1:1) -->
+        <div v-if="selected?.affairid === affair.affairid && detailOpen && chatOpen" class="card-expanded" @click.stop>
+          <div class="chat-peers">
+            <button class="chat-peer" :class="{ active: chatPeer === '' }" @click="selectPeer(affair, '')">👥 Équipe</button>
+            <button v-for="p in chatPeers(affair)" :key="p.email" class="chat-peer" :class="{ active: chatPeer === p.email }" @click="selectPeer(affair, p.email)">
+              {{ p.name }}<span v-if="peerUnread(p.email)" class="chat-dot"></span>
+            </button>
+          </div>
           <div class="master-chat">
             <div class="chat-messages-master">
-              <div v-for="msg in affairMessages" :key="msg.messageid" class="chat-msg-m" :class="msg.sender_role">
+              <div v-for="msg in threadMessages" :key="msg.messageid" class="chat-msg-m" :class="msg.sender_role">
                 <span class="msg-icon">{{ msg.sender_role === 'tech' ? '🧑‍🔧' : '🏢' }}</span>
                 <div class="msg-content">
                   <p>{{ msg.text }}</p>
                   <span class="msg-time-m">{{ formatTime(msg.created_at) }}</span>
                 </div>
               </div>
-              <div v-if="affairMessages.length === 0" class="chat-empty-m">Aucun message</div>
+              <div v-if="threadMessages.length === 0" class="chat-empty-m">Aucun message</div>
             </div>
             <div class="chat-input-m">
-              <input v-model="masterReply" placeholder="Répondre..." @keydown.enter="sendMasterReply(affair)" />
-              <button @click="sendMasterReply(affair)" :disabled="!masterReply.trim()">Envoyer</button>
+              <input v-model="masterReply" :placeholder="chatPeer ? 'Message à ' + peerName(affair, chatPeer) + '…' : 'Message à toute l\'équipe…'" @keydown.enter="sendChat(affair)" />
+              <button @click="sendChat(affair)" :disabled="!masterReply.trim()">Envoyer</button>
             </div>
-            <button v-if="unreadAffairs[affair.affairid]" class="btn-mark-read" @click.stop="markReadByMaster(affair)">
-              ✓ Marquer comme traité
-            </button>
           </div>
         </div>
 
@@ -321,7 +349,7 @@
             <div class="fiche-person-header" :class="zone.css">{{ zone.icon }} {{ zone.label }}</div>
             <div class="fiche-person-body">
               <div class="fiche-person-line">
-                <span class="fiche-person-name">{{ zone.firstname }} {{ zone.name }}</span>
+                <span class="fiche-person-name">{{ personName(zone.firstname, zone.name) }}</span>
                 <span v-if="zone.phone" class="fiche-person-phone">{{ zone.phone }}</span>
                 <span v-if="zone.email" class="fiche-person-email">{{ zone.email }}</span>
               </div>
@@ -821,6 +849,9 @@ async function loadTrashed() {
 // Filtre "à venir" : Prépa / Chargement / Déchargement
 const sortMode = ref('')
 const timeFilter = ref('') // '' | 'today' | 'tomorrow' | 'week'
+const followOnly = ref(false) // n'afficher que les affaires "à suivre" (★)
+const affairSearch = ref('') // moteur de recherche d'affaires
+const searchPast = ref(false) // false = affaires à venir ; true = affaires passées/terminées
 function toggleSort(mode) {
   sortMode.value = sortMode.value === mode ? '' : mode
   timeFilter.value = ''
@@ -842,7 +873,8 @@ function plusDaysISO(n) {
 function inWindow(d) {
   if (timeFilter.value === 'today') return d === todayISO()
   if (timeFilter.value === 'tomorrow') return d === tomorrowISO()
-  if (timeFilter.value === 'week') return d > tomorrowISO() && d <= plusDaysISO(7)
+  // « Semaine » = tout ce qui vient APRÈS demain (à partir d'après-demain), sans limite
+  if (timeFilter.value === 'week') return d > tomorrowISO()
   return false
 }
 // Toutes les dates de l'affaire (prépa + chargement + déchargement) avec leur type
@@ -862,6 +894,20 @@ function allEvents(a) {
 function windowEvent(a) {
   return allEvents(a).filter(e => inWindow(e.date)).sort((x, y) => (x.date < y.date ? -1 : 1))[0] || null
 }
+// Ordre des phases pour un même jour : prépa → chargement → déchargement
+const PHASE_ORDER = { prep: 0, out: 1, back: 2 }
+function cmpEvents(x, y) {
+  if (x.date !== y.date) return x.date < y.date ? -1 : 1
+  return (PHASE_ORDER[x.type] ?? 9) - (PHASE_ORDER[y.type] ?? 9)
+}
+// Prochain événement à venir (sinon le plus récent passé) — tous types confondus
+function nextEvent(a) {
+  const evs = allEvents(a).filter(e => e.date)
+  if (!evs.length) return null
+  const today = todayISO()
+  const upcoming = evs.filter(e => e.date >= today)
+  return (upcoming.length ? upcoming : evs).slice().sort(cmpEvents)[0]
+}
 function eventMoment(a, ev) {
   if (ev.type === 'prep') return prepMoment((a.prep_days || {})[ev.date])
   const per = (ev.type === 'out' ? a.out_periods : a.back_periods) || {}
@@ -877,15 +923,49 @@ function relevantDates(a) {
 }
 // Aujourd'hui → jaune ; demain → ambre. En vue temporelle : tous types confondus
 function datesForHighlight(a) {
-  return timeFilter.value ? allEvents(a).map(e => e.date) : relevantDates(a)
+  if (timeFilter.value) return allEvents(a).map(e => e.date)
+  if (!sortMode.value) { const e = nextEvent(a); return e ? [e.date] : [] }
+  return relevantDates(a)
+}
+// Emails des techniciens installés (joignables par l'app) → pastille carrée
+const installedEmails = computed(() => {
+  const s = new Set()
+  ;(technicians.value || []).forEach(t => { if (t.installed && t.email) s.add(t.email.toLowerCase()) })
+  return s
+})
+function isReachable(email) { return !!email && installedEmails.value.has(email.toLowerCase()) }
+
+// Mini-calendrier d'aperçu (1er clic) : jours-clés si l'affaire tient sur ≤ 1 semaine
+const EVENT_COLORS = { prep: '#ea580c', out: '#3b82f6', show: '#22c55e', back: '#15803d' }
+const EVENT_LABELS = { prep: 'Prépa', out: 'Chargement', show: 'Concert', back: 'Déchargement' }
+// Flèches cohérentes avec le calendrier : chargement = sortie → ; déchargement = retour ←
+const EVENT_ARROW = { out: '→', back: '←' }
+function dowLetter(d) { return ['D', 'L', 'M', 'M', 'J', 'V', 'S'][new Date(d + 'T00:00:00').getDay()] }
+function dayNum(d) { return parseInt(d.slice(8, 10), 10) }
+function miniCalDays(a) {
+  const map = {}
+  const add = (d, t) => { if (!d) return; (map[d] = map[d] || []).includes(t) || map[d].push(t) }
+  const pk = Object.keys(a.prep_days || {})
+  if (pk.length) pk.forEach(d => add(d, 'prep')); else add(a.prep_date, 'prep')
+  const out = a.out_dates || []
+  if (out.length) out.forEach(d => add(d, 'out')); else add(a.receipt_date, 'out')
+  ;(a.tour_dates || []).forEach(d => add(d, 'show'))
+  const back = a.back_dates || []
+  if (back.length) back.forEach(d => add(d, 'back')); else add(a.return_date, 'back')
+  const days = Object.keys(map).filter(Boolean).sort()
+  if (!days.length) return null
+  // Condition : ne pas excéder une semaine (écart 1er → dernier jour ≤ 6 jours)
+  const span = (new Date(days[days.length - 1]) - new Date(days[0])) / 86400000
+  if (span > 6) return null
+  return days.map(d => ({ date: d, types: map[d] }))
 }
 // Techniciens d'une affaire (tous les postes actifs)
 function allTechs(a) {
   const all = []
-  if (a.front) all.push({ cls: 'facade', name: a.tech_name || '?' })
-  if (a.monitor) all.push({ cls: 'retour', name: a.tech_name_monitor || '?' })
-  if (a.system) all.push({ cls: 'systeme', name: a.tech_name_system || '?' })
-  if (a.stage) all.push({ cls: 'scene', name: a.tech_name_stage || '?' })
+  if (a.front) all.push({ cls: 'facade', name: a.tech_firstname || a.tech_name || '?', installed: isReachable(a.tech_email) })
+  if (a.monitor) all.push({ cls: 'retour', name: a.tech_firstname_monitor || a.tech_name_monitor || '?', installed: isReachable(a.tech_email_monitor) })
+  if (a.system) all.push({ cls: 'systeme', name: a.tech_firstname_system || a.tech_name_system || '?', installed: isReachable(a.tech_email_system) })
+  if (a.stage) all.push({ cls: 'scene', name: a.tech_firstname_stage || a.tech_name_stage || '?', installed: isReachable(a.tech_email_stage) })
   return all
 }
 function topTechs(a) { return allTechs(a).slice(0, 2) }
@@ -925,8 +1005,9 @@ function compactList(arr0, periods, fallback) {
 // Ligne de date affichée sur la carte selon le filtre actif (Prépa par défaut)
 const TYPE_LABELS = { prep: 'Prépa', out: 'Chargement', back: 'Déchargement' }
 function cardDateLine(a) {
-  if (timeFilter.value) {
-    const ev = windowEvent(a)
+  // Vue temporelle (fenêtre) ou flux chronologique par défaut → événement pertinent
+  if (timeFilter.value || !sortMode.value) {
+    const ev = timeFilter.value ? windowEvent(a) : nextEvent(a)
     if (!ev) return { label: '', val: '', type: 'prep' }
     return { label: TYPE_LABELS[ev.type], val: shortDate(ev.date) + eventMoment(a, ev), type: ev.type }
   }
@@ -953,28 +1034,102 @@ function keyDate(a, mode) {
   return upcoming[0] || null
 }
 
+// Dernière date de déchargement (phase ultime) d'une affaire
+function lastBackDate(a) {
+  const arr = (Array.isArray(a.back_dates) && a.back_dates.length) ? a.back_dates : (a.return_date ? [a.return_date] : [])
+  const valid = arr.filter(Boolean).slice().sort()
+  return valid.length ? valid[valid.length - 1] : null
+}
+// Au moins un poste pourvu (ou un assistant) → l'affaire est prise en main
+function staffed(a) {
+  if (a.front && (a.tech_firstname || a.tech_name)) return true
+  if (a.monitor && (a.tech_firstname_monitor || a.tech_name_monitor)) return true
+  if (a.system && (a.tech_firstname_system || a.tech_name_system)) return true
+  if (a.stage && (a.tech_firstname_stage || a.tech_name_stage)) return true
+  if (Array.isArray(a.assistants) && a.assistants.length) return true
+  return false
+}
+// Badge "NEW" : affaire fraîche tant que personne n'est assigné, < 1 semaine d'existence,
+// et tant que l'événement n'est pas imminent (≤ 7 jours) — sinon ce n'est plus "nouveau".
+function isNew(a) {
+  if (staffed(a)) return false
+  if (!a.created_at) return false
+  if (a.created_at.slice(0, 10) < plusDaysISO(-7)) return false
+  const ev = nextEvent(a)
+  if (ev && ev.date <= plusDaysISO(7)) return false
+  return true
+}
+async function toggleFollow(a) {
+  const v = !a.followed
+  a.followed = v
+  const { error } = await supabase.from('affair').update({ followed: v }).eq('affairid', a.affairid)
+  if (error) { a.followed = !v; showMessage('Erreur: ' + error.message, 'error') }
+}
+
+// Affaire terminée : marquée "done" à la main OU déchargement strictement passé (échu)
+function isFinished(a) {
+  if ((a.status || 'draft') === 'done') return true
+  const d = lastBackDate(a)
+  if (!d) return false
+  return d < new Date().toISOString().slice(0, 10)
+}
+
+// Le texte cherché est-il présent dans les champs clés de l'affaire ?
+function matchAffair(a, q) {
+  const hay = [a.name, a.city, a.venue, a.event_type, a.reference,
+    a.tech_firstname, a.tech_name, a.tech_firstname_monitor, a.tech_name_monitor,
+    a.tech_firstname_system, a.tech_name_system, a.tech_firstname_stage, a.tech_name_stage]
+    .filter(Boolean).join(' ').toLowerCase()
+  return hay.includes(q)
+}
+
 const filteredAffairs = computed(() => {
+  // Recherche : prioritaire, balaie TOUTES les affaires (hors corbeille), filtres ignorés
+  const q = affairSearch.value.trim().toLowerCase()
+  if (q && tab.value !== 'trash') {
+    // Par défaut : affaires à venir ; case "passé" cochée : affaires terminées/échues
+    return affairs.value
+      .filter(a => matchAffair(a, q) && (searchPast.value ? isFinished(a) : !isFinished(a)))
+      .map(a => ({ a, e: nextEvent(a) }))
+      .sort((x, y) => (!x.e ? 1 : !y.e ? -1 : cmpEvents(x.e, y.e)))
+      .map(x => x.a)
+  }
+  const list = (() => {
   if (tab.value === 'trash') return trashedAffairs.value
+  // Dossier Terminé : déchargement échu ou marqué terminé à la main
+  if (tab.value === 'done') {
+    return affairs.value
+      .filter(isFinished)
+      .slice()
+      .sort((x, y) => ((lastBackDate(y) || '') < (lastBackDate(x) || '') ? -1 : 1))
+  }
+  // Affaires actives = tout sauf terminées (elles partent dans Terminé)
+  const active = affairs.value.filter(a => !isFinished(a))
   // Vue temporelle : aujourd'hui / demain / semaine (tous types confondus)
   if (timeFilter.value) {
-    return affairs.value
-      .filter(a => (a.status || 'draft') !== 'done')
+    return active
       .map(a => ({ a, k: (windowEvent(a) || {}).date }))
       .filter(x => x.k)
       .sort((x, y) => (x.k < y.k ? -1 : x.k > y.k ? 1 : 0))
       .map(x => x.a)
   }
-  // Mode "à venir" : parmi toutes les affaires actives non terminées, triées par date
+  // Mode "à venir" : parmi les affaires actives, triées par date
   if (sortMode.value) {
-    return affairs.value
-      .filter(a => (a.status || 'draft') !== 'done')
+    return active
       .map(a => ({ a, k: keyDate(a, sortMode.value) }))
       .filter(x => x.k)
       .sort((x, y) => (x.k < y.k ? -1 : x.k > y.k ? 1 : 0))
       .map(x => x.a)
   }
-  if (tab.value === 'all') return affairs.value
-  return affairs.value.filter(a => (a.status || 'draft') === tab.value)
+  // Aucun filtre de phase : flux chronologique fusionné (par date d'événement,
+  // puis prépa → chargement → déchargement le même jour). Sans date → en fin de liste.
+  const base = tab.value === 'all' ? active : active.filter(a => (a.status || 'draft') === tab.value)
+  const withE = base.map(a => ({ a, e: nextEvent(a) }))
+  const dated = withE.filter(x => x.e).sort((x, y) => cmpEvents(x.e, y.e))
+  const undated = withE.filter(x => !x.e)
+  return [...dated, ...undated].map(x => x.a)
+  })()
+  return followOnly.value ? list.filter(a => a.followed) : list
 })
 
 watch(tab, (t) => { if (t === 'trash') loadTrashed() })
@@ -1157,6 +1312,61 @@ async function openChatOnly(affair) {
 // Bouton "Modifier" depuis la fiche détail : ouvre le formulaire (déjà pré-rempli par selectAffair)
 function editCurrentAffair() {
   showForm.value = true
+}
+
+// --- Chat (équipe + 1:1) ---
+const chatOpen = ref(false)
+const chatPeer = ref('') // '' = toute l'équipe ; sinon email de la personne
+
+function toggleChat() {
+  chatOpen.value = !chatOpen.value
+  if (chatOpen.value && selected.value) { chatPeer.value = ''; reloadMessages(selected.value) }
+}
+async function reloadMessages(affair) {
+  const { data } = await supabase.from('message').select('*').eq('affairid', affair.affairid).order('created_at', { ascending: true })
+  affairMessages.value = data || []
+}
+function chatPeers(a) {
+  const list = []
+  if (a.front && a.tech_email) list.push({ email: a.tech_email, name: a.tech_firstname || a.tech_name || 'Façade' })
+  if (a.monitor && a.tech_email_monitor) list.push({ email: a.tech_email_monitor, name: a.tech_firstname_monitor || a.tech_name_monitor || 'Monitor' })
+  if (a.system && a.tech_email_system) list.push({ email: a.tech_email_system, name: a.tech_firstname_system || a.tech_name_system || 'Système' })
+  if (a.stage && a.tech_email_stage) list.push({ email: a.tech_email_stage, name: a.tech_firstname_stage || a.tech_name_stage || 'Scène' })
+  ;(Array.isArray(a.assistants) ? a.assistants : []).forEach(as => { if (as.email) list.push({ email: as.email, name: as.firstname || as.name || 'Assistant' }) })
+  const seen = new Set()
+  return list.filter(p => p.email && !seen.has(p.email) && seen.add(p.email))
+}
+function peerName(a, email) { const p = chatPeers(a).find(x => x.email === email); return p ? p.name : email }
+function peerUnread(email) { return affairMessages.value.filter(m => m.peer_email === email && m.sender_role === 'tech' && !m.read_by_master).length }
+const threadMessages = computed(() => affairMessages.value.filter(m => (chatPeer.value ? m.peer_email === chatPeer.value : !m.peer_email)))
+const chatUnreadCount = computed(() => affairMessages.value.filter(m => m.sender_role === 'tech' && !m.read_by_master).length)
+
+async function selectPeer(affair, email) {
+  chatPeer.value = email
+  // marquer lus les messages reçus de ce fil
+  let q = supabase.from('message').update({ read_by_master: true }).eq('affairid', affair.affairid).eq('sender_role', 'tech')
+  q = email ? q.eq('peer_email', email) : q.is('peer_email', null)
+  await q
+  await reloadMessages(affair)
+}
+async function sendChat(affair) {
+  const txt = masterReply.value.trim()
+  if (!txt) return
+  const peer = chatPeer.value || null
+  await supabase.from('message').insert({
+    affairid: affair.affairid, sender_role: 'master', text: txt,
+    peer_email: peer, read_by_master: true, read_by_tech: false,
+  })
+  masterReply.value = ''
+  await reloadMessages(affair)
+  const payload = { title: affair.name || 'Cinod-Prep', body: txt, url: '/MasterAffaire?affair=' + affair.affairid }
+  try {
+    if (peer) await supabase.functions.invoke('send-push', { body: { ...payload, emails: [peer] } })
+    else {
+      const cid = parseInt(localStorage.getItem('cablemaster-companyid')) || resolvedCompanyId.value || null
+      await supabase.functions.invoke('send-push', { body: { ...payload, companyId: cid } })
+    }
+  } catch (e) { /* push best-effort */ }
 }
 
 // Notification push à l'équipe (tous les appareils installés de l'entreprise)
@@ -1440,6 +1650,16 @@ function onAssistantSelect(a) {
   a.phone = tech.phone || ''
 }
 
+// Affichage "Prénom Nom" sans redoubler le prénom quand `name` contient déjà le nom complet
+function personName(firstname, name) {
+  const fn = (firstname || '').trim()
+  const nm = (name || '').trim()
+  if (!fn) return nm
+  if (!nm) return fn
+  if (nm.toLowerCase().startsWith(fn.toLowerCase())) return nm
+  return fn + ' ' + nm
+}
+
 function onTechSelect(zone) {
   const s = zoneSuffix(zone)
   const email = form[`tech_email${s}`]
@@ -1570,11 +1790,20 @@ h3 { font-size: 16px; margin: 0; }
   font-weight: 800;
 }
 .card-name.is-tomorrow {
-  background: #fbbf24;
+  background: #f59e0b;
   color: #000;
-  border-color: #d97706;
+  border-color: #b45309;
   font-weight: 800;
 }
+.new-badge {
+  background: #22c55e; color: #fff; font-size: 10px; font-weight: 800;
+  padding: 1px 5px; border-radius: 6px; letter-spacing: 0.5px; flex: none;
+}
+.follow-btn {
+  background: transparent; border: none; cursor: pointer; font-size: 17px;
+  color: #9ca3af; padding: 0 2px; line-height: 1; flex: none;
+}
+.follow-btn.on { color: #f59e0b; }
 .card-cal-btn, .card-edit-btn {
   background: transparent; border: none; border-radius: 6px;
   font-size: 18px; line-height: 1; padding: 2px 4px; cursor: pointer; box-shadow: none; min-width: auto; flex-shrink: 0;
@@ -1583,7 +1812,7 @@ h3 { font-size: 16px; margin: 0; }
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  margin: 6px 0;
+  margin: 6px 0 2px;
   padding: 4px 8px 4px 4px;
   background: var(--bg-input, #fff);
   border: 1px solid var(--border-light, #e5e7eb);
@@ -1696,6 +1925,25 @@ h3 { font-size: 16px; margin: 0; }
 .filter-soon.prep.active { background: #ea580c; border-color: #ea580c; color: #fff; }
 .filter-soon.out.active { background: #3b82f6; border-color: #3b82f6; color: #fff; }
 .filter-soon.back.active { background: #15803d; border-color: #15803d; color: #fff; }
+.filter-soon.follow.active { background: #f59e0b; border-color: #f59e0b; color: #fff; }
+
+.affair-search-bar { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; }
+.affair-search-field { position: relative; flex: 1; }
+.affair-search-past {
+  display: flex; align-items: center; gap: 4px; flex: none;
+  font-size: 13px; color: var(--text-muted, #888); cursor: pointer; white-space: nowrap;
+}
+.affair-search-past input { accent-color: var(--color1); }
+.affair-search-input {
+  width: 100%; box-sizing: border-box; padding: 8px 30px 8px 12px;
+  border: 1px solid var(--border-light, #ccc); border-radius: 18px;
+  background: var(--bg-card, #fff); color: var(--text, #333); font-size: 14px;
+}
+.affair-search-input:focus { outline: none; border-color: var(--color1); }
+.affair-search-clear {
+  position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+  background: transparent; border: none; cursor: pointer; color: #9ca3af; font-size: 15px; padding: 2px 6px;
+}
 .affair-card.trashed { opacity: 0.65; }
 .btn-create {
   width: 100%;
@@ -1829,6 +2077,8 @@ h3 { font-size: 16px; margin: 0; }
 .card-techs { display: flex; flex-direction: column; gap: 3px; align-items: flex-start; }
 .tech-zone-item { display: flex; align-items: center; gap: 5px; }
 .zone-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+/* Technicien installé / joignable par l'app : pastille carrée (couleur = métier) */
+.zone-dot.installed { width: 9px; height: 9px; border-radius: 2px; }
 .zone-dot.facade { background: #3b82f6; }
 .zone-dot.retour { background: #f59e0b; }
 .zone-dot.systeme { background: #8b5cf6; }
@@ -1865,6 +2115,22 @@ h3 { font-size: 16px; margin: 0; }
 .card-unread-msg { padding: 4px 8px 4px 22px; font-size: 12px; color: #ef4444; font-style: italic; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .card-expanded { padding: 8px; border-top: 1px solid var(--border-light, #eee); margin-top: 6px; }
 .detail-hint { margin-top: 6px; font-size: 11px; font-weight: 700; color: var(--color1-dark, #2e7d32); }
+
+.preview-zone { cursor: pointer; }
+.mini-cal {
+  display: flex; flex-wrap: wrap; gap: 6px; margin-top: -2px;
+  padding: 4px 6px; border-radius: 8px; background: var(--bg-soft, rgba(0,0,0,0.04));
+}
+.mini-cal-day {
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+  min-width: 30px; padding: 3px 2px;
+}
+.mcd-dow { font-size: 9px; font-weight: 700; color: var(--text, #cbd5e1); opacity: 0.85; text-transform: uppercase; }
+.mcd-num { font-size: 15px; font-weight: 800; color: var(--text, #333); line-height: 1; }
+.mcd-bars { display: flex; align-items: center; gap: 3px; margin-top: 2px; height: 12px; }
+.mcd-mark { display: flex; align-items: center; }
+.mcd-bar { width: 6px; height: 6px; border-radius: 2px; }
+.mcd-arrow { font-size: 13px; font-weight: 900; line-height: 1; }
 .detail-actions { margin-top: 8px; }
 .btn-edit-detail {
   width: 100%; padding: 9px; background: var(--color1-dark); color: #fff; border: none;
@@ -1887,6 +2153,12 @@ h3 { font-size: 16px; margin: 0; }
 .fiche-action-btn.email { background: rgba(245,158,11,0.1); color: #f59e0b; }
 .fiche-person-email { font-size: 12px; color: var(--text-light, #888); margin-bottom: 6px; }
 .fiche-no-contact { font-size: 12px; color: var(--text-muted, #999); font-style: italic; margin-top: 4px; }
+.chat-btn { position: relative; }
+.chat-badge { position: absolute; top: -4px; right: -4px; background: #ef4444; color: #fff; font-size: 10px; font-weight: 800; border-radius: 8px; padding: 0 4px; min-width: 14px; text-align: center; line-height: 14px; }
+.chat-peers { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; }
+.chat-peer { position: relative; padding: 4px 10px; border: 1px solid var(--border-light, #ccc); border-radius: 14px; background: var(--bg-card, #f5f5f5); color: var(--text, #333); font-size: 12px; font-weight: 600; cursor: pointer; box-shadow: none; min-width: auto; }
+.chat-peer.active { background: var(--color1); border-color: var(--color1); color: #fff; }
+.chat-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #ef4444; margin-left: 5px; vertical-align: middle; }
 .master-chat { border: 1px solid var(--border-light, #eee); border-radius: 8px; padding: 8px; }
 .chat-messages-master { max-height: 150px; overflow-y: auto; margin-bottom: 6px; }
 .chat-msg-m { display: flex; gap: 6px; margin-bottom: 6px; }

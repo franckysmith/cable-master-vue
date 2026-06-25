@@ -299,6 +299,18 @@ async function loadChatMessages() {
   hasUnreadMessage.value = (data || []).some(m => m.sender_role === 'master' && !m.read_by_tech)
 }
 
+// Email du technicien courant sur cette affaire (pour ranger son message dans son fil 1:1)
+function myPeerEmail(a) {
+  const techId = parseInt(localStorage.getItem('cablemaster-techid')) || 0
+  if (!techId) return null
+  if (a.tech_id === techId) return a.tech_email || null
+  if (a.tech_id_monitor === techId) return a.tech_email_monitor || null
+  if (a.tech_id_system === techId) return a.tech_email_system || null
+  if (a.tech_id_stage === techId) return a.tech_email_stage || null
+  const as = (Array.isArray(a.assistants) ? a.assistants : []).find(x => x.tech_id === techId)
+  return as ? (as.email || null) : null
+}
+
 async function sendChat() {
   if (!chatText.value.trim()) return
   const a = affairStore.selectedAffair
@@ -308,6 +320,7 @@ async function sendChat() {
     affairid: a.affairid,
     sender_role: 'tech',
     text: chatText.value.trim(),
+    peer_email: myPeerEmail(a),
     read_by_tech: true,
     read_by_master: false,
   })
