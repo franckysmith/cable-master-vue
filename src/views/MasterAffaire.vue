@@ -33,8 +33,8 @@
       <button class="mfc-clear" @click="managerFilter = ''" title="Tout afficher">✕</button>
     </div>
     <div v-if="!showForm" class="affair-tabs">
-      <button :class="{ active: tab === 'draft' }" @click="tab = 'draft'">NEW</button>
-      <button :class="{ active: tab === 'sent' }" @click="tab = 'sent'">Envoyé</button>
+      <button :class="{ active: tab === 'new' }" @click="tab = tab === 'new' ? 'all' : 'new'">NEW</button>
+      <button :class="{ active: tab === 'sent' }" @click="tab = tab === 'sent' ? 'all' : 'sent'">Envoyé</button>
       <select
         class="tab-select"
         :class="{ active: ['done', 'all', 'trash'].includes(tab) }"
@@ -266,7 +266,8 @@
       >
         <div class="card-head">
           <span v-if="isNew(affair)" class="new-badge">NEW</span>
-          <button class="follow-btn" :class="{ on: affair.followed }" @click.stop="toggleFollow(affair)" :title="affair.followed ? 'Ne plus suivre' : 'À suivre'">{{ affair.followed ? '★' : '☆' }}</button>
+          <button v-if="isNew(affair)" class="send-badge-btn" @click.stop="sendAffair(affair)" title="Envoyer l'affaire">Envoyer</button>
+          <button class="follow-btn" :class="{ on: affair.followed }" @click.stop="toggleFollow(affair)" :title="affair.followed ? 'Suivi' : 'À suivre'">{{ affair.followed ? '★' : '☆' }}</button>
           <span v-if="unreadAffairs[affair.affairid]" class="unread-star" @click.stop="openChatOnly(affair)">★</span>
           <span class="card-name" :class="{ 'is-today': isTodayFor(affair), 'is-tomorrow': !isTodayFor(affair) && isTomorrowFor(affair) }">{{ affair.name || '(Sans nom)' }}</span>
           <!-- Carte sélectionnée → menu éditable ; sinon → filtre par gérant -->
@@ -279,6 +280,7 @@
           </button>
           <button v-if="selected?.affairid === affair.affairid && detailOpen" class="card-cal-btn" @click.stop="openCalendarFor(affair)" title="Voir le calendrier">📅</button>
           <button v-if="selected?.affairid === affair.affairid && detailOpen" class="card-edit-btn" @click.stop="editCurrentAffair" title="Modifier l'affaire">✏️</button>
+          <button v-if="selected?.affairid === affair.affairid && detailOpen" class="card-edit-btn" @click.stop="requestList(affair)" title="Demander la liste au(x) technicien(s)">📋</button>
           <button v-if="selected?.affairid === affair.affairid && detailOpen" class="card-edit-btn" @click.stop="sendTeamMessage(affair)" title="Notification à l'équipe">🔔</button>
           <button v-if="selected?.affairid === affair.affairid && detailOpen" class="card-edit-btn chat-btn" @click.stop="toggleChat" title="Chat">
             💬<span v-if="chatUnreadCount" class="chat-badge">{{ chatUnreadCount }}</span>
@@ -364,10 +366,12 @@
             <div class="fiche-person-body">
               <div class="fiche-person-line">
                 <span class="fiche-person-name">{{ personName(zone.firstname, zone.name) }}</span>
+                <span v-if="isReachable(zone.email)" class="fiche-installed" title="A installé l'app — joignable par notification">📱</span>
                 <span v-if="zone.phone" class="fiche-person-phone">{{ zone.phone }}</span>
                 <span v-if="zone.email" class="fiche-person-email">{{ zone.email }}</span>
               </div>
               <div v-if="zone.phone || zone.email" class="fiche-person-actions">
+                <button v-if="isReachable(zone.email)" class="fiche-action-btn notif" @click="notifyPerson(affair, zone)">🔔 Notifier</button>
                 <a v-if="zone.phone" :href="'tel:' + zone.phone" class="fiche-action-btn call">📞 Appeler</a>
                 <a v-if="zone.phone" :href="'sms:' + zone.phone" class="fiche-action-btn sms">💬 SMS</a>
                 <a v-if="zone.email" :href="'mailto:' + zone.email" class="fiche-action-btn email">📩 Email</a>
@@ -1107,21 +1111,25 @@ function staffed(a) {
   if (Array.isArray(a.assistants) && a.assistants.length) return true
   return false
 }
-// Badge "NEW" : affaire fraîche tant que personne n'est assigné, < 1 semaine d'existence,
-// et tant que l'événement n'est pas imminent (≤ 7 jours) — sinon ce n'est plus "nouveau".
+// Badge "NEW" : affaire pas encore envoyée (statut brouillon) et non terminée.
+// Reste NEW tant qu'on n'a pas cliqué « Envoyer ».
 function isNew(a) {
-  if (staffed(a)) return false
-  if (!a.created_at) return false
-  if (a.created_at.slice(0, 10) < plusDaysISO(-7)) return false
-  const ev = nextEvent(a)
-  if (ev && ev.date <= plusDaysISO(7)) return false
-  return true
+  if (isFinished(a)) return false
+  return (a.status || 'draft') === 'draft'
 }
 async function toggleFollow(a) {
   const v = !a.followed
   a.followed = v
   const { error } = await supabase.from('affair').update({ followed: v }).eq('affairid', a.affairid)
   if (error) { a.followed = !v; showMessage('Erreur: ' + error.message, 'error') }
+}
+// Envoyer l'affaire : NEW → envoyée, et passe automatiquement en « suivi »
+async function sendAffair(a) {
+  a.status = 'sent'
+  a.followed = true
+  const { error } = await supabase.from('affair').update({ status: 'sent', followed: true }).eq('affairid', a.affairid)
+  if (error) { showMessage('Erreur: ' + error.message, 'error'); return }
+  showMessage('Affaire envoyée — suivie', 'success')
 }
 
 // Affaire terminée : marquée "done" à la main OU déchargement strictement passé (échu)
@@ -1181,7 +1189,9 @@ const filteredAffairs = computed(() => {
   }
   // Aucun filtre de phase : flux chronologique fusionné (par date d'événement,
   // puis prépa → chargement → déchargement le même jour). Sans date → en fin de liste.
-  const base = tab.value === 'all' ? active : active.filter(a => (a.status || 'draft') === tab.value)
+  const base = tab.value === 'all' ? active
+    : tab.value === 'new' ? active.filter(a => isNew(a)) // affaires portant le badge NEW (à traiter)
+    : active.filter(a => (a.status || 'draft') === tab.value)
   const withE = base.map(a => ({ a, e: nextEvent(a) }))
   const dated = withE.filter(x => x.e).sort((x, y) => cmpEvents(x.e, y.e))
   const undated = withE.filter(x => !x.e)
@@ -1439,6 +1449,41 @@ async function sendTeamMessage(affair) {
   })
   if (error) showMessage('Erreur envoi : ' + error.message, 'error')
   else showMessage(`Notification envoyée (${data?.sent || 0} appareil·s)`, 'success')
+}
+
+// Notification push à UNE personne (qui a installé l'app)
+async function notifyPerson(affair, zone) {
+  if (!zone?.email) return
+  const who = zone.firstname || zone.name || ''
+  const msg = prompt(`Notification à ${who} pour « ${affair.name || 'l\'affaire'} » :`, '')
+  if (!msg) return
+  try {
+    const { data, error } = await supabase.functions.invoke('send-push', {
+      body: { emails: [zone.email], title: affair.name || 'Cinod-Prep', body: msg, url: '/?affair=' + affair.affairid },
+    })
+    if (error) showMessage('Erreur : ' + error.message, 'error')
+    else showMessage(`Notification envoyée (${data?.sent || 0} appareil·s)`, 'success')
+  } catch (e) { showMessage('Erreur envoi', 'error') }
+}
+
+// Demander au(x) technicien(s) assigné(s) de remplir leur liste (micros/câbles)
+async function requestList(affair) {
+  const peers = chatPeers(affair)
+  if (!peers.length) { showMessage('Aucun technicien assigné à cette affaire', 'error'); return }
+  const text = `Bonjour, peux-tu remplir ta liste (micros / câbles) pour « ${affair.name || 'l\'affaire'} » ? Merci.`
+  // Trace dans le chat (un message privé par technicien)
+  await supabase.from('message').insert(peers.map(p => ({
+    affairid: affair.affairid, sender_role: 'master', text,
+    peer_email: p.email, read_by_master: true, read_by_tech: false,
+  })))
+  await reloadMessages(affair)
+  // Notification push aux techniciens assignés
+  try {
+    await supabase.functions.invoke('send-push', {
+      body: { emails: peers.map(p => p.email), title: affair.name || 'Cinod-Prep', body: text, url: '/?affair=' + affair.affairid },
+    })
+  } catch (e) { /* push best-effort */ }
+  showMessage(`Demande envoyée à ${peers.length} technicien·s`, 'success')
 }
 
 // Clic sur une carte : 1er clic = ouvre l'aperçu, 2e clic = ouvre le détail complet, 3e = referme
@@ -1883,6 +1928,11 @@ h3 { font-size: 16px; margin: 0; }
   background: #22c55e; color: #fff; font-size: 10px; font-weight: 800;
   padding: 1px 5px; border-radius: 6px; letter-spacing: 0.5px; flex: none;
 }
+.send-badge-btn {
+  flex: none; background: #3b82f6; color: #fff; font-size: 11px; font-weight: 800;
+  padding: 2px 8px; border: none; border-radius: 6px; cursor: pointer;
+  box-shadow: none; min-width: auto;
+}
 .follow-btn {
   background: transparent; border: none; cursor: pointer; font-size: 17px;
   color: #9ca3af; padding: 0 2px; line-height: 1; flex: none;
@@ -2234,6 +2284,8 @@ h3 { font-size: 16px; margin: 0; }
 .fiche-action-btn.call { background: rgba(59,130,246,0.1); color: #3b82f6; }
 .fiche-action-btn.sms { background: rgba(16,185,129,0.1); color: #10b981; }
 .fiche-action-btn.email { background: rgba(245,158,11,0.1); color: #f59e0b; }
+.fiche-action-btn.notif { background: var(--color1); color: #fff; border: none; box-shadow: none; }
+.fiche-installed { font-size: 13px; margin-left: 2px; }
 .fiche-person-email { font-size: 12px; color: var(--text-light, #888); margin-bottom: 6px; }
 .fiche-no-contact { font-size: 12px; color: var(--text-muted, #999); font-style: italic; margin-top: 4px; }
 .chat-btn { position: relative; }

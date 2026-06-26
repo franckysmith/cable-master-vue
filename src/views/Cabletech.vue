@@ -119,28 +119,10 @@
       </div>
 
       <!-- Sticky : boutons type (sélection + quantité + cadre couleur) + en-têtes colonnes -->
-      <div class="sticky-header">
+      <div class="sticky-header" :class="{ 'sticky-micro': microMode }">
         <ButtonCableType v-if="!microMode" :model-value="typeChoose" :distributed-types="distributedTypes" :over-types="overTypes" :counts="typeCounts" @select="typeChoose = $event" />
 
 
-        <!-- En-têtes micro -->
-        <div v-if="microMode" class="head-zone">
-          <div class="head-spacer">
-            <button class="subtract-toggle" :class="{ active: subtractMode }" @click="subtractMode = !subtractMode">
-              {{ subtractMode ? '−' : '+' }}
-            </button>
-            <button class="solo-toggle" :class="{ active: microSolo }" @click="microSolo = !microSolo">
-              S
-            </button>
-          </div>
-          <div class="head-cols">
-            <div class="head-label-angled head-spare"><span>Spare</span></div>
-            <div v-for="i in 5" :key="'mg'+i" class="head-label-angled">
-              <input v-model="microGroupLabels[`mg${i}`]" :placeholder="`Gr${i}`" maxlength="12" />
-            </div>
-            <div class="head-label-angled head-qty"><span>Qté</span></div>
-          </div>
-        </div>
 
         <!-- Sync-header Zones -->
         <div v-if="!ctMode && !microMode && !directMode && layout === 'cableTechBase'" class="sync-header" ref="zoneHeaderScroll">
@@ -233,7 +215,7 @@
 
       <!-- Micro layout -->
       <div v-if="!ctMode && microMode" class="table-scroll">
-        <MicroList :cables="filteredJoinedData" :active-cable-id="activeCableId" :subtract-mode="subtractMode" :solo-mode="microSolo" :increment-step="incrementStep" @updated="onCableUpdated" @select="onCableSelect" @longpress="onCableLongPress" />
+        <MicroList :cables="filteredJoinedData" :active-cable-id="activeCableId" :subtract-mode="subtractMode" :solo-mode="microSolo" :increment-step="incrementStep" :micros-validated="!!selectedAffair?.micros_validated" @updated="onCableUpdated" @select="onCableSelect" @longpress="onCableLongPress" @toggle-subtract="subtractMode = !subtractMode" @toggle-solo="microSolo = !microSolo" @validate="setMicrosValidated(true)" @unlock="setMicrosValidated(false)" />
       </div>
 
       <!-- Zones layout (body only, header in sticky) -->
@@ -1196,8 +1178,9 @@ async function autoSaveNow() {
   if (labelError) console.error('Erreur save labels:', labelError.message)
 
   // Sauvegarder orders
+  const hasMicData = (c) => c.type === 'microphone' && ((c.need || 0) > 0 || (c.proposed || 0) > 0 || (c.detail && c.detail.trim()))
   const toSave = joinedData.value
-    .filter(c => getZoneTotal(c) > 0 || getTfcTotal(c) > 0)
+    .filter(c => getZoneTotal(c) > 0 || getTfcTotal(c) > 0 || hasMicData(c))
     .map(c => ({
       cableid: c.cableid,
       affairid: c.affairid,
@@ -1205,6 +1188,9 @@ async function autoSaveNow() {
       role: c.role || 'front',
       done: c.done,
       count: getZoneTotal(c) > 0 ? getZoneTotal(c) : getTfcTotal(c),
+      need: c.need || 0,
+      proposed: c.proposed || 0,
+      detail: c.detail || null,
       spare_count: c.spare_count,
       z1: c.z1, z2: c.z2, z3: c.z3, z4: c.z4, z5: c.z5, z6: c.z6,
       tfc1: c.tfc1, tfc2: c.tfc2, tfc3: c.tfc3, tfc4: c.tfc4, tfc5: c.tfc5, tfc6: c.tfc6, tfc7: c.tfc7,
@@ -1240,6 +1226,13 @@ function onCableUpdated() {
 }
 
 const selectedAffair = computed(() => affairStore.selectedAffair)
+
+// Valider / déverrouiller la caisse micro (master)
+async function setMicrosValidated(v) {
+  if (!selectedAffair.value) return
+  selectedAffair.value.micros_validated = v
+  await affairStore.updateAffair(selectedAffair.value.affairid, { micros_validated: v })
+}
 
 // Supprimer l'affaire ouverte (soft-delete → corbeille), avec confirmation
 async function deleteSelectedAffair() {
@@ -1355,6 +1348,9 @@ function rebuildJoinedData(cables = cableStore.cables) {
       info: cable.info,
       link: cable.link,
       count: parseInt(order?.count) || 0,
+      need: parseInt(order?.need) || 0,
+      proposed: parseInt(order?.proposed) || 0,
+      detail: order?.detail || '',
       spare_count: parseInt(order?.spare_count) || 0,
       tfc1: parseInt(order?.tfc1) || 0,
       tfc2: parseInt(order?.tfc2) || 0,
@@ -1584,6 +1580,8 @@ function colorForType(type) {
   padding-bottom: 2px;
   min-height: 90px;
 }
+/* En mode micro, les en-têtes sont dans MicroList → pas d'espace réservé ici */
+.sticky-header.sticky-micro { min-height: 0; padding-bottom: 0; }
 .affair-open-bar {
   display: flex;
   align-items: center;
@@ -1869,6 +1867,7 @@ function colorForType(type) {
   margin-top: 10px;
   overflow: hidden;
 }
+.micro-toolbar { gap: 8px; overflow: visible; }
 .subtract-toggle {
   width: 28px;
   height: 28px;
