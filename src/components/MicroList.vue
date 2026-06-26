@@ -1,5 +1,12 @@
 <template>
   <div class="micro-list">
+    <!-- Sections : HF / Micro / DI / HF micro -->
+    <div class="mic-sections">
+      <button v-for="s in MIC_SECTIONS" :key="s.key" class="mic-section-btn"
+        :class="{ active: micSection === s.key }" @click="micSection = s.key">
+        {{ s.label }}<span v-if="sectionCount(s.key)" class="mic-section-count">{{ sectionCount(s.key) }}</span>
+      </button>
+    </div>
     <template v-for="([brand, cables]) in groupedMics" :key="brand">
       <div class="brand-header" @click="toggleGroup(brand)">
         <span class="brand-arrow">{{ closedGroups[brand] ? '▶' : '▼' }}</span>
@@ -155,7 +162,18 @@ const props = defineProps({
 
 const emit = defineEmits(['updated', 'select', 'longpress'])
 
-const allMics = computed(() => props.cables.filter(c => c.type === 'microphone'))
+// Sections de la page Micro
+const MIC_SECTIONS = [
+  { key: 'micro', label: 'Micro' },
+  { key: 'di', label: 'DI' },
+  { key: 'hf_micro', label: 'HF micro' },
+]
+const micSection = ref('micro')
+const allMicsRaw = computed(() => props.cables.filter(c => c.type === 'microphone'))
+function catOf(c) { return c.mic_category || 'micro' }
+function sectionCount(key) { return allMicsRaw.value.filter(c => catOf(c) === key).length }
+
+const allMics = computed(() => allMicsRaw.value.filter(c => catOf(c) === micSection.value))
 const activeMics = computed(() => allMics.value.filter(c => getQty(c) > 0))
 const inactiveMics = computed(() => allMics.value.filter(c => getQty(c) === 0))
 const microCables = computed(() => {
@@ -234,7 +252,10 @@ function isEditable(cable) {
   return cable.cableid == props.activeCableId
 }
 
+const LONG_PRESS_DELAY = 400
+const REPEAT_INTERVAL = 200
 let pressTimer = null
+let repeatTimer = null
 let didLongPress = false
 
 function startPress(cable, field, e) {
@@ -244,11 +265,31 @@ function startPress(cable, field, e) {
     return // sélection uniquement via le nom du câble, pas via les cases
   }
   didLongPress = false
+  // Maintien → décrément continu (−1 répété)
+  pressTimer = setTimeout(() => {
+    didLongPress = true
+    doDecrement(cable, field)
+    repeatTimer = setInterval(() => doDecrement(cable, field), REPEAT_INTERVAL)
+  }, LONG_PRESS_DELAY)
+}
+
+function doDecrement(cable, field) {
+  if (cable[field] > 0) {
+    cable[field] = cable[field] - 1
+    emit('updated', cable)
+  } else {
+    clearInterval(repeatTimer)
+    repeatTimer = null
+  }
 }
 
 function endPress(cable, field, e) {
   if (e?.type?.startsWith('mouse') && usedTouch) return
   if (!isEditable(cable)) return
+  clearTimeout(pressTimer)
+  clearInterval(repeatTimer)
+  pressTimer = null
+  repeatTimer = null
 
   if (!didLongPress) {
     if (props.subtractMode) {
@@ -264,6 +305,9 @@ function endPress(cable, field, e) {
 
 function cancelPress() {
   clearTimeout(pressTimer)
+  clearInterval(repeatTimer)
+  pressTimer = null
+  repeatTimer = null
 }
 </script>
 
@@ -271,6 +315,22 @@ function cancelPress() {
 .micro-list {
   width: 100%;
 }
+.mic-sections {
+  display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap;
+}
+.mic-section-btn {
+  flex: 1 1 0; min-width: 0; padding: 6px 8px;
+  background: var(--bg-card, #f5f5f5); color: var(--text, #333);
+  border: 1px solid var(--border-light, #ccc); border-radius: 8px;
+  font-size: 13px; font-weight: 700; cursor: pointer; box-shadow: none;
+  display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+}
+.mic-section-btn.active { background: var(--color1); border-color: var(--color1); color: #fff; }
+.mic-section-count {
+  font-size: 11px; font-weight: 800; background: rgba(0,0,0,0.18);
+  border-radius: 8px; padding: 0 5px; min-width: 16px; text-align: center;
+}
+.mic-section-btn.active .mic-section-count { background: rgba(255,255,255,0.3); }
 .cable-row {
   display: flex;
   align-items: center;

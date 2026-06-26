@@ -1346,6 +1346,8 @@ function rebuildJoinedData(cables = cableStore.cables) {
       role,
       done: order?.done ?? true,
       name: cable.name,
+      brand: cable.brand,
+      mic_category: cable.mic_category,
       type: cable.type,
       color: cable.color,
       total: cable.total,
