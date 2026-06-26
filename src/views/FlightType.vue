@@ -8,7 +8,8 @@
           :key="'ct'+i"
           class="ct-tab"
           :class="{ active: selectedCt === i }"
-          @click="selectCt(i)"
+          @mousedown="startTabPress(i)" @mouseup="endTabPress(i)" @mouseleave="cancelTabPress"
+          @touchstart="startTabPress(i)" @touchend.prevent="endTabPress(i)" @touchcancel="cancelTabPress"
         >
           {{ settingsStore.defaultCtLabels[`ct${i}`] || `CK${i}` }}
         </button>
@@ -18,12 +19,18 @@
     <!-- Contenu de la caisse sélectionnée -->
     <div v-if="selectedCt" class="ct-content">
       <div class="ct-toolbar">
-        <input class="search" type="text" v-model="searchKey" placeholder="Rechercher câble" />
+        <span class="search-wrap">
+          <input class="search" type="text" v-model="searchKey" placeholder="Rechercher câble" />
+          <button v-if="searchKey" class="search-clear" @click="searchKey = ''" title="Effacer">✕</button>
+        </span>
         <button class="subtract-toggle" :class="{ active: subtractMode }" @click="subtractMode = !subtractMode">
           {{ subtractMode ? '−' : '+' }}
         </button>
         <button class="step-toggle" :class="{ active: incrementStep === 10 }" @click="incrementStep = incrementStep === 10 ? 1 : 10">
           +10
+        </button>
+        <button class="solo-toggle" :class="{ active: soloMode }" @click="toggleSolo" title="Voir uniquement les câbles présents (bilan)">
+          S
         </button>
       </div>
 
@@ -70,11 +77,28 @@
     <div v-else class="ct-empty">
       Sélectionnez une caisse type
     </div>
+
+    <!-- Renommer les cablekits (appui long sur un onglet, réservé à l'entreprise) -->
+    <div v-if="ckEditor.open" class="ck-editor-overlay" @click.self="cancelCkEditor">
+      <div class="ck-editor">
+        <div class="ck-title">Renommer les cablekits</div>
+        <div class="ck-rows">
+          <label v-for="f in ckEditor.fields" :key="f.key" class="ck-row">
+            <span class="ck-tag">{{ f.placeholder }}</span>
+            <input v-model="f.value" :placeholder="f.placeholder" maxlength="20" @keydown.enter="saveCkEditor" />
+          </label>
+        </div>
+        <div class="ck-actions">
+          <button class="ck-cancel" @click="cancelCkEditor">Annuler</button>
+          <button class="ck-save" @click="saveCkEditor">Valider</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useCableStore } from '../stores/cables'
 import { useMfcStore } from '../stores/mfc'
 import { useSettingsStore } from '../stores/settings'
@@ -90,8 +114,14 @@ const searchKey = ref('')
 const activeCableId = ref(null)
 const subtractMode = ref(false)
 const incrementStep = ref(1)
+const soloMode = ref(false) // n'afficher que les câbles présents dans la caisse (bilan)
 const cableCounts = ref({})
 let usedTouch = false
+
+function toggleSolo() {
+  soloMode.value = !soloMode.value
+  if (soloMode.value) searchKey.value = ''
+}
 
 onMounted(() => {
   cableStore.fetchCables()
@@ -100,7 +130,10 @@ onMounted(() => {
 
 const filteredCables = computed(() => {
   let list = cableStore.cables
-  if (typeChoose.value) {
+  if (soloMode.value) {
+    // Bilan : tous les câbles présents dans la caisse (count > 0), tous types confondus
+    list = list.filter(c => getCount(c) > 0)
+  } else if (typeChoose.value) {
     list = list.filter(c => c.type === typeChoose.value)
   }
   if (searchKey.value) {
@@ -205,6 +238,43 @@ async function saveCableCount(cableid) {
   await mfcStore.setCableMfc(mfc.mfcid, cableid, count)
 }
 
+// Renommage des cablekits réservé à l'entreprise (master / super-admin)
+const isMaster = computed(() => {
+  const role = localStorage.getItem('cablemaster-role') || 'technician'
+  const uid = localStorage.getItem('cablemaster-userid') || ''
+  return role === 'master' || uid === 'T'
+})
+
+// --- Renommer les cablekits (appui long sur un onglet) ---
+let tabPressTimer = null
+let tabLongFired = false
+function startTabPress() {
+  tabLongFired = false
+  clearTimeout(tabPressTimer)
+  if (!isMaster.value) return // renommage réservé à l'entreprise
+  tabPressTimer = setTimeout(() => { tabLongFired = true; openCkEditor() }, 500)
+}
+function endTabPress(i) {
+  clearTimeout(tabPressTimer)
+  if (tabLongFired) return
+  selectCt(i)
+}
+function cancelTabPress() { clearTimeout(tabPressTimer) }
+
+const ckEditor = reactive({ open: false, fields: [] })
+function openCkEditor() {
+  ckEditor.fields = Array.from({ length: 8 }, (_, k) => ({
+    key: `ct${k + 1}`, placeholder: `CK${k + 1}`,
+    value: settingsStore.defaultCtLabels[`ct${k + 1}`] || '',
+  }))
+  ckEditor.open = true
+}
+function saveCkEditor() {
+  for (const f of ckEditor.fields) settingsStore.defaultCtLabels[f.key] = (f.value || '').trim()
+  ckEditor.open = false
+}
+function cancelCkEditor() { ckEditor.open = false }
+
 function colorForType(type) {
   const colors = {
     speaker: '#4dcc59', electrical: '#f3e309', microphone: '#eb910a',
@@ -307,6 +377,54 @@ h2 {
   border-color: #3b82f6;
   color: #fff;
 }
+.solo-toggle {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid #ccc;
+  background: #fff;
+  font-size: 14px;
+  font-weight: 800;
+  color: #666;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  min-width: 28px;
+  box-shadow: none;
+}
+.solo-toggle.active {
+  background: #3b82f6;
+  border-color: #3b82f6;
+  color: #fff;
+}
+.ck-editor-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+  display: flex; align-items: center; justify-content: center; z-index: 250; padding: 16px;
+}
+.ck-editor {
+  background: var(--bg-card, #fff); color: var(--text, #333);
+  border: 1px solid var(--border, #ddd); border-radius: 14px;
+  padding: 16px; width: 100%; max-width: 340px; max-height: 80vh; overflow-y: auto;
+}
+.ck-title { font-size: 16px; font-weight: 800; margin-bottom: 12px; }
+.ck-rows { display: flex; flex-direction: column; gap: 8px; }
+.ck-row { display: flex; align-items: center; gap: 8px; }
+.ck-tag { flex: 0 0 46px; font-size: 12px; font-weight: 700; color: var(--text-muted, #888); }
+.ck-row input {
+  flex: 1; min-width: 0; padding: 8px 10px; font-size: 16px;
+  border: 1px solid var(--border-light, #ccc); border-radius: 8px;
+  background: var(--bg-input, #fff); color: var(--text, #333);
+}
+.ck-row input:focus { outline: none; border-color: var(--color1); }
+.ck-actions { display: flex; gap: 8px; margin-top: 14px; }
+.ck-cancel, .ck-save {
+  flex: 1; padding: 10px; border-radius: 8px; font-size: 14px; font-weight: 700;
+  cursor: pointer; border: none; box-shadow: none;
+}
+.ck-cancel { background: var(--bg-section, #eee); color: var(--text, #333); border: 1px solid var(--border-light, #ccc); }
+.ck-save { background: var(--color1); color: #fff; }
 .ct-table {
   width: 100%;
 }

@@ -9,7 +9,10 @@
     <template v-else>
       <!-- Recherche + Select/Envoyer + Undo -->
       <div class="search-bar">
-        <input v-model="search" class="search-input" placeholder="🔍 Nom..." />
+        <span class="search-wrap">
+          <input v-model="search" class="search-input" placeholder="🔍 Nom..." />
+          <button v-if="search" class="search-clear" @click="search = ''" title="Effacer">✕</button>
+        </span>
         <button v-if="!selectCount" class="sel-btn" :class="{ active: selectMode }" @click="toggleSelectMode">
           {{ selectMode ? 'Annuler' : 'Select' }}
         </button>

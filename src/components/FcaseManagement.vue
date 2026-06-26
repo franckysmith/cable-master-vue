@@ -174,9 +174,7 @@ function startPress(cable, field, e) {
   if (e?.type?.startsWith('mouse') && usedTouch) return
   if (e?.type?.startsWith('touch')) usedTouch = true
   if (!isEditable(cable)) {
-    emit('select', cable.cableid)
-    didLongPress = true
-    return
+    return // sélection uniquement via le nom du câble, pas via les cases
   }
   didLongPress = false
   pressTimer = setTimeout(() => {

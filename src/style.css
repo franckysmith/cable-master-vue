@@ -46,6 +46,15 @@ input[type="text"], input[type="date"], input[type="number"], input[type="search
   font-size: 16px !important;
 }
 
+/* Champ de recherche + croix d'effacement (réutilisable partout) */
+.search-wrap { position: relative; display: inline-flex; align-items: center; flex: 1; min-width: 0; }
+.search-wrap > input { width: 100%; padding-right: 28px !important; box-sizing: border-box; }
+.search-clear {
+  position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+  background: transparent; border: none; cursor: pointer; color: var(--text-muted, #999);
+  font-size: 14px; line-height: 1; padding: 2px 6px; min-width: auto; box-shadow: none;
+}
+
 /* Dark mode global overrides */
 .dark body,
 .dark input,

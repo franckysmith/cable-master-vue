@@ -3,7 +3,10 @@
 
     <!-- Barre d'outils -->
     <div class="toolbar">
-      <input v-model="search" class="search-input" placeholder="Rechercher un micro..." />
+      <span class="search-wrap">
+        <input v-model="search" class="search-input" placeholder="Rechercher un micro..." />
+        <button v-if="search" class="search-clear" @click="search = ''" title="Effacer">✕</button>
+      </span>
       <button class="view-toggle" @click="viewMode = viewMode === 'list' ? 'gallery' : 'list'">
         {{ viewMode === 'list' ? '🖼' : '📋' }}
       </button>

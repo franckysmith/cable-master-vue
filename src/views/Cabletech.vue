@@ -34,6 +34,11 @@
     </div>
 
     <div class="content-liste" v-if="selectedAffair && !allCasesMode">
+      <!-- Barre d'affaire ouverte : nom + suppression -->
+      <div class="affair-open-bar">
+        <span class="affair-open-name">{{ selectedAffair.name || '(Sans nom)' }}</span>
+        <button class="affair-del-btn" @click="deleteSelectedAffair" title="Supprimer l'affaire">🗑</button>
+      </div>
       <!-- Mode toggle : Select / flight-case / Micro -->
       <div class="mode-bar" v-if="!ctMode && !allCasesMode">
         <button
@@ -55,7 +60,10 @@
       </div>
       <div class="content-button2">
         <span class="sync-dot" :class="{ saving: saving, synced: !saving }" :title="saving ? 'Synchronisation...' : 'Synchronisé'"></span>
-        <input class="search" type="text" v-model="searchKey" placeholder="Rechercher élément" @focus="onHelpClick('search', () => {})" />
+        <span class="search-wrap">
+          <input class="search" type="text" v-model="searchKey" placeholder="Rechercher élément" @focus="onHelpClick('search', () => {})" />
+          <button v-if="searchKey" class="search-clear" @click="searchKey = ''" title="Effacer">✕</button>
+        </span>
         <button class="add-btn" @click="onHelpClick('add', () => showAddInput = !showAddInput)">+</button>
         <button
           v-if="hasCompany"
@@ -610,6 +618,11 @@ const fcSoloFilter = ref(null)  // null = tous, 1-7 = FC spécifique
 const zoneSoloFilter = ref(null)  // null = toutes, 1-6 = zone spécifique
 
 const fcSolo = ref(false)
+
+// Faire un solo (sélectionner une colonne) vide le champ de recherche
+watch([zoneSoloFilter, fcSoloFilter, ctSoloFilter], ([z, f, c]) => {
+  if (z || f || c) searchKey.value = ''
+})
 
 function onCtHeaderClick(i) {
   // Clic = changer de CT (toujours une sélectionnée)
@@ -1228,6 +1241,20 @@ function onCableUpdated() {
 
 const selectedAffair = computed(() => affairStore.selectedAffair)
 
+// Supprimer l'affaire ouverte (soft-delete → corbeille), avec confirmation
+async function deleteSelectedAffair() {
+  const a = selectedAffair.value
+  if (!a) return
+  if (!confirm(`Supprimer l'affaire « ${a.name || 'Sans nom'} » ?\nElle sera placée dans la corbeille.`)) return
+  const { error } = await supabase
+    .from('affair')
+    .update({ deleted_at: new Date().toISOString() })
+    .eq('affairid', a.affairid)
+  if (error) { alert('Erreur : ' + error.message); return }
+  affairStore.selectAffair(null)
+  await affairStore.fetchAffairs()
+}
+
 // --- Checks des caisses ---
 
 // Confirmation avant navigation
@@ -1555,6 +1582,34 @@ function colorForType(type) {
   padding-bottom: 2px;
   min-height: 90px;
 }
+.affair-open-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0 2px;
+}
+.affair-open-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text, #333);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.affair-del-btn {
+  flex: none;
+  background: transparent;
+  border: 1px solid var(--border-light, #ddd);
+  border-radius: 8px;
+  font-size: 16px;
+  padding: 4px 8px;
+  cursor: pointer;
+  box-shadow: none;
+  min-width: auto;
+}
+.affair-del-btn:active { background: rgba(239, 68, 68, 0.15); }
 .mode-bar {
   display: flex;
   flex-wrap: wrap;

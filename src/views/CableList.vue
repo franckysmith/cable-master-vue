@@ -21,7 +21,10 @@
         Ajouter un élément
       </button>
       <button v-if="showAddCable" @click="showAddCable = false">Fermer</button>
-      <input type="text" v-model="searchKey" placeholder="Rechercher un élément" />
+      <span class="search-wrap">
+        <input type="text" v-model="searchKey" placeholder="Rechercher un élément" />
+        <button v-if="searchKey" class="search-clear" @click="searchKey = ''" title="Effacer">✕</button>
+      </span>
     </div>
 
     <div class="home">

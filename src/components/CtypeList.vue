@@ -158,9 +158,7 @@ function startPress(cable, ctIndex, e) {
   if (e?.type?.startsWith('mouse') && usedTouch) return
   if (e?.type?.startsWith('touch')) usedTouch = true
   if (cable.cableid !== props.activeCableId) {
-    emit('select', cable.cableid)
-    didLongPress = true
-    return
+    return // sélection uniquement via le nom du câble, pas via les cases
   }
   didLongPress = false
 }

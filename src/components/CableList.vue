@@ -171,10 +171,7 @@ function startPress(cable, field, e) {
   if (e?.type?.startsWith('mouse') && usedTouch) return
   if (e?.type?.startsWith('touch')) usedTouch = true
   if (!isEditable(cable)) {
-    // Premier clic : sélectionner le câble
-    emit('select', cable.cableid)
-    didLongPress = true // empêcher l'incrément sur ce clic
-    return
+    return // sélection uniquement via le nom du câble, pas via les cases
   }
   didLongPress = false
   isDecrementing.value = false

@@ -18,6 +18,7 @@ export const useAffairStore = defineStore('affairs', () => {
       const { data, error } = await supabase
         .from('affair')
         .select('*')
+        .is('deleted_at', null)
         .order('receipt_date', { ascending: false })
       if (!error && data) {
         affairs.value = data
