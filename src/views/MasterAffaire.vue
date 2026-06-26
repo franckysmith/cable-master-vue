@@ -265,7 +265,12 @@
         :class="{ selected: selected?.affairid === affair.affairid, trashed: tab === 'trash' }"
         @click="onCardClick(affair)"
       >
-        <div class="card-head">
+        <!-- Actions fixes en haut à droite (fiche ouverte) -->
+        <div v-if="selected?.affairid === affair.affairid && detailOpen" class="card-tr">
+          <button class="card-edit-btn" @click.stop="editCurrentAffair" title="Modifier l'affaire">✏️</button>
+          <button class="card-edit-btn" @click.stop="closeCard" title="Fermer la fiche">✕</button>
+        </div>
+        <div class="card-head" :class="{ 'has-actions': selected?.affairid === affair.affairid && detailOpen }">
           <span v-if="isNew(affair)" class="new-badge">NEW</span>
           <button v-if="isNew(affair)" class="send-badge-btn" @click.stop="sendAffair(affair)" title="Envoyer l'affaire">Envoyer</button>
           <span v-if="isSent(affair)" class="sent-badge" title="Affaire envoyée">Envoyé</span>
@@ -280,7 +285,6 @@
           <button v-else class="manager-chip" :class="{ none: !affair.manager, active: managerFilter && managerFilter === affair.manager }" @click.stop="clickManager(affair)" :title="affair.manager ? 'Voir les affaires gérées par ' + affair.manager : 'Aucun gérant'">
             {{ affair.manager || '— gérant' }}
           </button>
-          <button v-if="selected?.affairid === affair.affairid && detailOpen" class="card-edit-btn" @click.stop="editCurrentAffair" title="Modifier l'affaire">✏️</button>
         </div>
 
         <div class="cdl-row">
@@ -313,7 +317,7 @@
           <div class="card-techs">
             <div v-for="t in shownTechs(affair)" :key="t.cls" class="tech-zone-item">
               <span class="zone-dot" :class="[t.cls, { 'not-connected': !t.installed }]" :title="t.installed ? 'Connecté (app installée)' : 'Non connecté (pas d\'app)'"></span>
-              <span class="tech-firstname">{{ selected?.affairid === affair.affairid ? t.full : t.name }}</span>
+              <span class="tech-firstname" :class="{ clickable: t.email }" @click.stop="togglePersonAffairs(t.email)">{{ selected?.affairid === affair.affairid ? t.full : t.name }}</span>
             </div>
           </div>
           <div class="card-meta">
@@ -324,6 +328,24 @@
           <div v-if="tab === 'trash'" class="card-action-btns">
             <button class="action-tab-btn" @click.stop="restoreAffair(affair)" title="Restaurer">♻️</button>
             <button class="action-tab-btn danger" @click.stop="purgeAffair(affair)" title="Supprimer définitivement">⊗</button>
+          </div>
+        </div>
+
+        <!-- Affaires de la personne cliquée (passé / à venir) -->
+        <div v-if="expandedPerson && isOnAffair(affair, expandedPerson)" class="person-affairs" @click.stop>
+          <div class="pa-col">
+            <div class="pa-title">À venir</div>
+            <button v-for="a in expandedPersonAffairs.future" :key="'f' + a.affairid" class="pa-link future" @click.stop="openAffairFromLink(a)">
+              <span class="pa-name">{{ a.name || '(Sans nom)' }}</span><span class="pa-date">{{ affairLinkDate(a) }}</span>
+            </button>
+            <div v-if="!expandedPersonAffairs.future.length" class="pa-empty">—</div>
+          </div>
+          <div class="pa-col">
+            <div class="pa-title">Passé</div>
+            <button v-for="a in expandedPersonAffairs.past" :key="'p' + a.affairid" class="pa-link past" @click.stop="openAffairFromLink(a)">
+              <span class="pa-name">{{ a.name || '(Sans nom)' }}</span><span class="pa-date">{{ affairLinkDate(a) }}</span>
+            </button>
+            <div v-if="!expandedPersonAffairs.past.length" class="pa-empty">—</div>
           </div>
         </div>
         <!-- Aperçu message non lu -->
@@ -341,7 +363,7 @@
             <div class="fiche-person-header" :class="zone.css">{{ zone.icon }} {{ zone.label }}</div>
             <div class="fiche-person-body">
               <div class="fiche-person-line">
-                <span class="fiche-person-name" :class="{ clickable: zone.email }" @click.stop="togglePersonAffairs(zone.email)" :title="zone.email ? 'Voir ses affaires (passées / à venir)' : ''">{{ personName(zone.firstname, zone.name) }}</span>
+                <span class="fiche-person-name">{{ personName(zone.firstname, zone.name) }}</span>
                 <span v-if="isReachable(zone.email)" class="fiche-installed" title="A installé l'app — joignable par notification">📱</span>
                 <span v-if="zone.phone" class="fiche-person-phone">{{ zone.phone }}</span>
                 <span v-if="zone.email" class="fiche-person-email">{{ zone.email }}</span>
@@ -353,24 +375,6 @@
                 <a v-if="zone.email" :href="'mailto:' + zone.email" class="fiche-action-btn email">📩 Email</a>
               </div>
               <div v-if="!zone.phone && !zone.email" class="fiche-no-contact">Pas de coordonnées renseignées</div>
-
-              <!-- Affaires de la personne (clic sur le nom) -->
-              <div v-if="zone.email && expandedPerson === zone.email" class="person-affairs" @click.stop>
-                <div class="pa-col">
-                  <div class="pa-title">À venir</div>
-                  <button v-for="a in expandedPersonAffairs.future" :key="'f' + a.affairid" class="pa-link future" @click="openAffairFromLink(a)">
-                    <span class="pa-name">{{ a.name || '(Sans nom)' }}</span><span class="pa-date">{{ affairLinkDate(a) }}</span>
-                  </button>
-                  <div v-if="!expandedPersonAffairs.future.length" class="pa-empty">—</div>
-                </div>
-                <div class="pa-col">
-                  <div class="pa-title">Passé</div>
-                  <button v-for="a in expandedPersonAffairs.past" :key="'p' + a.affairid" class="pa-link past" @click="openAffairFromLink(a)">
-                    <span class="pa-name">{{ a.name || '(Sans nom)' }}</span><span class="pa-date">{{ affairLinkDate(a) }}</span>
-                  </button>
-                  <div v-if="!expandedPersonAffairs.past.length" class="pa-empty">—</div>
-                </div>
-              </div>
             </div>
           </div>
           <!-- Lieu + dates -->
@@ -1058,10 +1062,10 @@ function miniCalMore(a) { return miniCalFull(a).length > MINI_CAL_MAX }
 // Techniciens d'une affaire (tous les postes actifs)
 function allTechs(a) {
   const all = []
-  if (a.front) all.push({ cls: 'facade', name: a.tech_firstname || a.tech_name || '?', full: personName(a.tech_firstname, a.tech_name), installed: isReachable(a.tech_email) })
-  if (a.monitor) all.push({ cls: 'retour', name: a.tech_firstname_monitor || a.tech_name_monitor || '?', full: personName(a.tech_firstname_monitor, a.tech_name_monitor), installed: isReachable(a.tech_email_monitor) })
-  if (a.system) all.push({ cls: 'systeme', name: a.tech_firstname_system || a.tech_name_system || '?', full: personName(a.tech_firstname_system, a.tech_name_system), installed: isReachable(a.tech_email_system) })
-  if (a.stage) all.push({ cls: 'scene', name: a.tech_firstname_stage || a.tech_name_stage || '?', full: personName(a.tech_firstname_stage, a.tech_name_stage), installed: isReachable(a.tech_email_stage) })
+  if (a.front) all.push({ cls: 'facade', name: a.tech_firstname || a.tech_name || '?', full: personName(a.tech_firstname, a.tech_name), email: a.tech_email || '', installed: isReachable(a.tech_email) })
+  if (a.monitor) all.push({ cls: 'retour', name: a.tech_firstname_monitor || a.tech_name_monitor || '?', full: personName(a.tech_firstname_monitor, a.tech_name_monitor), email: a.tech_email_monitor || '', installed: isReachable(a.tech_email_monitor) })
+  if (a.system) all.push({ cls: 'systeme', name: a.tech_firstname_system || a.tech_name_system || '?', full: personName(a.tech_firstname_system, a.tech_name_system), email: a.tech_email_system || '', installed: isReachable(a.tech_email_system) })
+  if (a.stage) all.push({ cls: 'scene', name: a.tech_firstname_stage || a.tech_name_stage || '?', full: personName(a.tech_firstname_stage, a.tech_name_stage), email: a.tech_email_stage || '', installed: isReachable(a.tech_email_stage) })
   return all
 }
 function topTechs(a) { return allTechs(a).slice(0, 2) }
@@ -1611,6 +1615,13 @@ function onCardClick(affair) {
   showForm.value = false
 }
 
+// Fermer la fiche (croix en haut à droite)
+function closeCard() {
+  detailOpen.value = false
+  selected.value = null
+  expandedPerson.value = null
+}
+
 async function selectAffair(affair) {
   showChatOnly.value = false
   selected.value = affair
@@ -1985,6 +1996,7 @@ h3 { font-size: 16px; margin: 0; }
 }
 .affair-list { margin-bottom: 10px; }
 .affair-card {
+  position: relative;
   padding: 10px;
   border: 2px solid #ffffff;
   border-radius: 8px;
@@ -1993,10 +2005,15 @@ h3 { font-size: 16px; margin: 0; }
   background: var(--bg-card, #fafafa);
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.12);
 }
+/* Croix + crayon : position fixe en haut à droite de la fiche */
+.card-tr { position: absolute; top: 8px; right: 8px; display: flex; gap: 4px; z-index: 3; }
 .affair-card.selected { border-color: var(--color1); }
 .card-top { display: flex; align-items: center; gap: 6px; }
 .card-status { font-size: 14px; }
-.card-head { display: flex; align-items: center; gap: 8px; }
+.card-head { display: flex; align-items: center; gap: 8px; flex-wrap: nowrap; min-width: 0; }
+/* réserve la place des actions (croix + crayon) en haut à droite quand la fiche est ouverte */
+.card-head.has-actions { padding-right: 60px; }
+.tech-firstname.clickable { cursor: pointer; text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 3px; }
 .card-name {
   flex: 1 1 auto; min-width: 0; max-width: 27ch;
   font-size: 16px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;

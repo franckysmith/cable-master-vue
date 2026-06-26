@@ -37,16 +37,30 @@
             @touchstart="startNamePress(cable, $event)" @touchend="endNamePress(cable, $event)" @touchcancel="cancelNamePress"
           >{{ displayName(cable) }}</div>
           <div class="cable-cols">
-            <div class="mic-cell" :class="{ disabled: cable.cableid !== activeCableId || !canEditNeed }"
-              @mousedown="startPress(cable, 'need', $event)" @mouseup="endPress(cable, 'need', $event)" @mouseleave="cancelPress"
-              @touchstart="startPress(cable, 'need', $event)" @touchend="endPress(cable, 'need', $event)" @touchcancel="cancelPress">
-              <span class="mic-value" :class="{ active: cable.need > 0 }">{{ cable.need > 0 ? cable.need : '--' }}</span>
-            </div>
-            <div class="mic-cell" :class="[propClass(cable), { disabled: cable.cableid !== activeCableId || !canEditProposed }]"
-              @mousedown="startPress(cable, 'proposed', $event)" @mouseup="endPress(cable, 'proposed', $event)" @mouseleave="cancelPress"
-              @touchstart="startPress(cable, 'proposed', $event)" @touchend="endPress(cable, 'proposed', $event)" @touchcancel="cancelPress">
-              <span class="mic-value" :class="{ active: cable.proposed > 0 }">{{ cable.proposed > 0 ? cable.proposed : '--' }}</span>
-            </div>
+            <!-- Pieds : saisie directe au clavier numérique (chiffres possibles élevés) -->
+            <template v-if="catOf(cable) === 'pied'">
+              <div class="mic-cell">
+                <input class="mic-num" type="number" inputmode="numeric" min="0" placeholder="--"
+                  :value="cable.need || ''" :readonly="!canEditNeed" @change="setNum(cable, 'need', $event)" @click.stop />
+              </div>
+              <div class="mic-cell" :class="propClass(cable)">
+                <input class="mic-num" type="number" inputmode="numeric" min="0" placeholder="--"
+                  :value="cable.proposed || ''" :readonly="!canEditProposed" @change="setNum(cable, 'proposed', $event)" @click.stop />
+              </div>
+            </template>
+            <!-- Micros / DI / HF : tap = +, maintien = − -->
+            <template v-else>
+              <div class="mic-cell" :class="{ disabled: cable.cableid !== activeCableId || !canEditNeed }"
+                @mousedown="startPress(cable, 'need', $event)" @mouseup="endPress(cable, 'need', $event)" @mouseleave="cancelPress"
+                @touchstart="startPress(cable, 'need', $event)" @touchend="endPress(cable, 'need', $event)" @touchcancel="cancelPress">
+                <span class="mic-value" :class="{ active: cable.need > 0 }">{{ cable.need > 0 ? cable.need : '--' }}</span>
+              </div>
+              <div class="mic-cell" :class="[propClass(cable), { disabled: cable.cableid !== activeCableId || !canEditProposed }]"
+                @mousedown="startPress(cable, 'proposed', $event)" @mouseup="endPress(cable, 'proposed', $event)" @mouseleave="cancelPress"
+                @touchstart="startPress(cable, 'proposed', $event)" @touchend="endPress(cable, 'proposed', $event)" @touchcancel="cancelPress">
+                <span class="mic-value" :class="{ active: cable.proposed > 0 }">{{ cable.proposed > 0 ? cable.proposed : '--' }}</span>
+              </div>
+            </template>
             <textarea class="mic-detail" v-model="cable.detail" placeholder="…" rows="1"
               @input="onDetailInput($event, cable)" @click.stop @mousedown.stop @touchstart.stop></textarea>
           </div>
@@ -98,6 +112,7 @@ const MIC_SECTIONS = [
   { key: 'micro', label: 'Micro' },
   { key: 'di', label: 'DI' },
   { key: 'hf_micro', label: 'HF micro' },
+  { key: 'pied', label: 'Pied de micro' }, // en bas de la liste, pas dans la barre de raccourcis
 ]
 const allMicsRaw = computed(() => props.cables.filter(c => c.type === 'microphone'))
 function catOf(c) { return c.mic_category || 'micro' }
@@ -206,6 +221,13 @@ let didLongPress = false
 
 function canEditField(field) {
   return field === 'proposed' ? canEditProposed.value : canEditNeed.value
+}
+
+// Saisie directe (pieds) : on tape le nombre au clavier numérique
+function setNum(cable, field, e) {
+  if (field === 'proposed' ? !canEditProposed.value : !canEditNeed.value) return
+  cable[field] = Math.max(0, parseInt(e.target.value) || 0)
+  emit('updated', cable)
 }
 
 function onDetailInput(e, cable) {
@@ -382,12 +404,25 @@ function cancelPress() {
 .cable-name { flex: 0 0 100px !important; width: 100px !important; min-width: 100px !important; max-width: 100px !important; }
 .cable-cols { flex: 1; align-items: center; gap: 4px; }
 .cable-cols .mic-cell { flex: 0 0 auto; width: 40px; height: 34px; margin: 0; }
-/* Vert/rouge prioritaires (battre les surcharges .dark … .mic-cell !important) */
-.cable-cols .mic-cell.prop-green,
-:global(.dark) .cable-cols .mic-cell.prop-green { background: #16a34a !important; }
-.cable-cols .mic-cell.prop-red,
-:global(.dark) .cable-cols .mic-cell.prop-red { background: #dc2626 !important; }
-.mic-cell.prop-green .mic-value, .mic-cell.prop-red .mic-value { color: #fff !important; }
+/* Vert/rouge en fond CLAIR + texte NOIR — spécificité renforcée pour battre les
+   surcharges .dark .cable-row:not(.row-band) .mic-cell (sinon vert 1 ligne sur 2) */
+.cable-row .cable-cols .mic-cell.prop-green,
+:global(.dark) .cable-row .cable-cols .mic-cell.prop-green { background: #86efac !important; }
+.cable-row .cable-cols .mic-cell.prop-red,
+:global(.dark) .cable-row .cable-cols .mic-cell.prop-red { background: #fca5a5 !important; }
+.mic-cell.prop-green .mic-value, .mic-cell.prop-red .mic-value,
+.mic-cell.prop-green .mic-num, .mic-cell.prop-red .mic-num { color: #111 !important; font-weight: 800; }
+/* Saisie numérique des pieds */
+.mic-cell .mic-num {
+  width: 100%; height: 100%; border: none; background: transparent; text-align: center;
+  font-size: 16px; font-weight: 800; color: #1a1a2e; padding: 0; box-sizing: border-box;
+  -moz-appearance: textfield; appearance: textfield;
+}
+.mic-cell .mic-num::-webkit-outer-spin-button,
+.mic-cell .mic-num::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.mic-cell .mic-num::placeholder { color: #777; }
+.mic-cell.prop-green .mic-num, .mic-cell.prop-red .mic-num { color: #fff; }
+.mic-cell .mic-num:focus { outline: none; }
 .mic-detail {
   flex: 1; min-width: 0; height: 34px; min-height: 34px;
   border: 1px solid var(--border-light, #ccc); border-radius: 6px;
