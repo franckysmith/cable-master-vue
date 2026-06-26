@@ -59,7 +59,7 @@
           />
           <div class="tech-info">
             <div class="tech-name" :class="{ 'not-installed': !t.installed }">
-              <span v-if="t.installed" class="installed-dot" title="A installé l'app">📱</span>{{ t.name }}
+              <span class="conn-dot" :class="{ off: !t.installed }" :title="t.installed ? 'Connecté (app installée)' : 'Non connecté'"></span>{{ t.name }}
               <span v-for="(pv, i) in techPostes(t)" :key="pv" class="tech-poste" :class="{ secondary: i > 0 }">{{ posteLabel(pv) }}</span>
             </div>
             <div class="tech-contact">{{ t.email }}{{ t.phone ? ' · ' + t.phone : '' }}</div>
@@ -353,7 +353,13 @@ h2 {
 .select-hint { font-size: 11px; color: var(--text-muted, #999); margin: -2px 0 8px; font-style: italic; }
 .sel-check { width: 18px; height: 18px; flex-shrink: 0; margin-right: 8px; }
 .tech-name.not-installed { font-style: italic; color: var(--text-light, #888); }
-.installed-dot { margin-right: 4px; }
+/* Point plein = connecté (app installée) ; cercle vide = non connecté */
+.conn-dot {
+  display: inline-block; width: 10px; height: 10px; border-radius: 50%;
+  background: #22c55e; border: 2px solid #22c55e; box-sizing: border-box;
+  margin-right: 6px; vertical-align: middle; flex: none;
+}
+.conn-dot.off { background: transparent; border-color: var(--text-light, #888); }
 .search-input:focus { border-color: var(--color1); }
 .filter-picker {
   display: flex;

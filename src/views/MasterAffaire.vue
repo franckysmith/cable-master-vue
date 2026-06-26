@@ -284,14 +284,16 @@
           <button v-if="selected?.affairid === affair.affairid && detailOpen" class="card-edit-btn" @click.stop="editCurrentAffair" title="Modifier l'affaire">✏️</button>
           <button v-if="selected?.affairid === affair.affairid && detailOpen" class="card-edit-btn" @click.stop="requestList(affair)" title="Demander la liste au(x) technicien(s)">📋</button>
           <button v-if="selected?.affairid === affair.affairid && detailOpen" class="card-edit-btn" @click.stop="sendTeamMessage(affair)" title="Notification à l'équipe">🔔</button>
-          <button v-if="selected?.affairid === affair.affairid && detailOpen" class="card-edit-btn chat-btn" @click.stop="toggleChat" title="Chat">
-            💬<span v-if="chatUnreadCount" class="chat-badge">{{ chatUnreadCount }}</span>
-          </button>
         </div>
 
-        <div v-if="cardDateLine(affair).val" class="cdl-badge" :class="'cdl-' + cardDateLine(affair).type">
-          <span class="cdl-label">{{ cardDateLine(affair).label }}</span>
-          <span class="cdl-val">{{ cardDateLine(affair).val }}</span>
+        <div class="cdl-row">
+          <div v-if="cardDateLine(affair).val" class="cdl-badge" :class="'cdl-' + cardDateLine(affair).type">
+            <span class="cdl-label">{{ cardDateLine(affair).label }}</span>
+            <span class="cdl-val">{{ cardDateLine(affair).val }}</span>
+          </div>
+          <button class="card-chat-btn" :class="{ unread: !!unreadAffairs[affair.affairid] }" @click.stop="openChatModal(affair)" title="Chat">
+            💬<span v-if="unreadAffairs[affair.affairid]" class="card-chat-badge">!</span>
+          </button>
         </div>
 
         <!-- Mini-calendrier des jours-clés sous la date (jusqu'à 10 jours, sinon « … ») -->
@@ -326,36 +328,9 @@
             <button class="action-tab-btn danger" @click.stop="purgeAffair(affair)" title="Supprimer définitivement">⊗</button>
           </div>
         </div>
-        <!-- Aperçu message non lu (seulement quand la carte n'est pas ouverte) -->
+        <!-- Aperçu message non lu -->
         <div v-if="unreadAffairs[affair.affairid] && selected?.affairid !== affair.affairid" class="card-unread-msg">
           💬 {{ unreadAffairs[affair.affairid] }}
-        </div>
-
-
-        <!-- Panneau Chat (équipe + 1:1) -->
-        <div v-if="selected?.affairid === affair.affairid && detailOpen && chatOpen" class="card-expanded" @click.stop>
-          <div class="chat-peers">
-            <button class="chat-peer" :class="{ active: chatPeer === '' }" @click="selectPeer(affair, '')">👥 Équipe</button>
-            <button v-for="p in chatPeers(affair)" :key="p.email" class="chat-peer" :class="{ active: chatPeer === p.email }" @click="selectPeer(affair, p.email)">
-              {{ p.name }}<span v-if="peerUnread(p.email)" class="chat-dot"></span>
-            </button>
-          </div>
-          <div class="master-chat">
-            <div class="chat-messages-master">
-              <div v-for="msg in threadMessages" :key="msg.messageid" class="chat-msg-m" :class="msg.sender_role">
-                <span class="msg-icon">{{ msg.sender_role === 'tech' ? '🧑‍🔧' : '🏢' }}</span>
-                <div class="msg-content">
-                  <p>{{ msg.text }}</p>
-                  <span class="msg-time-m">{{ formatTime(msg.created_at) }}</span>
-                </div>
-              </div>
-              <div v-if="threadMessages.length === 0" class="chat-empty-m">Aucun message</div>
-            </div>
-            <div class="chat-input-m">
-              <input v-model="masterReply" :placeholder="chatPeer ? 'Message à ' + peerName(affair, chatPeer) + '…' : 'Message à toute l\'équipe…'" @keydown.enter="sendChat(affair)" />
-              <button @click="sendChat(affair)" :disabled="!masterReply.trim()">Envoyer</button>
-            </div>
-          </div>
         </div>
 
         <!-- Panneau Fiche (détails) — au 2e clic -->
@@ -435,6 +410,37 @@
       </div>
       <div v-if="filteredAffairs.length === 0" class="empty">{{ tab === 'trash' ? 'Corbeille vide' : sortMode ? 'Rien à venir' : 'Aucune affaire' }}</div>
     </div>
+
+    <!-- Chat plein écran -->
+    <div v-if="chatModalOpen && chatModalAffair" class="chat-modal-overlay" @click.self="closeChatModal">
+      <div class="chat-modal">
+        <div class="chat-modal-head">
+          <span class="chat-modal-title">💬 {{ chatModalAffair.name || 'Affaire' }}</span>
+          <button class="chat-modal-close" @click="closeChatModal">✕</button>
+        </div>
+        <div class="chat-peers">
+          <button class="chat-peer" :class="{ active: chatPeer === '' }" @click="selectPeer(chatModalAffair, '')">👥 Équipe</button>
+          <button v-for="p in chatPeers(chatModalAffair)" :key="p.email" class="chat-peer" :class="{ active: chatPeer === p.email }" @click="selectPeer(chatModalAffair, p.email)">
+            {{ p.name }}<span v-if="peerUnread(p.email)" class="chat-dot"></span>
+          </button>
+        </div>
+        <div class="chat-modal-messages">
+          <div v-for="msg in threadMessages" :key="msg.messageid" class="chat-msg-m" :class="msg.sender_role">
+            <span class="msg-icon">{{ msg.sender_role === 'tech' ? '🧑‍🔧' : '🏢' }}</span>
+            <div class="msg-content">
+              <p>{{ msg.text }}</p>
+              <span class="msg-time-m">{{ formatTime(msg.created_at) }}</span>
+            </div>
+          </div>
+          <div v-if="threadMessages.length === 0" class="chat-empty-m">Aucun message</div>
+        </div>
+        <div class="chat-modal-input">
+          <input v-model="masterReply" :placeholder="chatPeer ? 'Message à ' + peerName(chatModalAffair, chatPeer) + '…' : 'Message à toute l\'équipe…'" @keydown.enter="sendChatModal" />
+          <button @click="sendChatModal" :disabled="!masterReply.trim()">Envoyer</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Calendrier (modal global) : édition depuis le formulaire, lecture seule depuis une carte -->
     <div v-if="showCalendar" class="cal-overlay" @click.self="cancelCalendar">
       <div class="cal-modal">
@@ -1409,6 +1415,22 @@ function toggleChat() {
   chatOpen.value = !chatOpen.value
   if (chatOpen.value && selected.value) { chatPeer.value = ''; reloadMessages(selected.value) }
 }
+
+// --- Chat plein écran ---
+const chatModalOpen = ref(false)
+const chatModalAffair = ref(null)
+async function openChatModal(affair) {
+  chatModalAffair.value = affair
+  chatPeer.value = ''
+  await reloadMessages(affair)
+  chatModalOpen.value = true
+}
+function closeChatModal() { chatModalOpen.value = false }
+async function sendChatModal() {
+  if (!chatModalAffair.value || !masterReply.value.trim()) return
+  await sendChat(chatModalAffair.value)
+  closeChatModal() // se referme à l'envoi
+}
 async function reloadMessages(affair) {
   const { data } = await supabase.from('message').select('*').eq('affairid', affair.affairid).order('created_at', { ascending: true })
   affairMessages.value = data || []
@@ -1931,15 +1953,15 @@ h3 { font-size: 16px; margin: 0; }
 }
 .mfc-clear { background: transparent; border: none; cursor: pointer; color: var(--text-muted, #999); font-size: 14px; padding: 0 2px; min-width: auto; box-shadow: none; }
 .card-name.is-today {
-  background: #fde047;
-  color: #000;
-  border-color: #eab308;
+  background: transparent;
+  color: var(--text, #333);
+  border: 3px solid #fde047;
   font-weight: 800;
 }
 .card-name.is-tomorrow {
-  background: #f59e0b;
-  color: #000;
-  border-color: #b45309;
+  background: transparent;
+  color: var(--text, #333);
+  border: 3px solid #f59e0b;
   font-weight: 800;
 }
 .new-badge {
@@ -2269,6 +2291,46 @@ h3 { font-size: 16px; margin: 0; }
 .unread-star { color: #ef4444; font-size: 14px; animation: blink-star 1.5s infinite; }
 @keyframes blink-star { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
 .card-unread-msg { padding: 4px 8px 4px 22px; font-size: 12px; color: #ef4444; font-style: italic; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Ligne date + bouton chat à droite */
+.cdl-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.card-chat-btn {
+  flex: none; display: inline-flex; align-items: center; gap: 4px;
+  padding: 5px 12px; margin-left: auto;
+  background: var(--bg-soft, rgba(124,58,237,0.08)); color: var(--color1-dark, var(--color1));
+  border: 1.5px solid var(--color1); border-radius: 8px;
+  font-size: 15px; font-weight: 800; cursor: pointer; box-shadow: none; position: relative; min-width: auto;
+}
+.card-chat-btn.unread { background: var(--color1); color: #fff; }
+.card-chat-badge {
+  background: #ef4444; color: #fff; font-size: 11px; font-weight: 900;
+  border-radius: 50%; width: 16px; height: 16px; display: inline-flex;
+  align-items: center; justify-content: center; margin-left: 2px;
+}
+
+/* Chat plein écran */
+.chat-modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.55);
+  display: flex; align-items: center; justify-content: center; z-index: 300; padding: 10px;
+}
+.chat-modal {
+  display: flex; flex-direction: column;
+  width: 100%; max-width: 560px; height: 92vh;
+  background: var(--bg, #fff); border-radius: 14px; overflow: hidden;
+  border: 1px solid var(--border, #ddd);
+}
+.chat-modal-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 14px; border-bottom: 1px solid var(--border-light, #eee);
+}
+.chat-modal-title { font-size: 16px; font-weight: 800; color: var(--text, #333); }
+.chat-modal-close { background: transparent; border: none; font-size: 18px; cursor: pointer; color: var(--text-muted, #999); box-shadow: none; min-width: auto; }
+.chat-modal .chat-peers { padding: 8px 12px 0; margin: 0; }
+.chat-modal-messages { flex: 1; min-height: 0; overflow-y: auto; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+.chat-modal-input { display: flex; gap: 8px; padding: 10px 12px; border-top: 1px solid var(--border-light, #eee); }
+.chat-modal-input input { flex: 1; min-width: 0; padding: 10px 12px; border: 1px solid var(--border-light, #ccc); border-radius: 10px; background: var(--bg-input, #fff); color: var(--text, #333); font-size: 15px; }
+.chat-modal-input button { padding: 10px 16px; background: var(--color1); color: #fff; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; box-shadow: none; min-width: auto; }
+.chat-modal-input button:disabled { opacity: 0.4; }
 .card-expanded { padding: 8px; border-top: 1px solid var(--border-light, #eee); margin-top: 6px; }
 .detail-hint { margin-top: 6px; font-size: 11px; font-weight: 700; color: var(--color1-dark, #2e7d32); }
 
