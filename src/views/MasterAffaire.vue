@@ -2,9 +2,10 @@
   <div class="master-affaire">
     <div class="page-title-row">
       <button class="page-switch" :class="{ active: showGantt }" @click="showGantt = !showGantt">📊 Timeline</button>
+      <button v-if="showGantt" class="page-switch tl-masquer" :class="{ active: showHiddenTl }" @click="showHiddenTl = !showHiddenTl">{{ showHiddenTl ? '👁 Masqués' : 'Masquer' }}</button>
     </div>
 
-    <TimelineGantt v-if="showGantt" :selected-id="selected ? selected.affairid : null" @select="onGanttSelect" />
+    <TimelineGantt v-if="showGantt" :selected-id="selected ? selected.affairid : null" :show-hidden="showHiddenTl" @select="onGanttSelect" />
 
     <!-- Liste des affaires avec statut -->
     <div v-if="!showForm" class="top-actions">
@@ -267,6 +268,7 @@
         <div class="card-head">
           <span v-if="isNew(affair)" class="new-badge">NEW</span>
           <button v-if="isNew(affair)" class="send-badge-btn" @click.stop="sendAffair(affair)" title="Envoyer l'affaire">Envoyer</button>
+          <span v-if="isSent(affair)" class="sent-badge" title="Affaire envoyée">Envoyé</span>
           <button class="follow-btn" :class="{ on: affair.followed }" @click.stop="toggleFollow(affair)" :title="affair.followed ? 'Suivi' : 'À suivre'">{{ affair.followed ? '★' : '☆' }}</button>
           <span v-if="unreadAffairs[affair.affairid]" class="unread-star" @click.stop="openChatOnly(affair)">★</span>
           <span class="card-name" :class="{ 'is-today': isTodayFor(affair), 'is-tomorrow': !isTodayFor(affair) && isTomorrowFor(affair) }">{{ affair.name || '(Sans nom)' }}</span>
@@ -292,7 +294,7 @@
           <span class="cdl-val">{{ cardDateLine(affair).val }}</span>
         </div>
 
-        <!-- Mini-calendrier des jours-clés sous la date (si l'affaire tient sur ≤ 1 semaine) -->
+        <!-- Mini-calendrier des jours-clés sous la date (jusqu'à 10 jours, sinon « … ») -->
         <div v-if="miniCalDays(affair)" class="mini-cal">
           <div v-for="d in miniCalDays(affair)" :key="d.date" class="mini-cal-day">
             <span class="mcd-dow">{{ dowLetter(d.date) }}</span>
@@ -304,12 +306,13 @@
               </span>
             </span>
           </div>
+          <div v-if="miniCalMore(affair)" class="mini-cal-more" title="… et d'autres dates ensuite">…</div>
         </div>
 
         <div class="card-bottom">
           <div class="card-techs">
             <div v-for="t in shownTechs(affair)" :key="t.cls" class="tech-zone-item">
-              <span class="zone-dot" :class="[t.cls, { installed: t.installed }]" :title="t.installed ? 'Joignable (app installée)' : 'App non installée'"></span>
+              <span class="zone-dot" :class="[t.cls, { 'not-connected': !t.installed }]" :title="t.installed ? 'Connecté (app installée)' : 'Non connecté (pas d\'app)'"></span>
               <span class="tech-firstname">{{ t.name }}</span>
             </div>
           </div>
@@ -792,6 +795,7 @@ async function toggleTab(affair, tab) {
 const route = useRoute()
 const router = useRouter()
 const showGantt = ref(false)
+const showHiddenTl = ref(false) // mode « Masqués » de la timeline (bouton à droite)
 const detailOpen = ref(false)
 function onGanttSelect(a) { selectAffair(a); detailOpen.value = true }
 onMounted(async () => {
@@ -1000,7 +1004,8 @@ function isArrowType(t) { return t === 'out' || t === 'back' }
 function periodSuffix(p) { return p === 'am' ? ' (matin ↓)' : p === 'pm' ? ' (après-midi ↑)' : '' }
 function dowLetter(d) { return ['D', 'L', 'M', 'M', 'J', 'V', 'S'][new Date(d + 'T00:00:00').getDay()] }
 function dayNum(d) { return parseInt(d.slice(8, 10), 10) }
-function miniCalDays(a) {
+// Tous les jours-clés (prépa / chargement / concert / déchargement), triés
+function miniCalFull(a) {
   const map = {} // date -> [{ type, period }]
   const add = (d, t, period) => {
     if (!d) return
@@ -1015,12 +1020,19 @@ function miniCalDays(a) {
   const back = a.back_dates || [], bp = a.back_periods || {}
   if (back.length) back.forEach(d => add(d, 'back', bp[d])); else add(a.return_date, 'back')
   const days = Object.keys(map).filter(Boolean).sort()
-  if (!days.length) return null
-  // Condition : ne pas excéder une semaine (écart 1er → dernier jour ≤ 6 jours)
-  const span = (new Date(days[days.length - 1]) - new Date(days[0])) / 86400000
-  if (span > 6) return null
   return days.map(d => ({ date: d, marks: map[d] }))
 }
+const MINI_CAL_MAX = 5 // au-delà : on montre 5 jours (les prochains) + « … »
+function miniCalDays(a) {
+  const all = miniCalFull(a)
+  if (!all.length) return null
+  if (all.length <= MINI_CAL_MAX) return all
+  const today = todayISO()
+  const upcoming = all.filter(x => x.date >= today)
+  return (upcoming.length >= MINI_CAL_MAX ? upcoming : all).slice(0, MINI_CAL_MAX)
+}
+// Y a-t-il plus de jours que ce qu'on affiche (→ ajouter « … ») ?
+function miniCalMore(a) { return miniCalFull(a).length > MINI_CAL_MAX }
 // Techniciens d'une affaire (tous les postes actifs)
 function allTechs(a) {
   const all = []
@@ -1116,6 +1128,11 @@ function staffed(a) {
 function isNew(a) {
   if (isFinished(a)) return false
   return (a.status || 'draft') === 'draft'
+}
+// Affaire déjà envoyée (et pas terminée) → badge « Envoyé »
+function isSent(a) {
+  if (isFinished(a)) return false
+  return (a.status || 'draft') === 'sent'
 }
 async function toggleFollow(a) {
   const v = !a.followed
@@ -1871,11 +1888,12 @@ h3 { font-size: 16px; margin: 0; }
 .affair-list { margin-bottom: 10px; }
 .affair-card {
   padding: 10px;
-  border: 2px solid rgba(255, 255, 255, 0.85);
+  border: 2px solid #ffffff;
   border-radius: 8px;
   margin-bottom: 10px;
   cursor: pointer;
   background: var(--bg-card, #fafafa);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.12);
 }
 .affair-card.selected { border-color: var(--color1); }
 .card-top { display: flex; align-items: center; gap: 6px; }
@@ -1933,6 +1951,10 @@ h3 { font-size: 16px; margin: 0; }
   padding: 2px 8px; border: none; border-radius: 6px; cursor: pointer;
   box-shadow: none; min-width: auto;
 }
+.sent-badge {
+  flex: none; background: var(--color1-dark, #2563eb); color: #fff;
+  font-size: 10px; font-weight: 800; padding: 1px 6px; border-radius: 6px; letter-spacing: 0.3px;
+}
 .follow-btn {
   background: transparent; border: none; cursor: pointer; font-size: 17px;
   color: #9ca3af; padding: 0 2px; line-height: 1; flex: none;
@@ -1949,7 +1971,7 @@ h3 { font-size: 16px; margin: 0; }
   margin: 6px 0 2px;
   padding: 4px 8px 4px 4px;
   background: var(--bg-input, #fff);
-  border: 1px solid var(--border-light, #e5e7eb);
+  border: none;
   border-radius: 10px;
 }
 .cdl-label {
@@ -2209,13 +2231,14 @@ h3 { font-size: 16px; margin: 0; }
 .btn-delete { padding: 10px; background: #ef4444; color: #fff; border: none; border-radius: 8px; font-size: 14px; cursor: pointer; box-shadow: none; min-width: auto; }
 .card-techs { display: flex; flex-direction: column; gap: 3px; align-items: flex-start; }
 .tech-zone-item { display: flex; align-items: center; gap: 5px; }
-.zone-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-/* Technicien installé / joignable par l'app : pastille carrée (couleur = métier) */
-.zone-dot.installed { width: 9px; height: 9px; border-radius: 2px; }
-.zone-dot.facade { background: #3b82f6; }
-.zone-dot.retour { background: #f59e0b; }
-.zone-dot.systeme { background: #8b5cf6; }
-.zone-dot.scene { background: #10b981; }
+/* Point plein = connecté (app installée) ; cercle vide = non connecté.
+   Couleur = métier (façade/retour/système/scène). */
+.zone-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; border: 2px solid transparent; box-sizing: border-box; }
+.zone-dot.facade { background: #3b82f6; border-color: #3b82f6; }
+.zone-dot.retour { background: #f59e0b; border-color: #f59e0b; }
+.zone-dot.systeme { background: #8b5cf6; border-color: #8b5cf6; }
+.zone-dot.scene { background: #10b981; border-color: #10b981; }
+.zone-dot.not-connected { background: transparent !important; }
 .tech-firstname { font-size: 12px; color: var(--text, #333); font-weight: 600; }
 .invite-btn { width: 22px; height: 22px; border-radius: 50%; border: none; font-size: 11px; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; min-width: auto; box-shadow: none; color: #fff; transition: all 0.15s; }
 .invite-btn.facade { background: #3b82f6; }
@@ -2263,7 +2286,8 @@ h3 { font-size: 16px; margin: 0; }
 .mcd-bars { display: flex; align-items: center; gap: 3px; margin-top: 2px; height: 18px; }
 .mcd-mark { display: flex; align-items: center; }
 .mcd-bar { width: 7px; height: 7px; border-radius: 2px; }
-.mcd-arrow { font-size: 18px; font-weight: 900; line-height: 1; }
+.mcd-arrow { font-size: 22px; font-weight: 900; line-height: 1; -webkit-text-stroke: 0.5px currentColor; }
+.mini-cal-more { align-self: center; font-size: 20px; font-weight: 800; color: var(--text-muted, #999); padding: 0 6px; }
 .detail-actions { margin-top: 8px; }
 .btn-edit-detail {
   width: 100%; padding: 9px; background: var(--color1-dark); color: #fff; border: none;

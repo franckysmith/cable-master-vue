@@ -1,11 +1,5 @@
 <template>
   <div class="tl-gantt">
-    <div class="tl-bar-head">
-      <button class="tl-hidden-toggle" :class="{ active: showHidden }" @click="showHidden = !showHidden">
-        {{ showHidden ? '👁 Masqués' : 'Masqués' }}
-      </button>
-    </div>
-
     <div v-if="!shown.length" class="tl-empty">Aucune affaire à afficher</div>
 
     <div v-else ref="scroller" class="tl-scroll">
@@ -47,12 +41,14 @@
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { supabase } from '../lib/supabase'
 
-defineProps({ selectedId: { type: Number, default: null } })
+const props = defineProps({
+  selectedId: { type: Number, default: null },
+  showHidden: { type: Boolean, default: false }, // contrôlé par le parent (bouton Masquer)
+})
 defineEmits(['select'])
 
 const catalogId = parseInt(localStorage.getItem('cablemaster-catalogid')) || null
 const affairs = ref([])
-const showHidden = ref(false)
 const dayPx = ref(26)
 const laneH = 30
 const scroller = ref(null)
@@ -63,7 +59,7 @@ function iso(d) { return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.ge
 const todayIso = iso(new Date())
 function parse(s) { return s ? new Date(s + 'T00:00:00') : null }
 
-const shown = computed(() => showHidden.value ? affairs.value : affairs.value.filter(a => !a.hidden))
+const shown = computed(() => props.showHidden ? affairs.value : affairs.value.filter(a => !a.hidden))
 
 async function toggleHidden(a) {
   const nv = !a.hidden
