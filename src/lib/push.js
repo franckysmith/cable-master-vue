@@ -32,6 +32,16 @@ export async function enableNotifications({ email } = {}) {
     companyId = data && data[0] ? data[0].companyid : null
   }
 
+  // Email : profil → sinon le technicien courant (pour relier l'abonnement et marquer "installé")
+  let emailVal = (email || '').trim()
+  if (!emailVal) {
+    const techId = parseInt(localStorage.getItem('cablemaster-techid')) || 0
+    if (techId) {
+      const { data } = await supabase.from('technician').select('email').eq('techid', techId).maybeSingle()
+      if (data && data.email) emailVal = data.email
+    }
+  }
+
   let reg = await navigator.serviceWorker.getRegistration()
   if (!reg) reg = await navigator.serviceWorker.ready
   if (!reg) throw new Error("Service worker absent (recharge l'app installée).")
@@ -48,14 +58,16 @@ export async function enableNotifications({ email } = {}) {
     endpoint: json.endpoint,
     p256dh: json.keys && json.keys.p256dh,
     auth: json.keys && json.keys.auth,
-    email: email || null,
+    email: emailVal || null,
     company_id: companyId || null,
   }, { onConflict: 'endpoint' })
   if (error) throw new Error(error.message)
 
-  // Marque le technicien comme "installé" (nom non-italique dans la TechList)
-  if (email && companyId) {
-    await supabase.from('technician').update({ installed: true }).eq('email', email).eq('company_id', companyId)
+  // Marque le technicien comme "installé" (point plein / nom non-italique)
+  if (emailVal) {
+    let q = supabase.from('technician').update({ installed: true }).eq('email', emailVal)
+    if (companyId) q = q.eq('company_id', companyId)
+    await q
   }
   return true
 }

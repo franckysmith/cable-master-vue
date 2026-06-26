@@ -280,10 +280,7 @@
           <button v-else class="manager-chip" :class="{ none: !affair.manager, active: managerFilter && managerFilter === affair.manager }" @click.stop="clickManager(affair)" :title="affair.manager ? 'Voir les affaires gérées par ' + affair.manager : 'Aucun gérant'">
             {{ affair.manager || '— gérant' }}
           </button>
-          <button v-if="selected?.affairid === affair.affairid && detailOpen" class="card-cal-btn" @click.stop="openCalendarFor(affair)" title="Voir le calendrier">📅</button>
           <button v-if="selected?.affairid === affair.affairid && detailOpen" class="card-edit-btn" @click.stop="editCurrentAffair" title="Modifier l'affaire">✏️</button>
-          <button v-if="selected?.affairid === affair.affairid && detailOpen" class="card-edit-btn" @click.stop="requestList(affair)" title="Demander la liste au(x) technicien(s)">📋</button>
-          <button v-if="selected?.affairid === affair.affairid && detailOpen" class="card-edit-btn" @click.stop="sendTeamMessage(affair)" title="Notification à l'équipe">🔔</button>
         </div>
 
         <div class="cdl-row">
@@ -291,6 +288,7 @@
             <span class="cdl-label">{{ cardDateLine(affair).label }}</span>
             <span class="cdl-val">{{ cardDateLine(affair).val }}</span>
           </div>
+          <button v-if="selected?.affairid === affair.affairid && detailOpen" class="card-cal-btn cdl-cal" @click.stop="openCalendarFor(affair)" title="Voir le calendrier">📅</button>
           <button class="card-chat-btn" :class="{ unread: !!unreadAffairs[affair.affairid] }" @click.stop="openChatModal(affair)" title="Chat">
             💬<span v-if="unreadAffairs[affair.affairid]" class="card-chat-badge">!</span>
           </button>
@@ -315,7 +313,7 @@
           <div class="card-techs">
             <div v-for="t in shownTechs(affair)" :key="t.cls" class="tech-zone-item">
               <span class="zone-dot" :class="[t.cls, { 'not-connected': !t.installed }]" :title="t.installed ? 'Connecté (app installée)' : 'Non connecté (pas d\'app)'"></span>
-              <span class="tech-firstname">{{ t.name }}</span>
+              <span class="tech-firstname">{{ selected?.affairid === affair.affairid ? t.full : t.name }}</span>
             </div>
           </div>
           <div class="card-meta">
@@ -343,7 +341,7 @@
             <div class="fiche-person-header" :class="zone.css">{{ zone.icon }} {{ zone.label }}</div>
             <div class="fiche-person-body">
               <div class="fiche-person-line">
-                <span class="fiche-person-name">{{ personName(zone.firstname, zone.name) }}</span>
+                <span class="fiche-person-name" :class="{ clickable: zone.email }" @click.stop="togglePersonAffairs(zone.email)" :title="zone.email ? 'Voir ses affaires (passées / à venir)' : ''">{{ personName(zone.firstname, zone.name) }}</span>
                 <span v-if="isReachable(zone.email)" class="fiche-installed" title="A installé l'app — joignable par notification">📱</span>
                 <span v-if="zone.phone" class="fiche-person-phone">{{ zone.phone }}</span>
                 <span v-if="zone.email" class="fiche-person-email">{{ zone.email }}</span>
@@ -355,6 +353,24 @@
                 <a v-if="zone.email" :href="'mailto:' + zone.email" class="fiche-action-btn email">📩 Email</a>
               </div>
               <div v-if="!zone.phone && !zone.email" class="fiche-no-contact">Pas de coordonnées renseignées</div>
+
+              <!-- Affaires de la personne (clic sur le nom) -->
+              <div v-if="zone.email && expandedPerson === zone.email" class="person-affairs" @click.stop>
+                <div class="pa-col">
+                  <div class="pa-title">À venir</div>
+                  <button v-for="a in expandedPersonAffairs.future" :key="'f' + a.affairid" class="pa-link future" @click="openAffairFromLink(a)">
+                    <span class="pa-name">{{ a.name || '(Sans nom)' }}</span><span class="pa-date">{{ affairLinkDate(a) }}</span>
+                  </button>
+                  <div v-if="!expandedPersonAffairs.future.length" class="pa-empty">—</div>
+                </div>
+                <div class="pa-col">
+                  <div class="pa-title">Passé</div>
+                  <button v-for="a in expandedPersonAffairs.past" :key="'p' + a.affairid" class="pa-link past" @click="openAffairFromLink(a)">
+                    <span class="pa-name">{{ a.name || '(Sans nom)' }}</span><span class="pa-date">{{ affairLinkDate(a) }}</span>
+                  </button>
+                  <div v-if="!expandedPersonAffairs.past.length" class="pa-empty">—</div>
+                </div>
+              </div>
             </div>
           </div>
           <!-- Lieu + dates -->
@@ -419,9 +435,9 @@
           <button class="chat-modal-close" @click="closeChatModal">✕</button>
         </div>
         <div class="chat-peers">
-          <button class="chat-peer" :class="{ active: chatPeer === '' }" @click="selectPeer(chatModalAffair, '')">👥 Équipe</button>
-          <button v-for="p in chatPeers(chatModalAffair)" :key="p.email" class="chat-peer" :class="{ active: chatPeer === p.email }" @click="selectPeer(chatModalAffair, p.email)">
-            {{ p.name }}<span v-if="peerUnread(p.email)" class="chat-dot"></span>
+          <button class="chat-peer" :class="{ active: chatSel.length === 0 }" @click="selectPeer(chatModalAffair, '')">👥 Équipe</button>
+          <button v-for="p in chatPeers(chatModalAffair)" :key="p.email" class="chat-peer" :class="{ active: chatSel.includes(p.email) }" @click="selectPeer(chatModalAffair, p.email)">
+            <span class="chat-peer-check">{{ chatSel.includes(p.email) ? '☑' : '☐' }}</span> {{ p.name }}<span v-if="peerUnread(p.email)" class="chat-dot"></span>
           </button>
         </div>
         <div class="chat-modal-messages">
@@ -435,7 +451,7 @@
           <div v-if="threadMessages.length === 0" class="chat-empty-m">Aucun message</div>
         </div>
         <div class="chat-modal-input">
-          <input v-model="masterReply" :placeholder="chatPeer ? 'Message à ' + peerName(chatModalAffair, chatPeer) + '…' : 'Message à toute l\'équipe…'" @keydown.enter="sendChatModal" />
+          <input v-model="masterReply" :placeholder="chatSel.length ? 'Message à ' + chatSel.length + ' personne' + (chatSel.length > 1 ? 's' : '') + '…' : 'Message à toute l\'équipe…'" @keydown.enter="sendChatModal" />
           <button @click="sendChatModal" :disabled="!masterReply.trim()">Envoyer</button>
         </div>
       </div>
@@ -1042,10 +1058,10 @@ function miniCalMore(a) { return miniCalFull(a).length > MINI_CAL_MAX }
 // Techniciens d'une affaire (tous les postes actifs)
 function allTechs(a) {
   const all = []
-  if (a.front) all.push({ cls: 'facade', name: a.tech_firstname || a.tech_name || '?', installed: isReachable(a.tech_email) })
-  if (a.monitor) all.push({ cls: 'retour', name: a.tech_firstname_monitor || a.tech_name_monitor || '?', installed: isReachable(a.tech_email_monitor) })
-  if (a.system) all.push({ cls: 'systeme', name: a.tech_firstname_system || a.tech_name_system || '?', installed: isReachable(a.tech_email_system) })
-  if (a.stage) all.push({ cls: 'scene', name: a.tech_firstname_stage || a.tech_name_stage || '?', installed: isReachable(a.tech_email_stage) })
+  if (a.front) all.push({ cls: 'facade', name: a.tech_firstname || a.tech_name || '?', full: personName(a.tech_firstname, a.tech_name), installed: isReachable(a.tech_email) })
+  if (a.monitor) all.push({ cls: 'retour', name: a.tech_firstname_monitor || a.tech_name_monitor || '?', full: personName(a.tech_firstname_monitor, a.tech_name_monitor), installed: isReachable(a.tech_email_monitor) })
+  if (a.system) all.push({ cls: 'systeme', name: a.tech_firstname_system || a.tech_name_system || '?', full: personName(a.tech_firstname_system, a.tech_name_system), installed: isReachable(a.tech_email_system) })
+  if (a.stage) all.push({ cls: 'scene', name: a.tech_firstname_stage || a.tech_name_stage || '?', full: personName(a.tech_firstname_stage, a.tech_name_stage), installed: isReachable(a.tech_email_stage) })
   return all
 }
 function topTechs(a) { return allTechs(a).slice(0, 2) }
@@ -1345,6 +1361,41 @@ function getAllEmails(affair) {
   return emails
 }
 
+// --- Cliquer le nom d'une personne dans la fiche → ses affaires passées / à venir ---
+const expandedPerson = ref(null) // email du contact déplié (un seul à la fois)
+function togglePersonAffairs(email) {
+  if (!email) return
+  expandedPerson.value = expandedPerson.value === email ? null : email
+}
+function isOnAffair(a, email) {
+  if ([a.tech_email, a.tech_email_monitor, a.tech_email_system, a.tech_email_stage].includes(email)) return true
+  return Array.isArray(a.assistants) && a.assistants.some(as => as.email === email)
+}
+const expandedPersonAffairs = computed(() => {
+  const email = expandedPerson.value
+  if (!email) return { past: [], future: [] }
+  const list = affairs.value.filter(a => isOnAffair(a, email))
+  const past = [], future = []
+  for (const a of list) (isFinished(a) ? past : future).push(a)
+  const key = (a) => (nextEvent(a) || {}).date || a.created_at || ''
+  future.sort((x, y) => (key(x) < key(y) ? -1 : 1))
+  past.sort((x, y) => (key(x) < key(y) ? 1 : -1))
+  return { past, future }
+})
+function affairLinkDate(a) {
+  const ev = nextEvent(a)
+  return ev ? shortDate(ev.date) : ''
+}
+function openAffairFromLink(a) {
+  // s'assurer que l'affaire est visible puis ouvrir son détail
+  managerFilter.value = ''; followOnly.value = false; affairSearch.value = ''
+  sortMode.value = ''; timeFilter.value = ''
+  tab.value = isFinished(a) ? 'done' : 'all'
+  expandedPerson.value = null
+  selectAffair(a)
+  detailOpen.value = true
+}
+
 async function sendZoneInvite(affair, zone) {
   const techEmail = affair.tech_email || ''
   const techName = affair.tech_name || 'Technicien'
@@ -1409,11 +1460,11 @@ function editCurrentAffair() {
 
 // --- Chat (équipe + 1:1) ---
 const chatOpen = ref(false)
-const chatPeer = ref('') // '' = toute l'équipe ; sinon email de la personne
+const chatSel = ref([]) // [] = toute l'équipe ; sinon liste d'emails cochés
 
 function toggleChat() {
   chatOpen.value = !chatOpen.value
-  if (chatOpen.value && selected.value) { chatPeer.value = ''; reloadMessages(selected.value) }
+  if (chatOpen.value && selected.value) { chatSel.value = []; reloadMessages(selected.value) }
 }
 
 // --- Chat plein écran ---
@@ -1421,7 +1472,7 @@ const chatModalOpen = ref(false)
 const chatModalAffair = ref(null)
 async function openChatModal(affair) {
   chatModalAffair.value = affair
-  chatPeer.value = ''
+  chatSel.value = []
   await reloadMessages(affair)
   chatModalOpen.value = true
 }
@@ -1447,14 +1498,22 @@ function chatPeers(a) {
 }
 function peerName(a, email) { const p = chatPeers(a).find(x => x.email === email); return p ? p.name : email }
 function peerUnread(email) { return affairMessages.value.filter(m => m.peer_email === email && m.sender_role === 'tech' && !m.read_by_master).length }
-const threadMessages = computed(() => affairMessages.value.filter(m => (chatPeer.value ? m.peer_email === chatPeer.value : !m.peer_email)))
+const threadMessages = computed(() => {
+  if (!chatSel.value.length) return affairMessages.value.filter(m => !m.peer_email)
+  return affairMessages.value.filter(m => chatSel.value.includes(m.peer_email))
+})
 const chatUnreadCount = computed(() => affairMessages.value.filter(m => m.sender_role === 'tech' && !m.read_by_master).length)
 
 async function selectPeer(affair, email) {
-  chatPeer.value = email
-  // marquer lus les messages reçus de ce fil
+  if (!email) {
+    chatSel.value = [] // Équipe (désélectionne tout)
+  } else {
+    const i = chatSel.value.indexOf(email)
+    if (i >= 0) chatSel.value.splice(i, 1); else chatSel.value.push(email)
+  }
+  // marquer lus les messages des fils sélectionnés
   let q = supabase.from('message').update({ read_by_master: true }).eq('affairid', affair.affairid).eq('sender_role', 'tech')
-  q = email ? q.eq('peer_email', email) : q.is('peer_email', null)
+  q = chatSel.value.length ? q.in('peer_email', chatSel.value) : q.is('peer_email', null)
   await q
   await reloadMessages(affair)
 }
@@ -1471,23 +1530,23 @@ async function mailNonInstalled(emails, subject, message, url) {
 async function sendChat(affair) {
   const txt = masterReply.value.trim()
   if (!txt) return
-  const peer = chatPeer.value || null
-  await supabase.from('message').insert({
-    affairid: affair.affairid, sender_role: 'master', text: txt,
-    peer_email: peer, read_by_master: true, read_by_tech: false,
-  })
+  const sel = chatSel.value.slice() // emails cochés ; vide = toute l'équipe
+  const rows = sel.length
+    ? sel.map(email => ({ affairid: affair.affairid, sender_role: 'master', text: txt, peer_email: email, read_by_master: true, read_by_tech: false }))
+    : [{ affairid: affair.affairid, sender_role: 'master', text: txt, peer_email: null, read_by_master: true, read_by_tech: false }]
+  await supabase.from('message').insert(rows)
   masterReply.value = ''
   await reloadMessages(affair)
   const payload = { title: affair.name || 'Cinod-Prep', body: txt, url: '/MasterAffaire?affair=' + affair.affairid }
   try {
-    if (peer) await supabase.functions.invoke('send-push', { body: { ...payload, emails: [peer] } })
+    if (sel.length) await supabase.functions.invoke('send-push', { body: { ...payload, emails: sel } })
     else {
       const cid = parseInt(localStorage.getItem('cablemaster-companyid')) || resolvedCompanyId.value || null
       await supabase.functions.invoke('send-push', { body: { ...payload, companyId: cid } })
     }
   } catch (e) { /* push best-effort */ }
   // E-mail aux destinataires non installés
-  const mailTargets = peer ? [peer] : chatPeers(affair).map(p => p.email)
+  const mailTargets = sel.length ? sel : chatPeers(affair).map(p => p.email)
   await mailNonInstalled(mailTargets, affair.name || 'Cinod-Prep', txt, payload.url)
 }
 
@@ -2333,19 +2392,23 @@ h3 { font-size: 16px; margin: 0; }
 .chat-modal {
   display: flex; flex-direction: column;
   width: 100%; max-width: 560px; height: 92vh;
-  background: var(--bg, #fff); border-radius: 14px; overflow: hidden;
-  border: 1px solid var(--border, #ddd);
+  background: var(--bg-card, #252540); border-radius: 14px; overflow: hidden;
+  border: 1px solid var(--border, #3a3a55); color: var(--text, #e0e0e0);
 }
 .chat-modal-head {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 12px 14px; border-bottom: 1px solid var(--border-light, #eee);
+  padding: 12px 14px;
+  background: linear-gradient(180deg, #1c0f33 0%, #3d2470 100%); color: #fff;
 }
-.chat-modal-title { font-size: 16px; font-weight: 800; color: var(--text, #333); }
-.chat-modal-close { background: transparent; border: none; font-size: 18px; cursor: pointer; color: var(--text-muted, #999); box-shadow: none; min-width: auto; }
-.chat-modal .chat-peers { padding: 8px 12px 0; margin: 0; }
-.chat-modal-messages { flex: 1; min-height: 0; overflow-y: auto; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
-.chat-modal-input { display: flex; gap: 8px; padding: 10px 12px; border-top: 1px solid var(--border-light, #eee); }
-.chat-modal-input input { flex: 1; min-width: 0; padding: 10px 12px; border: 1px solid var(--border-light, #ccc); border-radius: 10px; background: var(--bg-input, #fff); color: var(--text, #333); font-size: 15px; }
+.chat-modal-title { font-size: 16px; font-weight: 800; color: #fff; }
+.chat-modal-close { background: transparent; border: none; font-size: 18px; cursor: pointer; color: #fff; box-shadow: none; min-width: auto; }
+.chat-modal .chat-peers { padding: 10px 12px 4px; margin: 0; background: var(--bg, #1a1a2e); }
+.chat-modal-messages { flex: 1; min-height: 0; overflow-y: auto; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; background: var(--bg, #1a1a2e); }
+.chat-modal .chat-msg-m.tech .msg-content { background: var(--bg-card, #252540); }
+.chat-modal .chat-msg-m.master .msg-content { background: var(--color1) !important; }
+.chat-modal .chat-msg-m.master .msg-content p { color: #fff !important; }
+.chat-modal-input { display: flex; gap: 8px; padding: 10px 12px; border-top: 1px solid var(--border, #3a3a55); background: var(--bg-card, #252540); }
+.chat-modal-input input { flex: 1; min-width: 0; padding: 10px 12px; border: 1px solid var(--border-light, #444); border-radius: 10px; background: var(--bg-input, #2a2a45); color: var(--text, #e0e0e0); font-size: 15px; }
 .chat-modal-input button { padding: 10px 16px; background: var(--color1); color: #fff; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; box-shadow: none; min-width: auto; }
 .chat-modal-input button:disabled { opacity: 0.4; }
 .card-expanded { padding: 8px; border-top: 1px solid var(--border-light, #eee); margin-top: 6px; }
@@ -2381,6 +2444,22 @@ h3 { font-size: 16px; margin: 0; }
 .fiche-contact-all { display: block; text-align: center; padding: 8px; margin-bottom: 10px; background: var(--color1); color: #fff; border-radius: 8px; font-size: 14px; font-weight: 700; text-decoration: none; }
 .fiche-person-line { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; margin-bottom: 6px; }
 .fiche-person-name { font-size: 15px; font-weight: 700; color: var(--text, #333); }
+.fiche-person-name.clickable { cursor: pointer; text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 3px; }
+.person-affairs { display: flex; gap: 8px; margin-top: 8px; }
+.pa-col { flex: 1; min-width: 0; }
+.pa-title { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted, #999); margin-bottom: 4px; }
+.pa-link {
+  display: flex; align-items: center; justify-content: space-between; gap: 6px; width: 100%;
+  text-align: left; padding: 5px 8px; margin-bottom: 4px;
+  background: var(--bg-soft, rgba(0,0,0,0.05)); border: 1px solid var(--border-light, #ddd);
+  border-radius: 6px; font-size: 12px; font-weight: 600; color: var(--text, #333);
+  cursor: pointer; box-shadow: none; min-width: 0;
+}
+.pa-link.future { border-left: 3px solid var(--color1); }
+.pa-link.past { border-left: 3px solid var(--text-muted, #999); opacity: 0.85; }
+.pa-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pa-date { flex: none; font-size: 11px; color: var(--text-muted, #999); }
+.pa-empty { font-size: 12px; color: var(--text-muted, #999); padding: 4px; }
 .fiche-person-phone { font-size: 13px; color: var(--text-light, #888); }
 .fiche-person-actions { display: flex; gap: 6px; flex-wrap: wrap; }
 .fiche-action-btn { display: inline-flex; align-items: center; gap: 4px; padding: 6px 12px; border-radius: 6px; font-size: 13px; font-weight: 600; text-decoration: none; cursor: pointer; }
