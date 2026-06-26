@@ -94,6 +94,12 @@
           </div>
           <div class="form-grid">
             <div class="form-row half">
+              <label>Surnom (diminutif)</label>
+              <input v-model="form.resp_nickname" placeholder="ex. Math" />
+            </div>
+          </div>
+          <div class="form-grid">
+            <div class="form-row half">
               <label>Email</label>
               <input v-model="form.resp_email" type="email" placeholder="email@..." />
             </div>
@@ -117,14 +123,30 @@
 
     <!-- Gestionnaires / suivi des affaires -->
     <div v-if="activeCompanyId" class="managers-section">
-      <h3>Masters secondaires</h3>
-      <p class="hint">Ils peuvent inviter des techniciens et créer/suivre des affaires (qui vont et viennent), mais ne peuvent pas modifier la fiche de l'entreprise.</p>
+      <!-- Master principal enregistré (confirmation) -->
+      <div v-if="activeCompany && (activeCompany.resp_firstname || activeCompany.resp_lastname)" class="principal-card">
+        <div class="principal-title">👑 Master principal (M)</div>
+        <div class="principal-name">
+          {{ activeCompany.resp_firstname }} {{ activeCompany.resp_lastname }}
+          <span v-if="activeCompany.resp_nickname" class="principal-nick">« {{ activeCompany.resp_nickname }} »</span>
+        </div>
+        <div v-if="activeCompany.resp_email || activeCompany.resp_phone" class="principal-contact">
+          {{ activeCompany.resp_email }}{{ activeCompany.resp_phone ? ' · ' + activeCompany.resp_phone : '' }}
+        </div>
+      </div>
+      <p v-else-if="activeCompany" class="hint">⚠️ Aucun master principal enregistré — renseigne le « Responsable » dans la fiche entreprise ci-dessus.</p>
+
+      <h3>Masters secondaires (M Secondary)</h3>
+      <p class="hint">Inscrits par les M. Ils peuvent inviter des techniciens et créer/suivre des affaires (qui vont et viennent), mais ne peuvent pas modifier la fiche de l'entreprise.</p>
 
       <div v-for="mgr in managers" :key="mgr.techid" class="manager-card">
         <template v-if="editManagerId === mgr.techid">
           <div class="form-grid">
             <div class="form-row half"><label>Prénom</label><input v-model="editManager.firstname" placeholder="Prénom" /></div>
             <div class="form-row half"><label>Nom</label><input v-model="editManager.lastname" placeholder="Nom" /></div>
+          </div>
+          <div class="form-grid">
+            <div class="form-row half"><label>Surnom (diminutif)</label><input v-model="editManager.nickname" placeholder="ex. Kev" /></div>
           </div>
           <div class="form-grid">
             <div class="form-row half"><label>Email</label><input v-model="editManager.email" type="email" placeholder="email@..." /></div>
@@ -137,7 +159,7 @@
         </template>
         <template v-else>
           <div class="mgr-info">
-            <div class="mgr-name">{{ mgr.name }}</div>
+            <div class="mgr-name">{{ mgr.name }}<span v-if="mgr.nickname" class="mgr-nick"> « {{ mgr.nickname }} »</span></div>
             <div class="mgr-contact">{{ mgr.email }}{{ mgr.phone ? ' · ' + mgr.phone : '' }}</div>
           </div>
           <div class="mgr-actions">
@@ -154,6 +176,9 @@
         <div class="form-grid">
           <div class="form-row half"><label>Prénom *</label><input v-model="newManager.firstname" placeholder="Prénom" /></div>
           <div class="form-row half"><label>Nom *</label><input v-model="newManager.lastname" placeholder="Nom" /></div>
+        </div>
+        <div class="form-grid">
+          <div class="form-row half"><label>Surnom (diminutif)</label><input v-model="newManager.nickname" placeholder="ex. Kev" /></div>
         </div>
         <div class="form-grid">
           <div class="form-row half"><label>Email</label><input v-model="newManager.email" type="email" placeholder="email@..." /></div>
@@ -279,13 +304,15 @@ const newEmployee = reactive({
   can_manage_ct: false,
 })
 
+// Entreprise active (pour afficher le master principal enregistré)
+const activeCompany = computed(() => companies.value.find(c => c.companyid === activeCompanyId.value) || null)
 // Gestionnaires (suivi des affaires) = techniciens marqués can_manage_affairs
 const managers = computed(() => employees.value.filter(e => e.can_manage_affairs))
 const staff = computed(() => employees.value.filter(e => !e.can_manage_affairs))
 const showAddManager = ref(false)
-const newManager = reactive({ firstname: '', lastname: '', email: '', phone: '' })
+const newManager = reactive({ firstname: '', lastname: '', nickname: '', email: '', phone: '' })
 const editManagerId = ref(null)
-const editManager = reactive({ firstname: '', lastname: '', email: '', phone: '' })
+const editManager = reactive({ firstname: '', lastname: '', nickname: '', email: '', phone: '' })
 
 const domains = [
   { value: 'sound', label: 'Son', icon: '🔊' },
@@ -304,6 +331,7 @@ const form = reactive({
   email: '',
   resp_firstname: '',
   resp_lastname: '',
+  resp_nickname: '',
   resp_email: '',
   resp_phone: '',
 })
@@ -348,6 +376,7 @@ function selectCompany(c) {
   form.email = c.email || ''
   form.resp_firstname = c.resp_firstname || ''
   form.resp_lastname = c.resp_lastname || ''
+  form.resp_nickname = c.resp_nickname || ''
   form.resp_email = c.resp_email || ''
   form.resp_phone = c.resp_phone || ''
 }
@@ -355,7 +384,7 @@ function selectCompany(c) {
 function resetForm() {
   editing.value = false
   selectedCompany.value = null
-  Object.assign(form, { name: '', siret: '', departments: [], address: '', city: '', country: '', phone: '', email: '', resp_firstname: '', resp_lastname: '', resp_email: '', resp_phone: '' })
+  Object.assign(form, { name: '', siret: '', departments: [], address: '', city: '', country: '', phone: '', email: '', resp_firstname: '', resp_lastname: '', resp_nickname: '', resp_email: '', resp_phone: '' })
   message.value = ''
 }
 
@@ -374,6 +403,7 @@ async function submit() {
         email: form.email,
         resp_firstname: form.resp_firstname,
         resp_lastname: form.resp_lastname,
+        resp_nickname: form.resp_nickname,
         resp_email: form.resp_email,
         resp_phone: form.resp_phone,
       })
@@ -423,6 +453,7 @@ async function submit() {
         email: form.email,
         resp_firstname: form.resp_firstname,
         resp_lastname: form.resp_lastname,
+        resp_nickname: form.resp_nickname,
         resp_email: form.resp_email,
         resp_phone: form.resp_phone,
         catalog_id: firstCatId,
@@ -572,6 +603,7 @@ async function addManager() {
   const { error } = await supabase.from('technician').insert({
     name,
     firstname: newManager.firstname,
+    nickname: newManager.nickname || null,
     email: newManager.email,
     phone: newManager.phone,
     company_id: activeCompanyId.value,
@@ -580,7 +612,7 @@ async function addManager() {
   if (error) {
     showMessage('Erreur: ' + error.message, 'error')
   } else {
-    Object.assign(newManager, { firstname: '', lastname: '', email: '', phone: '' })
+    Object.assign(newManager, { firstname: '', lastname: '', nickname: '', email: '', phone: '' })
     showAddManager.value = false
     showMessage(`${name} ajouté`, 'success')
     await loadEmployees()
@@ -593,6 +625,7 @@ function startEditManager(mgr) {
   Object.assign(editManager, {
     firstname: fn,
     lastname: fn ? (mgr.name || '').replace(fn, '').trim() : (mgr.name || ''),
+    nickname: mgr.nickname || '',
     email: mgr.email || '',
     phone: mgr.phone || '',
   })
@@ -603,6 +636,7 @@ async function saveManager(mgr) {
   const { error } = await supabase.from('technician').update({
     name,
     firstname: editManager.firstname,
+    nickname: editManager.nickname || null,
     email: editManager.email,
     phone: editManager.phone,
   }).eq('techid', mgr.techid)
@@ -775,7 +809,7 @@ h3 {
   padding: 10px;
   border: 1px dashed var(--color1);
   border-radius: 8px;
-  background: var(--color1-light);
+  background: var(--bg-section);
 }
 .resp-title {
   font-size: 13px;
@@ -856,6 +890,16 @@ input.locked {
 .managers-section {
   margin-top: 20px;
 }
+.principal-card {
+  border: 1px solid var(--color1);
+  background: var(--bg-section);
+  border-radius: 8px; padding: 10px 12px; margin-bottom: 12px;
+}
+.principal-title { font-size: 12px; font-weight: 700; color: var(--color1); text-transform: uppercase; letter-spacing: 0.5px; }
+.principal-name { font-size: 16px; font-weight: 700; margin-top: 2px; color: var(--text); }
+.principal-nick { font-weight: 600; color: var(--color1); }
+.principal-contact { font-size: 13px; color: var(--text-muted, #888); margin-top: 2px; }
+.mgr-nick { font-weight: 600; color: var(--color1); }
 .manager-card {
   display: flex;
   justify-content: space-between;
@@ -865,7 +909,7 @@ input.locked {
   border-radius: 8px;
   padding: 10px;
   margin-bottom: 6px;
-  background: var(--color1-light);
+  background: var(--bg-section);
 }
 .mgr-name {
   font-size: 14px;

@@ -217,9 +217,12 @@ function colorForType(type) {
   border: 1.5px solid var(--color1);
 }
 .cable-row.row-active .cable-name {
-  border: 1.5px solid var(--color1);
+  /* Sélection : encadré BLANC, uniforme (on écrase la bordure-gauche inline et le
+     fond du zébrage) → même largeur sur toutes les lignes, jamais mauve. */
+  border: 2px solid #fff !important;
   border-radius: 6px;
   font-weight: 800;
+  background: var(--bg-card) !important;
 }
 .cable-name {
   width: 120px;

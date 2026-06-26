@@ -331,6 +331,7 @@ onUnmounted(() => {
   --bg: #ffffff;
   --bg-card: #fafafa;
   --bg-input: #ffffff;
+  --bg-section: #eef0f3;
   --text: #2c3e50;
   --text-light: #888;
   --text-muted: #999;
@@ -342,6 +343,7 @@ onUnmounted(() => {
   --bg: #1a1a2e;
   --bg-card: #252540;
   --bg-input: #2a2a45;
+  --bg-section: #1c1c33;
   --text: #e0e0e0;
   --text-light: #aaa;
   --text-muted: #777;

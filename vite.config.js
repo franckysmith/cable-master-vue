@@ -10,6 +10,7 @@ export default defineConfig({
     quasar(),
     VitePWA({
       registerType: 'autoUpdate',
+      devOptions: { enabled: false }, // pas de service worker en dev (évite le cache piégé)
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
         importScripts: ['push-sw.js'],
@@ -51,5 +52,6 @@ export default defineConfig({
   ],
   server: {
     host: '0.0.0.0',
+    port: 5174,
   },
 })

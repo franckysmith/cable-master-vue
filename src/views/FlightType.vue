@@ -22,6 +22,9 @@
         <button class="subtract-toggle" :class="{ active: subtractMode }" @click="subtractMode = !subtractMode">
           {{ subtractMode ? '−' : '+' }}
         </button>
+        <button class="step-toggle" :class="{ active: incrementStep === 10 }" @click="incrementStep = incrementStep === 10 ? 1 : 10">
+          +10
+        </button>
       </div>
 
       <ButtonCableType :model-value="typeChoose" @select="typeChoose = $event" />
@@ -86,6 +89,7 @@ const typeChoose = ref('speaker')
 const searchKey = ref('')
 const activeCableId = ref(null)
 const subtractMode = ref(false)
+const incrementStep = ref(1)
 const cableCounts = ref({})
 let usedTouch = false
 
@@ -136,7 +140,10 @@ async function selectCt(i) {
   cableCounts.value = counts
 }
 
+const LONG_PRESS_DELAY = 400
+const REPEAT_INTERVAL = 200
 let pressTimer = null
+let repeatTimer = null
 let didLongPress = false
 
 function startPress(cable, e) {
@@ -144,18 +151,40 @@ function startPress(cable, e) {
   if (e?.type?.startsWith('touch')) usedTouch = true
   if (cable.cableid !== activeCableId.value) return
   didLongPress = false
+  // Maintien → décrément continu (−1 répété), comme la vue zones/FC
+  pressTimer = setTimeout(() => {
+    didLongPress = true
+    doDecrement(cable)
+    repeatTimer = setInterval(() => doDecrement(cable), REPEAT_INTERVAL)
+  }, LONG_PRESS_DELAY)
+}
+
+function doDecrement(cable) {
+  const cur = cableCounts.value[cable.cableid] || 0
+  if (cur > 0) {
+    cableCounts.value[cable.cableid] = cur - 1
+    saveCableCount(cable.cableid)
+  } else {
+    clearInterval(repeatTimer)
+    repeatTimer = null
+  }
 }
 
 function endPress(cable, e) {
   if (e?.type?.startsWith('mouse') && usedTouch) return
   if (cable.cableid !== activeCableId.value) return
+  clearTimeout(pressTimer)
+  clearInterval(repeatTimer)
+  pressTimer = null
+  repeatTimer = null
 
+  // Tap simple → ajoute (ou retire en mode −) le pas courant (1 ou 10)
   if (!didLongPress) {
     const current = cableCounts.value[cable.cableid] || 0
     if (subtractMode.value) {
-      cableCounts.value[cable.cableid] = Math.max(0, current - 1)
+      cableCounts.value[cable.cableid] = Math.max(0, current - incrementStep.value)
     } else {
-      cableCounts.value[cable.cableid] = current + 1
+      cableCounts.value[cable.cableid] = current + incrementStep.value
     }
     saveCableCount(cable.cableid)
   }
@@ -163,6 +192,9 @@ function endPress(cable, e) {
 
 function cancelPress() {
   clearTimeout(pressTimer)
+  clearInterval(repeatTimer)
+  pressTimer = null
+  repeatTimer = null
 }
 
 async function saveCableCount(cableid) {
@@ -254,6 +286,27 @@ h2 {
   border-color: #ef4444;
   color: #fff;
 }
+.step-toggle {
+  height: 28px;
+  padding: 0 8px;
+  border-radius: 14px;
+  border: 2px solid #ccc;
+  background: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  color: #666;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: auto;
+  box-shadow: none;
+}
+.step-toggle.active {
+  background: #3b82f6;
+  border-color: #3b82f6;
+  color: #fff;
+}
 .ct-table {
   width: 100%;
 }
@@ -273,10 +326,14 @@ h2 {
   padding-bottom: 4px;
 }
 .cable-row.row-active .cable-name {
-  border: 1.5px solid var(--color1);
+  /* Sélection : encadré BLANC, uniforme (écrase la bordure-gauche inline, le fond
+     du zébrage ET le padding pair/impair) → même taille partout, texte blanc. */
+  border: 2px solid #fff !important;
   border-radius: 6px;
-  color: var(--color1-dark);
+  color: var(--text) !important;
   font-weight: 800;
+  background: var(--bg-card) !important;
+  padding: 4px 6px !important;
 }
 .cable-row.row-active .ct-cell {
   border: 1.5px solid var(--color1);

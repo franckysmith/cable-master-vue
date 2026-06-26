@@ -154,13 +154,7 @@
               @mousedown="startHeaderPress('zone', i)" @mouseup="endHeaderPress('zone', i)" @mouseleave="cancelHeaderPress"
               @touchstart="startHeaderPress('zone', i)" @touchmove="onHeaderMove" @touchend.prevent="endHeaderPress('zone', i)" @touchcancel="cancelHeaderPress"
             >
-              <input
-                v-if="editingHeader && editingHeader.type === 'zone' && editingHeader.index === i"
-                v-focus v-model="zoneLabels[`lz${i}`]" :placeholder="`Zone${i}`" maxlength="20"
-                @blur="commitHeaderEdit" @keydown.enter="commitHeaderEdit"
-                @mousedown.stop @touchstart.stop @click.stop
-              />
-              <span v-else :class="{ 'solo-selected': soloMode && zoneSoloFilter === i }">{{ zoneLabels[`lz${i}`] || `Zone${i}` }}</span>
+              <span :class="{ 'solo-selected': soloMode && zoneSoloFilter === i }">{{ zoneLabels[`lz${i}`] || `Zone${i}` }}</span>
             </div>
             <div class="head-total-spacer"></div>
           </div>
@@ -186,13 +180,7 @@
               @mousedown="startHeaderPress('fc', i)" @mouseup="endHeaderPress('fc', i)" @mouseleave="cancelHeaderPress"
               @touchstart="startHeaderPress('fc', i)" @touchmove="onHeaderMove" @touchend.prevent="endHeaderPress('fc', i)" @touchcancel="cancelHeaderPress"
             >
-              <input
-                v-if="editingHeader && editingHeader.type === 'fc' && editingHeader.index === i"
-                v-focus v-model="fcLabels[`lfc${i}`]" :placeholder="`FC${i}`" maxlength="20"
-                @blur="commitHeaderEdit" @keydown.enter="commitHeaderEdit"
-                @mousedown.stop @touchstart.stop @click.stop
-              />
-              <span v-else class="fc-label-btn">{{ fcLabels[`lfc${i}`] || `FC${i}` }}</span>
+              <span class="fc-label-btn">{{ fcLabels[`lfc${i}`] || `FC${i}` }}</span>
             </div>
           </div>
         </div>
@@ -350,6 +338,23 @@
           <div class="qr-actions">
             <button class="qr-btn" @click="copyToClipboard">📋 Copier le lien</button>
             <button class="qr-btn" @click="shareNative">📩 Email</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Fenêtre d'édition des étiquettes (appui long sur un en-tête) -->
+      <div v-if="labelEditor.open" class="label-editor-overlay" @click.self="cancelLabelEditor">
+        <div class="label-editor">
+          <div class="le-title">{{ labelEditorTitle }}</div>
+          <div class="le-rows">
+            <label v-for="f in labelEditor.fields" :key="f.key" class="le-row">
+              <span class="le-tag">{{ f.placeholder }}</span>
+              <input v-model="f.value" :placeholder="f.placeholder" maxlength="20" @keydown.enter="saveLabelEditor" />
+            </label>
+          </div>
+          <div class="le-actions">
+            <button class="le-cancel" @click="cancelLabelEditor">Annuler</button>
+            <button class="le-save" @click="saveLabelEditor">Valider</button>
           </div>
         </div>
       </div>
@@ -637,57 +642,72 @@ function onZoneHeaderClick(i) {
 
 // En-têtes de colonnes (zones & flight-cases) :
 //   clic court = ouvrir le détail (voir le contenu) ; appui long = renommer en ligne
-const editingHeader = ref(null) // { type: 'fc' | 'zone', index }
-const vFocus = { mounted: (el) => { el.focus(); if (el.select) el.select() } }
 
 let headerPressTimer = null
-let headerDidLongPress = false
 let headerMoved = false
+let headerLongFired = false
 
 function startHeaderPress(type, index) {
-  if (editingHeader.value) return
-  headerDidLongPress = false
   headerMoved = false
+  headerLongFired = false
+  clearTimeout(headerPressTimer)
+  // Appui long → la fenêtre s'ouvre PENDANT l'appui (pouce encore posé) ;
+  // on relâche une fois qu'elle est ouverte.
   headerPressTimer = setTimeout(() => {
-    headerDidLongPress = true
-    if (type === 'ct') {
-      const cur = settingsStore.defaultCtLabels[`ct${index}`] || `CK${index}`
-      const n = prompt('Renommer :', cur)
-      if (n !== null) settingsStore.defaultCtLabels[`ct${index}`] = n
-    } else {
-      // fc / zone : édition en ligne du titre
-      editingHeader.value = { type, index }
-    }
-  }, 600)
+    if (headerMoved) return
+    headerLongFired = true
+    openLabelEditor(type)
+  }, 500)
 }
 
 function onHeaderMove() {
-  // L'utilisateur fait défiler : on annule l'appui (pas d'ouverture ni de renommage)
+  // L'utilisateur fait défiler : on annule l'appui
   headerMoved = true
   clearTimeout(headerPressTimer)
 }
 
 function endHeaderPress(type, index) {
   clearTimeout(headerPressTimer)
-  if (headerDidLongPress || headerMoved) return
+  if (headerMoved || headerLongFired) return
+  // Tap court → sélection solo (seulement si le mode S est actif)
   if (type === 'ct') { onCtHeaderClick(index); return }
-  if (type === 'fc') {
-    // Solo seulement si le mode S est actif : clic = sélectionner ce flight-case
-    // (on sort du solo uniquement via le bouton S, jamais en recliquant)
-    if (fcSolo.value) { fcSoloFilter.value = index; typeChoose.value = '' }
-    return
-  }
-  // zone : idem, sélection seulement si le mode S est actif
-  if (soloMode.value) zoneSoloFilter.value = index
+  if (type === 'fc') { if (fcSolo.value) { fcSoloFilter.value = index; typeChoose.value = '' } return }
+  if (type === 'zone') { if (soloMode.value) zoneSoloFilter.value = index }
 }
 
 function cancelHeaderPress() {
+  headerMoved = true
   clearTimeout(headerPressTimer)
 }
 
-function commitHeaderEdit() {
-  editingHeader.value = null
+// --- Fenêtre d'édition des étiquettes (tous les champs d'un coup) ---
+const labelEditor = reactive({ open: false, type: '', fields: [] })
+const labelEditorTitle = computed(() =>
+  labelEditor.type === 'zone' ? 'Renommer les zones de diffusion'
+    : labelEditor.type === 'fc' ? 'Renommer les flight-cases'
+      : 'Renommer les cablekits'
+)
+function openLabelEditor(type) {
+  labelEditor.type = type
+  if (type === 'zone') {
+    labelEditor.fields = Array.from({ length: 6 }, (_, k) => ({ key: `lz${k + 1}`, placeholder: `Zone${k + 1}`, value: zoneLabels[`lz${k + 1}`] || '' }))
+  } else if (type === 'fc') {
+    labelEditor.fields = Array.from({ length: 7 }, (_, k) => ({ key: `lfc${k + 1}`, placeholder: `FC${k + 1}`, value: fcLabels[`lfc${k + 1}`] || '' }))
+  } else if (type === 'ct') {
+    labelEditor.fields = Array.from({ length: 7 }, (_, k) => ({ key: `ct${k + 1}`, placeholder: `CK${k + 1}`, value: settingsStore.defaultCtLabels[`ct${k + 1}`] || '' }))
+  }
+  labelEditor.open = true
 }
+function saveLabelEditor() {
+  for (const f of labelEditor.fields) {
+    const v = (f.value || '').trim()
+    if (labelEditor.type === 'zone') zoneLabels[f.key] = v
+    else if (labelEditor.type === 'fc') fcLabels[f.key] = v
+    else if (labelEditor.type === 'ct') settingsStore.defaultCtLabels[f.key] = v
+  }
+  labelEditor.open = false
+}
+function cancelLabelEditor() { labelEditor.open = false }
 
 const ctEditMode = ref(false)
 let ctBtnTimer = null
@@ -1248,12 +1268,14 @@ async function onAffairSelected(affair) {
     } catch { /* ignore */ }
   }
 
-  // Charger les câbles du catalogue de l'affaire ou de l'entreprise connectée
+  // Charger les câbles du catalogue de l'affaire ou de l'entreprise connectée.
+  // Les deux requêtes (câbles + ordres) sont indépendantes → en PARALLÈLE (≈ 2× plus rapide).
   const catalogId = affair.catalog_id || localStorage.getItem('cablemaster-catalogid') || null
-  await cableStore.fetchCables(catalogId ? parseInt(catalogId) : null)
-
-  const { data: orders } = await orderStore.fetchOrders({ affairid: affair.affairid })
-  buildJoinedData(orders || [], cableStore.cables)
+  const [, ordersResult] = await Promise.all([
+    cableStore.fetchCables(catalogId ? parseInt(catalogId) : null),
+    orderStore.fetchOrders({ affairid: affair.affairid }),
+  ])
+  buildJoinedData(ordersResult?.data || [], cableStore.cables)
   activeCableId.value = null
   editingCable.value = null
   showAddInput.value = false
@@ -2330,6 +2352,36 @@ button {
   align-items: center;
   z-index: 200;
 }
+.label-editor-overlay {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.6);
+  display: flex; justify-content: center; align-items: center; z-index: 250;
+  padding: 16px;
+}
+.label-editor {
+  background: var(--bg-card, #fff); color: var(--text, #333);
+  border: 1px solid var(--border, #ddd); border-radius: 14px;
+  padding: 16px; width: 100%; max-width: 340px; max-height: 80vh; overflow-y: auto;
+}
+.le-title { font-size: 16px; font-weight: 800; margin-bottom: 12px; }
+.le-rows { display: flex; flex-direction: column; gap: 8px; }
+.le-row { display: flex; align-items: center; gap: 8px; }
+.le-tag {
+  flex: 0 0 46px; font-size: 12px; font-weight: 700; color: var(--text-muted, #888);
+}
+.le-row input {
+  flex: 1; min-width: 0; padding: 8px 10px; font-size: 16px;
+  border: 1px solid var(--border-light, #ccc); border-radius: 8px;
+  background: var(--bg-input, #fff); color: var(--text, #333);
+}
+.le-row input:focus { outline: none; border-color: var(--color1); }
+.le-actions { display: flex; gap: 8px; margin-top: 14px; }
+.le-cancel, .le-save {
+  flex: 1; padding: 10px; border-radius: 8px; font-size: 14px; font-weight: 700;
+  cursor: pointer; border: none; box-shadow: none;
+}
+.le-cancel { background: var(--bg-section, #eee); color: var(--text, #333); border: 1px solid var(--border-light, #ccc); }
+.le-save { background: var(--color1); color: #fff; }
 .qr-panel {
   background: var(--bg, #fff);
   border-radius: 14px;

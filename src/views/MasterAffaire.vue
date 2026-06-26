@@ -15,9 +15,11 @@
       <button class="filter-soon follow" :class="{ active: followOnly }" @click="followOnly = !followOnly" title="À suivre">★ À suivre</button>
     </div>
     <div v-if="!showForm" class="time-filters">
-      <button class="time-btn today" :class="{ active: timeFilter === 'today' }" @click="toggleTime('today')">Aujourd'hui</button>
-      <button class="time-btn tomorrow" :class="{ active: timeFilter === 'tomorrow' }" @click="toggleTime('tomorrow')">Demain</button>
-      <button class="time-btn week" :class="{ active: timeFilter === 'week' }" @click="toggleTime('week')">Ensuite</button>
+      <button class="time-btn today" :class="{ active: timeFilter === 'd0' }" @click="toggleTime('d0')">Aujourd'hui</button>
+      <button class="time-btn" :class="{ active: timeFilter === 'd1' }" @click="toggleTime('d1')">J+1</button>
+      <button class="time-btn" :class="{ active: timeFilter === 'd2' }" @click="toggleTime('d2')">J+2</button>
+      <button class="time-btn" :class="{ active: timeFilter === 'd3' }" @click="toggleTime('d3')">J+3</button>
+      <button class="time-btn" :class="{ active: timeFilter === 'd4plus' }" @click="toggleTime('d4plus')">J++</button>
     </div>
     <div v-if="!showForm" class="affair-search-bar">
       <div class="affair-search-field">
@@ -25,6 +27,10 @@
         <button v-if="affairSearch" class="affair-search-clear" @click="affairSearch = ''" title="Effacer">✕</button>
       </div>
       <label class="affair-search-past"><input type="checkbox" v-model="searchPast" /> passé</label>
+    </div>
+    <div v-if="!showForm && managerFilter" class="manager-filter-chip">
+      👤 Gérant : <strong>{{ managerFilter }}</strong>
+      <button class="mfc-clear" @click="managerFilter = ''" title="Tout afficher">✕</button>
     </div>
     <div v-if="!showForm" class="affair-tabs">
       <button :class="{ active: tab === 'draft' }" @click="tab = 'draft'">NEW</button>
@@ -263,6 +269,14 @@
           <button class="follow-btn" :class="{ on: affair.followed }" @click.stop="toggleFollow(affair)" :title="affair.followed ? 'Ne plus suivre' : 'À suivre'">{{ affair.followed ? '★' : '☆' }}</button>
           <span v-if="unreadAffairs[affair.affairid]" class="unread-star" @click.stop="openChatOnly(affair)">★</span>
           <span class="card-name" :class="{ 'is-today': isTodayFor(affair), 'is-tomorrow': !isTodayFor(affair) && isTomorrowFor(affair) }">{{ affair.name || '(Sans nom)' }}</span>
+          <!-- Carte sélectionnée → menu éditable ; sinon → filtre par gérant -->
+          <select v-if="selected?.affairid === affair.affairid" class="manager-select" :value="affair.manager || ''" @click.stop @change="onManagerChange(affair, $event)" title="Qui gère cette affaire">
+            <option value="">— gérant</option>
+            <option v-for="m in managerOptions" :key="m" :value="m">{{ m }}</option>
+          </select>
+          <button v-else class="manager-chip" :class="{ none: !affair.manager, active: managerFilter && managerFilter === affair.manager }" @click.stop="clickManager(affair)" :title="affair.manager ? 'Voir les affaires gérées par ' + affair.manager : 'Aucun gérant'">
+            {{ affair.manager || '— gérant' }}
+          </button>
           <button v-if="selected?.affairid === affair.affairid && detailOpen" class="card-cal-btn" @click.stop="openCalendarFor(affair)" title="Voir le calendrier">📅</button>
           <button v-if="selected?.affairid === affair.affairid && detailOpen" class="card-edit-btn" @click.stop="editCurrentAffair" title="Modifier l'affaire">✏️</button>
           <button v-if="selected?.affairid === affair.affairid && detailOpen" class="card-edit-btn" @click.stop="sendTeamMessage(affair)" title="Notification à l'équipe">🔔</button>
@@ -282,9 +296,9 @@
             <span class="mcd-dow">{{ dowLetter(d.date) }}</span>
             <span class="mcd-num">{{ dayNum(d.date) }}</span>
             <span class="mcd-bars">
-              <span v-for="t in d.types" :key="t" class="mcd-mark" :title="EVENT_LABELS[t]">
-                <span v-if="EVENT_ARROW[t]" class="mcd-arrow" :style="{ color: EVENT_COLORS[t] }">{{ EVENT_ARROW[t] }}</span>
-                <span v-else class="mcd-bar" :style="{ background: EVENT_COLORS[t] }"></span>
+              <span v-for="(m, i) in d.marks" :key="i" class="mcd-mark" :title="EVENT_LABELS[m.type] + periodSuffix(m.period)">
+                <span v-if="isArrowType(m.type)" class="mcd-arrow" :style="{ color: EVENT_COLORS[m.type] }">{{ arrowFor(m.type, m.period) }}</span>
+                <span v-else class="mcd-bar" :style="{ background: EVENT_COLORS[m.type] }"></span>
               </span>
             </span>
           </div>
@@ -828,6 +842,7 @@ async function loadAffairs() {
 
 // Repli : si le master actif n'a pas d'entreprise attachée, prendre la 1ʳᵉ entreprise
 const resolvedCompanyId = ref(companyId)
+const companyResp = ref(null) // responsable principal (master principal)
 async function loadTechnicians() {
   if (!resolvedCompanyId.value) {
     const { data: comps } = await supabase.from('company').select('companyid').order('companyid').limit(1)
@@ -836,6 +851,34 @@ async function loadTechnicians() {
   if (!resolvedCompanyId.value) return
   const { data } = await supabase.from('technician').select('*').eq('company_id', resolvedCompanyId.value).order('name')
   technicians.value = data || []
+  const { data: comp } = await supabase.from('company').select('resp_firstname, resp_lastname, resp_nickname').eq('companyid', resolvedCompanyId.value).single()
+  companyResp.value = comp || null
+}
+
+// Masters pouvant gérer une affaire : responsable principal + masters secondaires.
+// Affiché par surnom (diminutif) si présent, sinon prénom.
+const managerOptions = computed(() => {
+  const opts = []
+  const r = companyResp.value
+  if (r && (r.resp_nickname || r.resp_firstname)) opts.push(r.resp_nickname || r.resp_firstname)
+  ;(technicians.value || []).forEach(t => {
+    if (t.can_manage_affairs) {
+      const label = t.nickname || t.firstname || t.name
+      if (label) opts.push(label)
+    }
+  })
+  return [...new Set(opts)]
+})
+async function onManagerChange(affair, ev) {
+  const v = ev.target.value || null
+  affair.manager = v
+  await supabase.from('affair').update({ manager: v }).eq('affairid', affair.affairid)
+}
+// Filtre par gérant : clic sur le nom (carte non sélectionnée) → toutes ses affaires
+const managerFilter = ref('')
+function clickManager(affair) {
+  if (!affair.manager) return
+  managerFilter.value = managerFilter.value === affair.manager ? '' : affair.manager
 }
 
 const trashedAffairs = ref([])
@@ -848,7 +891,7 @@ async function loadTrashed() {
 
 // Filtre "à venir" : Prépa / Chargement / Déchargement
 const sortMode = ref('')
-const timeFilter = ref('') // '' | 'today' | 'tomorrow' | 'week'
+const timeFilter = ref('') // '' | 'd0' | 'd1' | 'd2' | 'd3' | 'd4plus'
 const followOnly = ref(false) // n'afficher que les affaires "à suivre" (★)
 const affairSearch = ref('') // moteur de recherche d'affaires
 const searchPast = ref(false) // false = affaires à venir ; true = affaires passées/terminées
@@ -870,12 +913,16 @@ function plusDaysISO(n) {
   const d = new Date(); d.setDate(d.getDate() + n); return isoFromDate(d)
 }
 // Une date est-elle dans la fenêtre temporelle choisie ?
+// 'd0'=aujourd'hui, 'd1'..'d3'=J+1..J+3 (jour exact), 'd4plus'=J+4 et au-delà
 function inWindow(d) {
-  if (timeFilter.value === 'today') return d === todayISO()
-  if (timeFilter.value === 'tomorrow') return d === tomorrowISO()
-  // « Semaine » = tout ce qui vient APRÈS demain (à partir d'après-demain), sans limite
-  if (timeFilter.value === 'week') return d > tomorrowISO()
-  return false
+  switch (timeFilter.value) {
+    case 'd0': return d === plusDaysISO(0)
+    case 'd1': return d === plusDaysISO(1)
+    case 'd2': return d === plusDaysISO(2)
+    case 'd3': return d === plusDaysISO(3)
+    case 'd4plus': return d >= plusDaysISO(4)
+    default: return false
+  }
 }
 // Toutes les dates de l'affaire (prépa + chargement + déchargement) avec leur type
 function allEvents(a) {
@@ -935,29 +982,40 @@ const installedEmails = computed(() => {
 })
 function isReachable(email) { return !!email && installedEmails.value.has(email.toLowerCase()) }
 
-// Mini-calendrier d'aperçu (1er clic) : jours-clés si l'affaire tient sur ≤ 1 semaine
+// Mini-calendrier d'aperçu : jours-clés si l'affaire tient sur ≤ 1 semaine
 const EVENT_COLORS = { prep: '#ea580c', out: '#3b82f6', show: '#22c55e', back: '#15803d' }
 const EVENT_LABELS = { prep: 'Prépa', out: 'Chargement', show: 'Concert', back: 'Déchargement' }
-// Flèches cohérentes avec le calendrier : chargement = sortie → ; déchargement = retour ←
-const EVENT_ARROW = { out: '→', back: '←' }
+// Flèche diagonale selon le moment : matin = vers le haut (↗/↖), après-midi = vers le bas (↘/↙)
+function arrowFor(type, period) {
+  // matin = vers le bas (↘/↙) ; après-midi = vers le haut (↗/↖)
+  if (type === 'out') return period === 'am' ? '↘' : period === 'pm' ? '↗' : '→'
+  if (type === 'back') return period === 'am' ? '↙' : period === 'pm' ? '↖' : '←'
+  return ''
+}
+function isArrowType(t) { return t === 'out' || t === 'back' }
+function periodSuffix(p) { return p === 'am' ? ' (matin ↓)' : p === 'pm' ? ' (après-midi ↑)' : '' }
 function dowLetter(d) { return ['D', 'L', 'M', 'M', 'J', 'V', 'S'][new Date(d + 'T00:00:00').getDay()] }
 function dayNum(d) { return parseInt(d.slice(8, 10), 10) }
 function miniCalDays(a) {
-  const map = {}
-  const add = (d, t) => { if (!d) return; (map[d] = map[d] || []).includes(t) || map[d].push(t) }
+  const map = {} // date -> [{ type, period }]
+  const add = (d, t, period) => {
+    if (!d) return
+    map[d] = map[d] || []
+    if (!map[d].some(m => m.type === t)) map[d].push({ type: t, period: period || null })
+  }
   const pk = Object.keys(a.prep_days || {})
   if (pk.length) pk.forEach(d => add(d, 'prep')); else add(a.prep_date, 'prep')
-  const out = a.out_dates || []
-  if (out.length) out.forEach(d => add(d, 'out')); else add(a.receipt_date, 'out')
+  const out = a.out_dates || [], op = a.out_periods || {}
+  if (out.length) out.forEach(d => add(d, 'out', op[d])); else add(a.receipt_date, 'out')
   ;(a.tour_dates || []).forEach(d => add(d, 'show'))
-  const back = a.back_dates || []
-  if (back.length) back.forEach(d => add(d, 'back')); else add(a.return_date, 'back')
+  const back = a.back_dates || [], bp = a.back_periods || {}
+  if (back.length) back.forEach(d => add(d, 'back', bp[d])); else add(a.return_date, 'back')
   const days = Object.keys(map).filter(Boolean).sort()
   if (!days.length) return null
   // Condition : ne pas excéder une semaine (écart 1er → dernier jour ≤ 6 jours)
   const span = (new Date(days[days.length - 1]) - new Date(days[0])) / 86400000
   if (span > 6) return null
-  return days.map(d => ({ date: d, types: map[d] }))
+  return days.map(d => ({ date: d, marks: map[d] }))
 }
 // Techniciens d'une affaire (tous les postes actifs)
 function allTechs(a) {
@@ -1129,7 +1187,9 @@ const filteredAffairs = computed(() => {
   const undated = withE.filter(x => !x.e)
   return [...dated, ...undated].map(x => x.a)
   })()
-  return followOnly.value ? list.filter(a => a.followed) : list
+  let out = followOnly.value ? list.filter(a => a.followed) : list
+  if (managerFilter.value) out = out.filter(a => a.manager === managerFilter.value)
+  return out
 })
 
 watch(tab, (t) => { if (t === 'trash') loadTrashed() })
@@ -1777,12 +1837,36 @@ h3 { font-size: 16px; margin: 0; }
 .card-status { font-size: 14px; }
 .card-head { display: flex; align-items: center; gap: 8px; }
 .card-name {
-  flex: 0 0 auto; width: 30ch; max-width: 100%;
+  flex: 1 1 auto; min-width: 0; max-width: 27ch;
   font-size: 16px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   color: var(--text, #333);
   border: 2px solid #e5e7eb; border-radius: 8px;
   padding: 4px 10px; box-sizing: border-box;
 }
+.manager-select {
+  flex: 0 0 auto; margin-left: auto; max-width: 11ch;
+  font-size: 13px; font-weight: 700; color: var(--color1);
+  background: var(--bg-soft, rgba(124,58,237,0.08));
+  border: 1px solid var(--border-light, #ddd); border-radius: 8px;
+  padding: 3px 4px; box-shadow: none; min-width: 0; cursor: pointer;
+}
+.manager-chip {
+  flex: 0 0 auto; margin-left: auto; max-width: 12ch;
+  font-size: 13px; font-weight: 700; color: var(--color1);
+  background: var(--bg-soft, rgba(0,0,0,0.05));
+  border: 1px solid var(--border-light, #ddd); border-radius: 8px;
+  padding: 3px 8px; cursor: pointer; box-shadow: none; min-width: 0;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.manager-chip.none { color: var(--text-muted, #999); font-weight: 600; }
+.manager-chip.active { background: var(--color1); color: #fff; border-color: var(--color1); }
+.manager-filter-chip {
+  display: flex; align-items: center; gap: 6px; margin: 2px 0 8px;
+  font-size: 13px; color: var(--text);
+  background: var(--bg-section, rgba(0,0,0,0.05)); border: 1px solid var(--color1);
+  border-radius: 16px; padding: 4px 10px; width: fit-content;
+}
+.mfc-clear { background: transparent; border: none; cursor: pointer; color: var(--text-muted, #999); font-size: 14px; padding: 0 2px; min-width: auto; box-shadow: none; }
 .card-name.is-today {
   background: #fde047;
   color: #000;
@@ -1919,9 +2003,8 @@ h3 { font-size: 16px; margin: 0; }
   min-width: 0;
   white-space: nowrap;
 }
+.time-btn.active { background: var(--color1-dark); border-color: var(--color1-dark); color: #fff; }
 .time-btn.today.active { background: #eab308; border-color: #eab308; color: #000; }
-.time-btn.tomorrow.active { background: #f59e0b; border-color: #f59e0b; color: #000; }
-.time-btn.week.active { background: var(--color1-dark); border-color: var(--color1-dark); color: #fff; }
 .filter-soon.prep.active { background: #ea580c; border-color: #ea580c; color: #fff; }
 .filter-soon.out.active { background: #3b82f6; border-color: #3b82f6; color: #fff; }
 .filter-soon.back.active { background: #15803d; border-color: #15803d; color: #fff; }
@@ -2119,7 +2202,7 @@ h3 { font-size: 16px; margin: 0; }
 .preview-zone { cursor: pointer; }
 .mini-cal {
   display: flex; flex-wrap: wrap; gap: 6px; margin-top: -2px;
-  padding: 4px 6px; border-radius: 8px; background: var(--bg-soft, rgba(0,0,0,0.04));
+  padding: 2px 0; background: transparent;
 }
 .mini-cal-day {
   display: flex; flex-direction: column; align-items: center; gap: 1px;
@@ -2127,10 +2210,10 @@ h3 { font-size: 16px; margin: 0; }
 }
 .mcd-dow { font-size: 9px; font-weight: 700; color: var(--text, #cbd5e1); opacity: 0.85; text-transform: uppercase; }
 .mcd-num { font-size: 15px; font-weight: 800; color: var(--text, #333); line-height: 1; }
-.mcd-bars { display: flex; align-items: center; gap: 3px; margin-top: 2px; height: 12px; }
+.mcd-bars { display: flex; align-items: center; gap: 3px; margin-top: 2px; height: 18px; }
 .mcd-mark { display: flex; align-items: center; }
-.mcd-bar { width: 6px; height: 6px; border-radius: 2px; }
-.mcd-arrow { font-size: 13px; font-weight: 900; line-height: 1; }
+.mcd-bar { width: 7px; height: 7px; border-radius: 2px; }
+.mcd-arrow { font-size: 18px; font-weight: 900; line-height: 1; }
 .detail-actions { margin-top: 8px; }
 .btn-edit-detail {
   width: 100%; padding: 9px; background: var(--color1-dark); color: #fff; border: none;
