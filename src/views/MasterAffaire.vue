@@ -1458,6 +1458,16 @@ async function selectPeer(affair, email) {
   await q
   await reloadMessages(affair)
 }
+// E-mail aux personnes NON installées (push pour les installés, e-mail pour les autres).
+// L'edge function ajoute le guide d'installation une seule fois par personne.
+async function mailNonInstalled(emails, subject, message, url) {
+  const targets = [...new Set((emails || []).filter(Boolean))].filter(e => !isReachable(e))
+  if (!targets.length) return
+  try {
+    await supabase.functions.invoke('send-email', { body: { emails: targets, subject, message, url } })
+  } catch (e) { /* e-mail best-effort */ }
+}
+
 async function sendChat(affair) {
   const txt = masterReply.value.trim()
   if (!txt) return
@@ -1476,6 +1486,9 @@ async function sendChat(affair) {
       await supabase.functions.invoke('send-push', { body: { ...payload, companyId: cid } })
     }
   } catch (e) { /* push best-effort */ }
+  // E-mail aux destinataires non installés
+  const mailTargets = peer ? [peer] : chatPeers(affair).map(p => p.email)
+  await mailNonInstalled(mailTargets, affair.name || 'Cinod-Prep', txt, payload.url)
 }
 
 // Notification push à l'équipe (tous les appareils installés de l'entreprise)
@@ -1488,6 +1501,8 @@ async function sendTeamMessage(affair) {
   })
   if (error) showMessage('Erreur envoi : ' + error.message, 'error')
   else showMessage(`Notification envoyée (${data?.sent || 0} appareil·s)`, 'success')
+  // E-mail aux assignés non installés (+ guide d'install la 1ʳᵉ fois)
+  await mailNonInstalled(chatPeers(affair).map(p => p.email), affair.name || 'Cinod-Prep', msg, '/MasterAffaire?affair=' + affair.affairid)
 }
 
 // Notification push à UNE personne (qui a installé l'app)
@@ -1522,6 +1537,8 @@ async function requestList(affair) {
       body: { emails: peers.map(p => p.email), title: affair.name || 'Cinod-Prep', body: text, url: '/?affair=' + affair.affairid },
     })
   } catch (e) { /* push best-effort */ }
+  // E-mail aux non installés (+ guide d'installation la 1ʳᵉ fois)
+  await mailNonInstalled(peers.map(p => p.email), affair.name || 'Cinod-Prep', text, '/?affair=' + affair.affairid)
   showMessage(`Demande envoyée à ${peers.length} technicien·s`, 'success')
 }
 

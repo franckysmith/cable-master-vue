@@ -29,6 +29,7 @@
 
     <div class="home">
       <div class="head">
+        <span class="head-spacer"></span>
         <div>seuil</div>
         <div>total</div>
         <div>poids</div>
@@ -149,18 +150,24 @@ async function confirmDelete() {
 }
 .head {
   display: flex;
-  margin-left: 60px;
+  align-items: center;
+  gap: 2px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0 8px;
   text-align: center;
   font-size: 11px;
   font-weight: 600;
   color: var(--text-light, #888);
 }
+/* spacer = case à cocher (18 + 4) + nom (100) → titres en face des champs */
+.head-spacer { width: 122px; min-width: 122px; flex: none; }
 .head div {
   width: 44px;
+  min-width: 44px;
+  flex: none;
+  box-sizing: border-box;
   text-align: center;
-}
-.head .head-active {
-  width: 20px;
 }
 .home {
   display: flex;

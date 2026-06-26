@@ -18,6 +18,7 @@
         <input
           type="number"
           :value="cable.total"
+          :class="stockClass(cable)"
           @change="update(cable, 'total', $event)"
           title="total"
         />
@@ -51,6 +52,16 @@ const cableStore = useCableStore()
 function update(cable, field, event) {
   const value = parseInt(event.target.value) || 0
   cableStore.updateCable(cable.cableid, { [field]: value })
+}
+
+// Alerte stock : total au niveau/sous le seuil → rouge ; un peu au-dessus → orange
+function stockClass(cable) {
+  const seuil = parseInt(cable.reserved) || 0
+  const total = parseInt(cable.total) || 0
+  if (seuil <= 0) return ''
+  if (total <= seuil) return 'stock-low'
+  if (total <= seuil * 1.3) return 'stock-warn'
+  return ''
 }
 
 function toggleActive(cable) {
@@ -96,6 +107,7 @@ function toggleActive(cable) {
 }
 .cable-fields input {
   width: 44px;
+  box-sizing: border-box;
   text-align: center;
   font-size: 13px;
   padding: 4px 2px;
@@ -104,6 +116,13 @@ function toggleActive(cable) {
   background: var(--bg-input, #fff);
   color: var(--text, #333);
 }
+/* Pas d'incrément : on tape simplement le chiffre (flèches masquées) */
+.cable-fields input::-webkit-outer-spin-button,
+.cable-fields input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.cable-fields input { -moz-appearance: textfield; appearance: textfield; }
+/* Alerte stock sur le total */
+.cable-fields input.stock-warn { background: #fed7aa !important; color: #9a3412 !important; border-color: #f59e0b !important; font-weight: 800; }
+.cable-fields input.stock-low { background: #fecaca !important; color: #991b1b !important; border-color: #ef4444 !important; font-weight: 800; }
 .cable-active {
   width: 18px;
   height: 18px;
