@@ -16,7 +16,7 @@
       <button class="filter-soon out" :class="{ active: sortMode === 'out' }" @click="toggleSort('out')">Charg.</button>
       <button class="filter-soon back" :class="{ active: sortMode === 'back' }" @click="toggleSort('back')">Déch.</button>
       <button class="filter-soon msg-btn" :class="{ active: msgFilter, 'has-msg': unreadTotal > 0 }" @click="toggleMsgFilter" title="Messages reçus">
-        ✉️<span v-if="unreadTotal" class="msg-badge">{{ unreadTotal }}</span>
+        <q-icon name="mail" size="20px" /><span v-if="unreadTotal" class="msg-badge">{{ unreadTotal }}</span>
       </button>
     </div>
     <div v-if="!showForm" class="time-filters">
@@ -577,7 +577,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, watch, onMounted, nextTick } from 'vue'
+import { ref, reactive, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { supabase } from '../lib/supabase'
 import AllCasesView from '../components/AllCasesView.vue'
@@ -911,9 +911,14 @@ const showGantt = ref(false)
 const showHiddenTl = ref(false) // mode « Masqués » de la timeline (bouton à droite)
 const detailOpen = ref(false)
 function onGanttSelect(a) { selectAffair(a); detailOpen.value = true }
+let unreadTimer = null
+function onVisRefresh() { if (document.visibilityState === 'visible') refreshUnread() }
 onMounted(async () => {
   await loadAffairs()
   loadTechnicians()
+  refreshUnread()
+  unreadTimer = setInterval(refreshUnread, 30000)
+  document.addEventListener('visibilitychange', onVisRefresh)
   // Ouverture directe d'une affaire (depuis la Timeline : /MasterAffaire?affair=ID)
   const id = parseInt(route.query.affair)
   if (id) {
@@ -921,6 +926,10 @@ onMounted(async () => {
     if (a) { selectAffair(a); detailOpen.value = true }
   }
   if (route.query.timeline) showGantt.value = true
+})
+onBeforeUnmount(() => {
+  if (unreadTimer) clearInterval(unreadTimer)
+  document.removeEventListener('visibilitychange', onVisRefresh)
 })
 
 function formatTime(dateStr) {
@@ -957,6 +966,24 @@ async function loadAffairs() {
     if (msgs?.length > 0) {
       unread[a.affairid] = msgs[0].text.substring(0, 60) + (msgs[0].text.length > 60 ? '...' : '')
     }
+  }
+  unreadAffairs.value = unread
+}
+
+// Rafraîchissement léger des non-lus (1 requête) — appelé au focus + périodiquement
+async function refreshUnread() {
+  const ids = affairs.value.map(a => a.affairid)
+  if (!ids.length) { unreadAffairs.value = {}; return }
+  const { data } = await supabase
+    .from('message')
+    .select('affairid, text, created_at')
+    .eq('sender_role', 'tech')
+    .eq('read_by_master', false)
+    .in('affairid', ids)
+    .order('created_at', { ascending: false })
+  const unread = {}
+  for (const m of (data || [])) {
+    if (!unread[m.affairid]) unread[m.affairid] = m.text.substring(0, 60) + (m.text.length > 60 ? '...' : '')
   }
   unreadAffairs.value = unread
 }
@@ -1044,7 +1071,15 @@ const followOnly = ref(false) // n'afficher que les affaires "à suivre" (★)
 // Messages : enveloppe en haut → nb d'affaires avec messages non lus + filtre
 const msgFilter = ref(false)
 const unreadTotal = computed(() => Object.keys(unreadAffairs.value || {}).length)
-function toggleMsgFilter() { msgFilter.value = !msgFilter.value }
+function toggleMsgFilter() {
+  msgFilter.value = !msgFilter.value
+  if (msgFilter.value) {
+    // Montrer toutes les affaires avec messages, sans filtre de phase/temps qui masquerait
+    tab.value = 'all'; timeFilter.value = ''; sortMode.value = ''
+    followOnly.value = false; mineOnly.value = false; managerFilter.value = ''
+    refreshUnread()
+  }
+}
 const affairSearch = ref('') // moteur de recherche d'affaires
 const searchPast = ref(false) // false = affaires à venir ; true = affaires passées/terminées
 function toggleSort(mode) {
@@ -1453,6 +1488,14 @@ const filteredAffairs = computed(() => {
       .sort((x, y) => (!x.e ? 1 : !y.e ? -1 : cmpEvents(x.e, y.e)))
       .map(x => x.a)
   }
+  // Filtre messages (enveloppe) : exactement les affaires avec messages non lus (même passées)
+  if (msgFilter.value) {
+    return affairs.value
+      .filter(a => !!unreadAffairs.value[a.affairid])
+      .map(a => ({ a, e: nextEvent(a) }))
+      .sort((x, y) => (!x.e ? 1 : !y.e ? -1 : cmpEvents(x.e, y.e)))
+      .map(x => x.a)
+  }
   const list = (() => {
   if (tab.value === 'trash') return trashedAffairs.value
   // Dossier Terminé : déchargement échu ou marqué terminé à la main
@@ -1493,7 +1536,6 @@ const filteredAffairs = computed(() => {
   let out = followOnly.value ? list.filter(a => a.followed) : list
   if (managerFilter.value) out = out.filter(a => a.manager === managerFilter.value)
   if (mineOnly.value) out = out.filter(isMyAffair)
-  if (msgFilter.value) out = out.filter(a => !!unreadAffairs.value[a.affairid])
   return out
 })
 
