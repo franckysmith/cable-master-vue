@@ -11,13 +11,13 @@
       <div class="sel-details" @click.stop>
         <div class="sel-tags">
           <span v-if="hasUnreadMessage" class="unread-dot">★</span>
-          <span class="tag tag-front role-tag" :class="{ 'role-active': activeRole === 'front' }" @click.stop="$emit('select-role', 'front')">Front</span>
+          <span class="tag tag-front role-tag" :class="{ 'role-active': activeRole === 'front' }" @click.stop="$emit('select-role', 'front')">FOH</span>
           <span class="tag tag-monitor role-tag" :class="{ 'role-active': activeRole === 'monitor' }" @click.stop="$emit('select-role', 'monitor')">Monitor</span>
           <span class="tag tag-system role-tag" :class="{ 'role-active': activeRole === 'system' }" @click.stop="$emit('select-role', 'system')">System</span>
           <span class="tag tag-stage role-tag" :class="{ 'role-active': activeRole === 'stage' }" @click.stop="$emit('select-role', 'stage')">Stage</span>
         </div>
         <MiniCal :affair="affairStore.selectedAffair" />
-        <span class="sel-catalog">{{ getCatalogName(affairStore.selectedAffair) }}</span>
+        <span class="sel-catalog">{{ affairStore.selectedAffair.catalog_id > 1 ? '🏢 ' + getCatalogName(affairStore.selectedAffair) : '👤 Personnel' }}</span>
         <button v-if="isLinkedToCompany" class="btn-action-sel btn-chat" :class="{ 'has-unread': hasUnreadMessage }" @click.stop="toggleChat" title="Question">❓</button>
         <button class="btn-action-sel" @click.stop="showNote = !showNote" title="Note">📝</button>
         <button class="btn-action-sel" :class="{ active: allCasesActive }" @click.stop="$emit('toggle-all-cases')" title="Vue flight-cases">📦</button>
@@ -103,7 +103,7 @@
             <MiniCal :affair="affair" :upcoming-only="true" :max="5" />
             <div class="card-line3">
               <div class="card-tags">
-                <span v-if="affair.front" class="tag tag-front">Front</span>
+                <span v-if="affair.front" class="tag tag-front">FOH</span>
                 <span v-if="affair.monitor" class="tag tag-monitor">Monitor</span>
                 <span v-if="affair.system" class="tag tag-system">System</span>
                 <span v-if="affair.stage" class="tag tag-stage">Stage</span>
@@ -116,7 +116,7 @@
             <!-- Matériel dépliable dans la liste -->
             <div v-if="openMaterielId === affair.affairid" class="card-materiel" @click.stop>
               <div v-if="affair.front" class="materiel-section">
-                <div class="materiel-title">🔊 Front</div>
+                <div class="materiel-title">🔊 FOH</div>
                 <textarea v-model="affair.materiel_front" rows="2" class="materiel-input" placeholder="Enceintes, subs, amplis..."></textarea>
               </div>
               <div v-if="affair.monitor" class="materiel-section">
@@ -391,7 +391,7 @@ async function shareAffair() {
   if (!a) return
 
   const catalogName = getCatalogName(a)
-  const zones = [a.front && 'Front', a.monitor && 'Monitor', a.stage && 'Stage'].filter(Boolean).join(', ')
+  const zones = [a.front && 'FOH', a.monitor && 'Monitor', a.stage && 'Stage'].filter(Boolean).join(', ')
 
   const subject = encodeURIComponent(`Câblage - ${a.name} - ${formatDate(a.receipt_date)}`)
   const body = encodeURIComponent(

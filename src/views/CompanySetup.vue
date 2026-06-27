@@ -205,89 +205,6 @@
       </div>
     </div>
 
-    <!-- Gestion des employés -->
-    <div v-if="activeCompanyId" class="employees-section">
-      <h3>Techniciens de {{ companies.find(c => c.companyid === activeCompanyId)?.name }}</h3>
-
-      <!-- Liste des employés -->
-      <div v-for="emp in staff" :key="emp.techid" class="employee-card" :class="{ inactive: emp.active === false }">
-        <div class="emp-top">
-          <div class="emp-info">
-            <div class="emp-name">{{ emp.name }}</div>
-            <div class="emp-contact">{{ emp.email }} {{ emp.phone ? '· ' + emp.phone : '' }}</div>
-          </div>
-          <label class="active-toggle" title="Actif">
-            <input type="checkbox" :checked="emp.active !== false" @change="togglePermission(emp, 'active', $event)" />
-            {{ emp.active !== false ? '🟢' : '🔴' }}
-          </label>
-        </div>
-        <div class="emp-bottom">
-          <div class="emp-permissions">
-            <label class="perm-toggle">
-              <input type="checkbox" :checked="emp.can_manage_mics" @change="togglePermission(emp, 'can_manage_mics', $event)" />
-              🎤 Micros
-            </label>
-            <label class="perm-toggle">
-              <input type="checkbox" :checked="emp.can_manage_ct" @change="togglePermission(emp, 'can_manage_ct', $event)" />
-              📦 Caisses
-            </label>
-          </div>
-          <div class="emp-actions">
-            <button class="emp-pwd-btn" @click="generatePassword(emp)" title="Générer mot de passe">🔑</button>
-            <button class="emp-delete-btn" @click="deleteEmployee(emp)">✕</button>
-          </div>
-        </div>
-        <div v-if="emp._password" class="emp-password">
-          Mot de passe : <strong>{{ emp._password }}</strong>
-          <button class="copy-pwd-btn" @click="copyPassword(emp._password)">📋</button>
-        </div>
-      </div>
-
-      <div v-if="staff.length === 0" class="emp-empty">Aucun technicien</div>
-
-      <!-- Ajouter un employé -->
-      <button v-if="!showAddEmployee" class="btn-add-employee" @click="showAddEmployee = true">+ Ajouter un employé</button>
-
-      <div v-if="showAddEmployee" class="add-employee-form">
-        <div class="form-grid">
-          <div class="form-row half">
-            <label>Prénom *</label>
-            <input v-model="newEmployee.firstname" placeholder="Prénom" />
-          </div>
-          <div class="form-row half">
-            <label>Nom *</label>
-            <input v-model="newEmployee.lastname" placeholder="Nom" />
-          </div>
-        </div>
-        <div class="form-grid">
-          <div class="form-row half">
-            <label>Email</label>
-            <input v-model="newEmployee.email" type="email" placeholder="email@..." />
-          </div>
-          <div class="form-row half">
-            <label>Téléphone</label>
-            <input v-model="newEmployee.phone" placeholder="+33..." />
-          </div>
-        </div>
-        <div class="form-row">
-          <label>Permissions</label>
-          <div class="perm-list">
-            <label class="perm-item">
-              <input type="checkbox" v-model="newEmployee.can_manage_mics" />
-              🎤 Gérer les micros
-            </label>
-            <label class="perm-item">
-              <input type="checkbox" v-model="newEmployee.can_manage_ct" />
-              📦 Gérer les caisses type
-            </label>
-          </div>
-        </div>
-        <div class="form-actions">
-          <button class="btn-save" @click="addEmployee" :disabled="!newEmployee.firstname && !newEmployee.lastname">Ajouter</button>
-          <button class="btn-cancel" @click="showAddEmployee = false">Annuler</button>
-        </div>
-      </div>
-    </div>
 
     <div v-if="message" class="message" :class="messageType">{{ message }}</div>
   </div>
@@ -336,6 +253,30 @@ async function setPrincipalMaster(mgr) {
   showMessage(`${mgr.name} est désormais le master principal`, 'success')
 }
 const staff = computed(() => employees.value.filter(e => !e.can_manage_affairs))
+
+// Postes (mêmes que TechList) — affichage 3 niveaux : foncé (principal) / clair / blanc
+const postes = [
+  { value: 'front', label: 'FOH' },
+  { value: 'monitor', label: 'Monitor' },
+  { value: 'system', label: 'Système' },
+  { value: 'stage', label: 'Stage' },
+  { value: 'assistant', label: 'Assistant' },
+]
+function techPostes(t) {
+  if (Array.isArray(t.postes) && t.postes.length) return t.postes
+  return t.poste ? [t.poste] : []
+}
+function posteState(t, value) {
+  const arr = techPostes(t)
+  if (!arr.length) return ''
+  if (arr[0] === value) return 'primary'
+  if (arr.includes(value)) return 'secondary'
+  return ''
+}
+function sortedPostes(t) {
+  const rank = { primary: 0, secondary: 1, '': 2 }
+  return [...postes].sort((a, b) => rank[posteState(t, a.value)] - rank[posteState(t, b.value)])
+}
 const showAddManager = ref(false)
 const newManager = reactive({ firstname: '', lastname: '', nickname: '', email: '', phone: '' })
 const editManagerId = ref(null)
@@ -1013,21 +954,34 @@ input.locked {
   padding: 10px;
   margin-bottom: 6px;
   background: var(--bg-card, #fafafa);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 .employee-card.inactive {
   opacity: 0.5;
 }
-.emp-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 6px;
-}
+/* Ligne 1 : nom à gauche, actif/clé/croix collés à droite */
+.emp-head { display: flex; align-items: center; gap: 8px; }
 .emp-name {
+  flex: 1;
+  min-width: 0;
   font-size: 14px;
   font-weight: 700;
   color: var(--text, #333);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
+.emp-actions { margin-left: auto; }
+/* Postes 3 niveaux (comme TechList) */
+.tech-postes { display: flex; gap: 6px; flex-wrap: wrap; }
+.tech-poste {
+  font-size: 11px; font-weight: 600; border-radius: 10px; padding: 1px 8px;
+  border: 1px solid var(--border-light, #ccc); background: var(--bg-input, #fff); color: var(--text-muted, #999);
+}
+.tech-poste.secondary { background: var(--color1-light, #e8f5e9); color: var(--color1-dark, #2e7d32); border-color: var(--color1-light, #e8f5e9); font-weight: 700; }
+.tech-poste.primary { background: var(--color1-dark, #2e7d32); color: #fff; border-color: var(--color1-dark, #2e7d32); font-weight: 800; }
 .emp-contact {
   font-size: 12px;
   color: var(--text-light, #888);

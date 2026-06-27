@@ -50,24 +50,31 @@
           </div>
         </template>
         <template v-else>
-          <input
-            v-if="selectMode && !t.installed"
-            type="checkbox"
-            class="sel-check"
-            :checked="selectedIds.includes(t.techid)"
-            @change="toggleSelected(t.techid)"
-          />
-          <div class="tech-info">
+          <div class="tech-head">
+            <input
+              v-if="selectMode && !t.installed"
+              type="checkbox"
+              class="sel-check"
+              :checked="selectedIds.includes(t.techid)"
+              @change="toggleSelected(t.techid)"
+            />
             <div class="tech-name" :class="{ 'not-installed': !t.installed }">
               <span class="conn-dot" :class="{ off: !t.installed }" :title="t.installed ? 'Connecté (app installée)' : 'Non connecté'"></span>{{ t.name }}
-              <span v-for="(pv, i) in techPostes(t)" :key="pv" class="tech-poste" :class="{ secondary: i > 0 }">{{ posteLabel(pv) }}</span>
             </div>
-            <div class="tech-contact">{{ t.email }}{{ t.phone ? ' · ' + t.phone : '' }}</div>
+            <div class="tech-comm">
+              <button class="comm-btn bell" @click="notify(t)" :disabled="!t.email" title="Notifier (push)"><q-icon name="notifications" size="18px" /></button>
+              <a v-if="t.email" class="comm-btn mail" :href="'mailto:' + t.email" title="Envoyer un email"><q-icon name="email" size="18px" /></a>
+              <a v-if="t.phone" class="comm-btn call" :href="'tel:' + t.phone" title="Appeler"><q-icon name="call" size="18px" /></a>
+            </div>
+            <div class="tech-actions">
+              <button class="ic-btn" @click="startEdit(t)" title="Modifier la fiche"><q-icon name="edit" size="18px" /></button>
+              <button class="ic-btn" @click="remove(t)" title="Retirer"><q-icon name="close" size="18px" /></button>
+            </div>
           </div>
-          <div class="tech-actions">
-            <button class="ic-btn" @click="startEdit(t)" title="Modifier">✎</button>
-            <button class="ic-btn" @click="remove(t)" title="Retirer">✕</button>
+          <div class="tech-postes">
+            <span v-for="p in sortedPostes(t)" :key="p.value" class="tech-poste" :class="posteState(t, p.value)">{{ p.label }}</span>
           </div>
+          <div class="tech-contact">{{ t.email }}{{ t.phone ? ' · ' + t.phone : '' }}</div>
         </template>
       </div>
 
@@ -108,13 +115,29 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { supabase } from '../lib/supabase'
 
 const postes = [
-  { value: 'front', label: 'Front' },
+  { value: 'front', label: 'FOH' },
   { value: 'monitor', label: 'Monitor' },
   { value: 'system', label: 'Système' },
   { value: 'stage', label: 'Stage' },
   { value: 'assistant', label: 'Assistant' },
 ]
 const posteLabel = (v) => postes.find(p => p.value === v)?.label || v
+// État d'un poste pour un technicien : 'primary' (foncé, principal) / 'secondary' (clair) / '' (blanc, non)
+function posteState(t, value) {
+  const arr = techPostes(t)
+  if (!arr.length) return ''
+  if (arr[0] === value) return 'primary'
+  if (arr.includes(value)) return 'secondary'
+  return ''
+}
+// Bilan (lecture) : on ne montre QUE les postes assurés — bleu (principal) puis blanc (secondaire).
+// Les non-assurés n'apparaissent qu'en édition (pour les cliquer).
+function sortedPostes(t) {
+  const rank = { primary: 0, secondary: 1 }
+  return postes
+    .filter(p => posteState(t, p.value))
+    .sort((a, b) => rank[posteState(t, a.value)] - rank[posteState(t, b.value)])
+}
 
 const companyId = ref(parseInt(localStorage.getItem('cablemaster-companyid')) || null)
 const techs = ref([])
@@ -128,11 +151,17 @@ function techPostes(t) {
 }
 const filteredTechs = computed(() => {
   const q = search.value.trim().toLowerCase()
-  return techs.value.filter(t => {
+  let list = techs.value.filter(t => {
     const matchName = !q || (t.name || '').toLowerCase().includes(q) || (t.email || '').toLowerCase().includes(q)
     const matchPoste = !posteFilter.value || techPostes(t).includes(posteFilter.value)
     return matchName && matchPoste
   })
+  // Filtre par poste : principal (bleu) d'abord, puis secondaire (blanc)
+  if (posteFilter.value) {
+    const rank = { primary: 0, secondary: 1, '': 2 }
+    list = [...list].sort((a, b) => rank[posteState(a, posteFilter.value)] - rank[posteState(b, posteFilter.value)])
+  }
+  return list
 })
 const showAdd = ref(false)
 const editId = ref(null)
@@ -284,6 +313,20 @@ async function undoDelete() {
   showMessage(`${nm} restauré`, 'success')
 }
 
+// 🔔 Notification push à un technicien (message saisi)
+async function notify(t) {
+  if (!t.email) { showMessage('Pas d\'email pour notifier', 'error'); return }
+  const msg = prompt(`Notification à ${t.firstname || t.name} :`, '')
+  if (!msg) return
+  try {
+    const { data, error } = await supabase.functions.invoke('send-push', {
+      body: { emails: [t.email], title: companyName.value || 'Cinod-Prep', body: msg, url: '/' },
+    })
+    if (error) showMessage('Erreur : ' + error.message, 'error')
+    else showMessage(`Notification envoyée (${data?.sent || 0} appareil·s)`, 'success')
+  } catch (e) { showMessage('Erreur envoi', 'error') }
+}
+
 function showMessage(msg, type) {
   message.value = msg
   messageType.value = type
@@ -386,41 +429,72 @@ h2 {
 }
 .tech-card {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
   border: 1px solid var(--border, #e0e0e0);
   border-radius: 8px;
   padding: 10px;
   margin-bottom: 6px;
   background: var(--bg-card, #fafafa);
 }
+/* Ligne 1 : nom à gauche, crayon/croix collés au bord droit */
+.tech-head { display: flex; align-items: center; gap: 8px; }
 .tech-name {
+  flex: 1;
+  min-width: 0;
   font-size: 14px;
   font-weight: 700;
   color: var(--text, #333);
   display: flex;
   align-items: center;
   gap: 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
+/* Ligne 2 : postes */
+.tech-postes { display: flex; gap: 6px; flex-wrap: wrap; }
+/* 3 niveaux : blanc (non) → clair (occasionnel) → foncé (principal) */
 .tech-poste {
   font-size: 11px;
-  font-weight: 700;
-  color: #fff;
-  background: var(--color1-dark, #2e7d32);
+  font-weight: 600;
   border-radius: 10px;
   padding: 1px 8px;
+  border: 1px solid var(--border-light, #ccc);
+  background: var(--bg-input, #fff);
+  color: var(--text-muted, #999);
 }
 .tech-poste.secondary {
-  background: var(--color1-light, #e8f5e9);
-  color: var(--color1-dark, #2e7d32);
-  font-weight: 600;
+  background: #fff;
+  color: #2563eb;
+  border-color: #3b82f6;
+  font-weight: 700;
+}
+.tech-poste.primary {
+  background: #3b82f6;
+  color: #fff;
+  border-color: #3b82f6;
+  font-weight: 800;
 }
 .tech-contact {
   font-size: 12px;
   color: var(--text-light, #888);
 }
-.tech-actions { display: flex; gap: 6px; }
+/* 3 symboles de contact (cloche / mail / téléphone) après le nom */
+.tech-comm { display: flex; gap: 4px; flex-shrink: 0; margin-left: auto; }
+.tech-comm + .tech-actions { margin-left: 6px; }
+.comm-btn {
+  display: flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; border-radius: 8px; cursor: pointer;
+  border: 1px solid currentColor; background: transparent; box-shadow: none; min-width: auto; padding: 0;
+  text-decoration: none;
+}
+.comm-btn.bell { color: #f59e0b; }
+.comm-btn.mail { color: #3b82f6; }
+.comm-btn.call { color: #22c55e; }
+.comm-btn:disabled { opacity: 0.35; cursor: default; }
+.tech-actions { display: flex; gap: 6px; flex-shrink: 0; }
 .ic-btn {
   background: transparent;
   border: 1px solid var(--border-light, #ccc);
@@ -468,16 +542,16 @@ h2 {
   box-shadow: none;
   min-width: auto;
 }
-/* Principal : foncé ; secondaires : plus clairs */
+/* Édition : non assuré = neutre (gris) ; secondaire = blanc bordé bleu ; principal = bleu plein */
 .poste-btn.primary {
-  border-color: var(--color1-dark, #2e7d32);
-  background: var(--color1-dark, #2e7d32);
+  border-color: #3b82f6;
+  background: #3b82f6;
   color: #fff;
 }
 .poste-btn.secondary {
-  border-color: var(--color1);
-  background: var(--color1-light, #e8f5e9);
-  color: var(--color1-dark, #2e7d32);
+  border-color: #3b82f6;
+  background: #fff;
+  color: #2563eb;
 }
 .btn-add {
   width: 100%;

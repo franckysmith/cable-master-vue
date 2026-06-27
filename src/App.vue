@@ -235,16 +235,16 @@ provide('helpMode', helpMode)
 const users = [
   { id: 'T', label: 'T', role: 'technician', name: 'Franck (Admin)', superadmin: true, techId: 0 },
   { id: 'T1', label: 'T1FR', role: 'technician', name: 'Franck (Entreprise M)', techId: 1, catalogId: 6, companyId: 1 },
-  { id: 'T2', label: 'T2', role: 'technician', name: 'Robert (Entreprise M)', techId: 2, catalogId: 6, companyId: 1 },
+  { id: 'T2', label: 'T2N', role: 'technician', name: 'Naïm Richard', techId: 2, catalogId: 6, companyId: 1 },
   { id: 'T3', label: 'T3', role: 'technician', name: 'Michel', techId: 3 },
   { id: 'F', label: 'F', role: 'technician', name: 'Freelance (Franck)', techId: 20, catalogId: 3, freelance: true },
   { id: 'F1', label: 'F1', role: 'technician', name: 'Léa (freelance)', techId: 21, catalogId: 4, freelance: true },
   { id: 'F2', label: 'F2', role: 'technician', name: 'Marc (freelance)', techId: 22, catalogId: 5, freelance: true },
-  { id: 'M', label: 'M', role: 'master', name: 'Mathieu (Master)', superadmin: true, techId: 0, catalogId: 6, companyId: null },
+  { id: 'M', label: 'M', role: 'master', name: 'Jean-Paul Rima (master)', superadmin: true, techId: 25, catalogId: 6, companyId: 1 },
   { id: 'M1', label: 'M1', role: 'master', name: 'Kevin « Kev »', techId: 22, catalogId: 6, companyId: 1 },
-  { id: 'M2', label: 'M2', role: 'master', name: 'Pierre', techId: 1, catalogId: 6, companyId: 1 },
+  { id: 'M2', label: 'M2', role: 'master', name: 'Pierre Durand', techId: 1, catalogId: 6, companyId: 1 },
   { id: 'M3', label: 'M3', role: 'master', name: 'Sophie', techId: 2, catalogId: 6, companyId: 1 },
-  { id: 'G', label: 'G', role: 'gerant', name: 'Gérant (Entreprise M)', techId: 30, catalogId: 6, companyId: 1 },
+  { id: 'G', label: 'G', role: 'gerant', name: 'Edouard (gérant Moon)', techId: 30, catalogId: 6, companyId: 1 },
 ]
 
 const currentUser = ref(localStorage.getItem('cablemaster-userid') || 'T')

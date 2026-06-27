@@ -149,14 +149,14 @@
 
       <div class="form-section-title">Postes</div>
       <div class="zone-toggles">
-        <button :class="{ active: form.front }" @click="form.front = !form.front" class="zone-btn facade">Façade</button>
+        <button :class="{ active: form.front }" @click="form.front = !form.front" class="zone-btn facade">FOH</button>
         <button :class="{ active: form.monitor }" @click="form.monitor = !form.monitor" class="zone-btn retour">Monitor</button>
         <button :class="{ active: form.system }" @click="form.system = !form.system" class="zone-btn systeme">Système</button>
         <button :class="{ active: form.stage }" @click="form.stage = !form.stage" class="zone-btn scene">Scène</button>
       </div>
 
       <div v-if="form.front" class="zone-tech-block facade">
-        <div class="zone-tech-header">🔵 Façade</div>
+        <div class="zone-tech-header">🔵 FOH</div>
         <div class="zone-tech-select">
           <select v-model="form.tech_email" @change="onTechSelect('front')">
             <option value="">-- Choisir --</option>
@@ -236,7 +236,7 @@
         <div class="zone-tech-header">🟦 Assistants</div>
         <div v-for="(a, i) in form.assistants" :key="i" class="assistant-row">
           <select v-model="a.area" class="assistant-area">
-            <option value="front">Façade</option>
+            <option value="front">FOH</option>
             <option value="monitor">Monitor</option>
             <option value="system">Système</option>
             <option value="stage">Scène</option>
@@ -429,7 +429,7 @@
           <template v-else>
             <!-- Front -->
             <div v-if="affair.front" class="zone-block">
-              <div class="zone-banner facade">🔵 Façade — {{ affair.tech_name || '?' }}</div>
+              <div class="zone-banner facade">🔵 FOH — {{ affair.tech_name || '?' }}</div>
               <AllCasesView
                 v-if="allCables.length > 0"
                 :cables="allCables"
@@ -501,7 +501,7 @@
         <div class="zone-modal-body">
           <p class="zone-hint">Le technicien retrouvera ces infos pré-remplies en ouvrant son câblage. <b>*</b> = par côté (stéréo), sauf retours.</p>
           <div v-if="zoneEditor.affair.front" class="ze-block">
-            <div class="ze-banner facade">🔵 Façade — {{ zoneEditor.affair.tech_name || '?' }}</div>
+            <div class="ze-banner facade">🔵 FOH — {{ zoneEditor.affair.tech_name || '?' }}</div>
             <textarea v-model="zoneEditor.front" rows="5" :placeholder="ZONE_TPL.front"></textarea>
           </div>
           <div v-if="zoneEditor.affair.system" class="ze-block">
@@ -1603,7 +1603,7 @@ function getAffairZones(affair) {
   const zones = []
   if (affair.front) {
     zones.push({
-      key: 'front', css: 'facade', icon: '🔵', label: 'Façade',
+      key: 'front', css: 'facade', icon: '🔵', label: 'FOH',
       name: affair.tech_name || '?',
       firstname: affair.tech_firstname || '',
       phone: affair.tech_phone || '',
@@ -1638,7 +1638,7 @@ function getAffairZones(affair) {
     })
   }
   // Assistants
-  const areaLabel = { front: 'Façade', monitor: 'Monitor', system: 'Système', stage: 'Scène' }
+  const areaLabel = { front: 'FOH', monitor: 'Monitor', system: 'Système', stage: 'Scène' }
   const areaCss = { front: 'facade', monitor: 'retour', system: 'systeme', stage: 'scene' }
   ;(Array.isArray(affair.assistants) ? affair.assistants : []).forEach((a, i) => {
     zones.push({
@@ -1699,7 +1699,7 @@ async function sendZoneInvite(affair, zone) {
   const techName = affair.tech_name || 'Technicien'
   const affairName = affair.name
   const dateStr = formatDate(affair.receipt_date)
-  const zoneName = zone === 'front' ? 'Façade' : zone === 'monitor' ? 'Retours' : zone === 'system' ? 'Système' : 'Scène'
+  const zoneName = zone === 'front' ? 'FOH' : zone === 'monitor' ? 'Retours' : zone === 'system' ? 'Système' : 'Scène'
   const link = `${window.location.origin}/?affair=${affair.affairid}`
 
   const subject = encodeURIComponent(`Invitation : ${affairName} - ${zoneName}`)
@@ -1786,7 +1786,7 @@ async function reloadMessages(affair) {
 }
 function chatPeers(a) {
   const list = []
-  if (a.front && a.tech_email) list.push({ email: a.tech_email, name: a.tech_firstname || a.tech_name || 'Façade' })
+  if (a.front && a.tech_email) list.push({ email: a.tech_email, name: a.tech_firstname || a.tech_name || 'FOH' })
   if (a.monitor && a.tech_email_monitor) list.push({ email: a.tech_email_monitor, name: a.tech_firstname_monitor || a.tech_name_monitor || 'Monitor' })
   if (a.system && a.tech_email_system) list.push({ email: a.tech_email_system, name: a.tech_firstname_system || a.tech_name_system || 'Système' })
   if (a.stage && a.tech_email_stage) list.push({ email: a.tech_email_stage, name: a.tech_firstname_stage || a.tech_name_stage || 'Scène' })
@@ -2098,7 +2098,7 @@ Merci de bien vouloir cliquer sur le lien ci-dessous pour nous informer de vos b
 
 ${link}
 
-Zones prévues : ${[form.front && 'Front', form.monitor && 'Monitor', form.stage && 'Stage'].filter(Boolean).join(', ') || 'Non définies'}
+Zones prévues : ${[form.front && 'FOH', form.monitor && 'Monitor', form.stage && 'Stage'].filter(Boolean).join(', ') || 'Non définies'}
 
 ${form.description ? 'Notes : ' + form.description : ''}
 

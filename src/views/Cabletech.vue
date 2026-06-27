@@ -38,7 +38,7 @@
     <!-- Vue d'ensemble par poste (clic technicien) : Front → Monitor → System → Stage empilés -->
     <div v-if="selectedAffair && overviewMode" class="overview">
       <div class="affair-open-bar">
-        <span class="affair-open-name">{{ selectedAffair.name || '(Sans nom)' }}</span>
+        <span class="affair-open-name">{{ listName }}</span>
         <button class="affair-del-btn" @click="deleteSelectedAffair" title="Supprimer l'affaire">🗑</button>
       </div>
       <div v-for="g in needsByRole" :key="g.role" class="ov-role">
@@ -64,7 +64,7 @@
     <div class="content-liste" v-if="selectedAffair && !allCasesMode && !overviewMode">
       <!-- Barre d'affaire ouverte : nom + suppression -->
       <div class="affair-open-bar">
-        <span class="affair-open-name">{{ selectedAffair.name || '(Sans nom)' }}</span>
+        <span class="affair-open-name">{{ listName }}</span>
         <button class="affair-del-btn" @click="deleteSelectedAffair" title="Supprimer l'affaire">🗑</button>
       </div>
       <!-- Mode toggle : Select / flight-case / Micro (restent visibles même en Cablekit) -->
@@ -448,6 +448,18 @@ async function checkCtContent() {
   hasCtContent.value = false
 }
 const userRole = inject('userRole', ref('technician'))
+const companyNameInj = inject('companyName', ref(''))
+// Nom de la liste en cours : « Liste de Moon/Tarpault » (entreprise) ou « Liste de Franck » (perso)
+const listName = computed(() => {
+  const a = selectedAffair.value
+  if (a && a.catalog_id && a.catalog_id > 1) {
+    return 'Liste de ' + (companyNameInj.value || "l'entreprise")
+  }
+  const userId = localStorage.getItem('cablemaster-userid') || ''
+  let fn = ''
+  try { fn = (JSON.parse(localStorage.getItem(`cablemaster-profile-${userId}`) || '{}').firstname) || '' } catch { /* ignore */ }
+  return fn ? 'Liste de ' + fn : 'Ma liste'
+})
 const isMaster = computed(() => userRole.value === 'master')
 const canEditCables = computed(() => {
   // Seuls les masters éditent la liste d'une entreprise.
@@ -1546,7 +1558,7 @@ function rebuildJoinedData(cables = cableStore.cables) {
 
 // Vue globale regroupée par métier (+ caisse micro commune)
 const ROLE_DEFS = [
-  { role: 'front', label: 'Front', color: '#3b82f6' },
+  { role: 'front', label: 'FOH', color: '#3b82f6' },
   { role: 'monitor', label: 'Monitor', color: '#f59e0b' },
   { role: 'system', label: 'System', color: '#8b5cf6' },
   { role: 'stage', label: 'Stage', color: '#10b981' },
