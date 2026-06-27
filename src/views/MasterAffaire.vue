@@ -125,11 +125,18 @@
         </button>
       </div>
 
-      <!-- Lecture seule : tout se règle dans le calendrier ci-dessus -->
-      <div class="dates-readonly">
-        <div class="dr-row"><span class="dr-label cdl-prep-bg">Prépa</span><span class="dr-val">{{ compactPrep(form) || '—' }}</span></div>
-        <div class="dr-row"><span class="dr-label cdl-out-bg">Chargement</span><span class="dr-val">{{ compactList(form.out_dates, form.out_periods, form.receipt_date) || '—' }}</span></div>
-        <div class="dr-row"><span class="dr-label cdl-back-bg">Déchargement</span><span class="dr-val">{{ compactList(form.back_dates, form.back_periods, form.return_date) || '—' }}</span></div>
+      <!-- Aperçu : mini-calendrier de tout l'événement (modif via le bouton « Dates » ci-dessus) -->
+      <div v-if="miniCalAllDays(form)" class="mini-cal fiche-cal">
+        <div v-for="d in miniCalAllDays(form)" :key="d.date" class="mini-cal-day">
+          <span class="mcd-dow">{{ dowLetter(d.date) }}</span>
+          <span class="mcd-num">{{ dayNum(d.date) }}</span>
+          <span class="mcd-bars">
+            <span v-for="(m, i) in d.marks" :key="i" class="mcd-mark" :title="EVENT_LABELS[m.type] + periodSuffix(m.period)">
+              <span v-if="isArrowType(m.type)" class="mcd-arrow" :style="{ color: EVENT_COLORS[m.type] }">{{ arrowFor(m.type, m.period) }}</span>
+              <span v-else class="mcd-bar" :style="{ background: EVENT_COLORS[m.type] }"></span>
+            </span>
+          </span>
+        </div>
       </div>
 
       <div class="form-section-title">Postes</div>
@@ -377,19 +384,30 @@
               <div v-if="!zone.phone && !zone.email" class="fiche-no-contact">Pas de coordonnées renseignées</div>
             </div>
           </div>
-          <!-- Lieu + dates -->
-          <div class="fiche-dates">
-            <div v-if="affair.event_type || affair.city || affair.venue">
-              <span v-if="affair.event_type">🎤 {{ affair.event_type }}</span>
-              <span v-if="affair.city"> · 📍 {{ affair.city }}</span>
-              <span v-if="affair.venue"> · 🏛 {{ affair.venue }}</span>
+          <!-- Calendrier complet de l'événement (jours passés inclus) -->
+          <div v-if="miniCalAllDays(affair)" class="mini-cal fiche-cal">
+            <div v-for="d in miniCalAllDays(affair)" :key="d.date" class="mini-cal-day">
+              <span class="mcd-dow">{{ dowLetter(d.date) }}</span>
+              <span class="mcd-num">{{ dayNum(d.date) }}</span>
+              <span class="mcd-bars">
+                <span v-for="(m, i) in d.marks" :key="i" class="mcd-mark" :title="EVENT_LABELS[m.type] + periodSuffix(m.period)">
+                  <span v-if="isArrowType(m.type)" class="mcd-arrow" :style="{ color: EVENT_COLORS[m.type] }">{{ arrowFor(m.type, m.period) }}</span>
+                  <span v-else class="mcd-bar" :style="{ background: EVENT_COLORS[m.type] }"></span>
+                </span>
+              </span>
             </div>
-            <div v-if="compactPrep(affair)">🔧 Prépa : {{ compactPrep(affair) }}</div>
-            <div v-if="compactList(affair.out_dates, affair.out_periods, affair.receipt_date)">📦 Chargement : {{ compactList(affair.out_dates, affair.out_periods, affair.receipt_date) }}</div>
-            <div v-if="compactList(affair.back_dates, affair.back_periods, affair.return_date)">↩ Déchargement : {{ compactList(affair.back_dates, affair.back_periods, affair.return_date) }}</div>
           </div>
           <div v-if="affair.description" class="fiche-description">
             <strong>Notes :</strong> {{ affair.description }}
+          </div>
+
+          <!-- Documents joints (consulter / ajouter) -->
+          <div class="ze-docs">
+            <div class="ze-docs-title">📎 Documents</div>
+            <a v-for="(d, i) in affairDocs(affair)" :key="'fd'+i" :href="d.url" target="_blank" class="ze-doc-link">📄 {{ d.name }}</a>
+            <label class="ze-doc-add">+ Envoyer un document
+              <input type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" @change="addDetailDoc(affair, $event)" hidden />
+            </label>
           </div>
         </div>
 
@@ -457,6 +475,52 @@
         <div class="chat-modal-input">
           <input v-model="masterReply" :placeholder="chatSel.length ? 'Message à ' + chatSel.length + ' personne' + (chatSel.length > 1 ? 's' : '') + '…' : 'Message à toute l\'équipe…'" @keydown.enter="sendChatModal" />
           <button @click="sendChatModal" :disabled="!masterReply.trim()">Envoyer</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Éditeur de zones (à l'envoi) : le master décrit chaque poste -->
+    <div v-if="zoneEditor.open && zoneEditor.affair" class="zone-modal-overlay" @click.self="zoneEditor.open = false">
+      <div class="zone-modal">
+        <div class="zone-modal-head">
+          <span class="zone-modal-title">Renseigner les zones — {{ zoneEditor.affair.name }}</span>
+          <button class="zone-modal-close" @click="zoneEditor.open = false">✕</button>
+        </div>
+        <div class="zone-modal-body">
+          <p class="zone-hint">Le technicien retrouvera ces infos pré-remplies en ouvrant son câblage. <b>*</b> = par côté (stéréo), sauf retours.</p>
+          <div v-if="zoneEditor.affair.front" class="ze-block">
+            <div class="ze-banner facade">🔵 Façade — {{ zoneEditor.affair.tech_name || '?' }}</div>
+            <textarea v-model="zoneEditor.front" rows="5" :placeholder="ZONE_TPL.front"></textarea>
+          </div>
+          <div v-if="zoneEditor.affair.system" class="ze-block">
+            <div class="ze-banner systeme">🟣 Système — {{ zoneEditor.affair.tech_name_system || '?' }}</div>
+            <textarea v-model="zoneEditor.system" rows="5" :placeholder="ZONE_TPL.system"></textarea>
+          </div>
+          <div v-if="zoneEditor.affair.monitor" class="ze-block">
+            <div class="ze-banner retour">🟠 Retours — {{ zoneEditor.affair.tech_name_monitor || '?' }}</div>
+            <textarea v-model="zoneEditor.monitor" rows="4" :placeholder="ZONE_TPL.monitor"></textarea>
+          </div>
+          <div v-if="zoneEditor.affair.stage" class="ze-block">
+            <div class="ze-banner scene">🟢 Scène — {{ zoneEditor.affair.tech_name_stage || '?' }}</div>
+            <textarea v-model="zoneEditor.stage" rows="4" :placeholder="ZONE_TPL.stage"></textarea>
+          </div>
+          <div v-if="!zoneEditor.affair.front && !zoneEditor.affair.monitor && !zoneEditor.affair.system && !zoneEditor.affair.stage" class="zone-empty">
+            Aucun poste défini sur cette affaire.
+          </div>
+
+          <!-- Documents joints -->
+          <div class="ze-docs">
+            <div class="ze-docs-title">📎 Documents (plan de scène, patch…)</div>
+            <a v-for="(d, i) in zoneEditor.docNames" :key="'ed'+i" :href="zoneEditor.docUrls[i]" target="_blank" class="ze-doc-link">📄 {{ d }}</a>
+            <div v-for="(f, i) in zoneEditor.newFiles" :key="'nf'+i" class="ze-doc-new">📎 {{ f.name }} <button class="ze-doc-x" @click="removeZoneNewFile(i)">✕</button></div>
+            <label class="ze-doc-add">+ Ajouter un document
+              <input type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" @change="onZoneFiles" hidden />
+            </label>
+          </div>
+        </div>
+        <div class="zone-modal-foot">
+          <button class="ze-skip" @click="confirmSendAffair(false)">Enregistrer</button>
+          <button class="ze-send" @click="confirmSendAffair(true)">Enregistrer &amp; Envoyer</button>
         </div>
       </div>
     </div>
@@ -1063,6 +1127,11 @@ function miniCalDays(a) {
 }
 // Y a-t-il plus de jours (à venir) que ce qu'on affiche (→ ajouter « … ») ?
 function miniCalMore(a) { return miniCalBase(a).length > MINI_CAL_MAX }
+// Fiche détail : on montre TOUT l'événement (jours passés inclus), pas seulement à venir
+function miniCalAllDays(a) {
+  const all = miniCalFull(a)
+  return all.length ? all : null
+}
 // Techniciens d'une affaire (tous les postes actifs)
 function allTechs(a) {
   const all = []
@@ -1170,13 +1239,90 @@ async function toggleFollow(a) {
   const { error } = await supabase.from('affair').update({ followed: v }).eq('affairid', a.affairid)
   if (error) { a.followed = !v; showMessage('Erreur: ' + error.message, 'error') }
 }
-// Envoyer l'affaire : NEW → envoyée, et passe automatiquement en « suivi »
-async function sendAffair(a) {
-  a.status = 'sent'
-  a.followed = true
-  const { error } = await supabase.from('affair').update({ status: 'sent', followed: true }).eq('affairid', a.affairid)
+// Modèles guidés par poste (placeholders). * = par côté (stéréo) — sauf retours.
+const ZONE_TPL = {
+  front: 'PA : 12 K2*\nSubs : 4 KS28*\nFrontfills : 2 X12*\nDélai : 2, 4, 3\nAmplis (racks) : Rack 1 …, Rack 2 …\n(* = par côté / stéréo)',
+  system: 'PA : …\nSubs : …\nDélai : …\nAmplis (racks) : Rack 1 …, Rack 2 …\n(* = par côté / stéréo)',
+  monitor: 'Nb circuits : …\nRetours : 8 X12, 8 X15…\nSides : oui / non\nDrumfill : oui / non\nType d\'amplis : …\n(pas d\'astérisque ici)',
+  stage: 'Nb groupes : …\nPatches / groupe : … → patch 24/32/48\nPlan de scène : (joint ?)\nPieds de micro : …\nBase micro : voir technicien façade',
+}
+const zoneEditor = reactive({ open: false, affair: null, front: '', monitor: '', system: '', stage: '', docNames: [], docUrls: [], newFiles: [] })
+
+// Clic « Envoyer » → ouvre l'éditeur de zones (le master renseigne chaque poste avant d'envoyer)
+function sendAffair(a) {
+  zoneEditor.affair = a
+  zoneEditor.front = a.materiel_front || ''
+  zoneEditor.monitor = a.materiel_monitor || ''
+  zoneEditor.system = a.materiel_system || ''
+  zoneEditor.stage = a.materiel_stage || ''
+  zoneEditor.docNames = a.attachment_name ? a.attachment_name.split(',').filter(Boolean) : []
+  zoneEditor.docUrls = a.attachment_url ? a.attachment_url.split(',') : []
+  zoneEditor.newFiles = []
+  zoneEditor.open = true
+}
+function onZoneFiles(e) {
+  zoneEditor.newFiles = [...zoneEditor.newFiles, ...Array.from(e.target.files || [])]
+  e.target.value = ''
+}
+function removeZoneNewFile(i) { zoneEditor.newFiles.splice(i, 1) }
+
+// Upload d'une liste de fichiers vers le bucket documents → renvoie {names, urls}
+async function uploadDocuments(files, names = [], urls = []) {
+  const outNames = [...names], outUrls = [...urls]
+  for (const file of files) {
+    const path = `affairs/${Date.now()}_${file.name}`
+    const { error: upErr } = await supabase.storage.from('documents').upload(path, file)
+    if (!upErr) {
+      const { data: urlData } = supabase.storage.from('documents').getPublicUrl(path)
+      outUrls.push(urlData?.publicUrl || '')
+      outNames.push(file.name)
+    }
+  }
+  return { names: outNames, urls: outUrls }
+}
+
+// Enregistre toujours les zones + documents ; envoie (status sent + suivi) seulement si demandé.
+// « Enregistrer » seul : l'affaire reste NEW (bouton Envoyer encore présent) → on peut compléter plus tard.
+async function confirmSendAffair(send = false) {
+  const a = zoneEditor.affair
+  if (!a) return
+  const patch = {
+    materiel_front: zoneEditor.front || null,
+    materiel_monitor: zoneEditor.monitor || null,
+    materiel_system: zoneEditor.system || null,
+    materiel_stage: zoneEditor.stage || null,
+  }
+  const { names, urls } = await uploadDocuments(zoneEditor.newFiles, zoneEditor.docNames, zoneEditor.docUrls)
+  patch.attachment_name = names.join(',')
+  patch.attachment_url = urls.join(',')
+  zoneEditor.docNames = names
+  zoneEditor.docUrls = urls
+  zoneEditor.newFiles = []
+  if (send) { patch.status = 'sent'; patch.followed = true }
+  Object.assign(a, patch)
+  const { error } = await supabase.from('affair').update(patch).eq('affairid', a.affairid)
   if (error) { showMessage('Erreur: ' + error.message, 'error'); return }
-  showMessage('Affaire envoyée — suivie', 'success')
+  zoneEditor.open = false
+  showMessage(send ? 'Zones enregistrées — affaire envoyée' : 'Zones enregistrées', 'success')
+}
+
+// Fiche détail : ajouter un document à la volée
+async function addDetailDoc(a, e) {
+  const files = Array.from(e.target.files || [])
+  e.target.value = ''
+  if (!files.length) return
+  const names = a.attachment_name ? a.attachment_name.split(',').filter(Boolean) : []
+  const urls = a.attachment_url ? a.attachment_url.split(',') : []
+  const res = await uploadDocuments(files, names, urls)
+  a.attachment_name = res.names.join(',')
+  a.attachment_url = res.urls.join(',')
+  await supabase.from('affair').update({ attachment_name: a.attachment_name, attachment_url: a.attachment_url }).eq('affairid', a.affairid)
+  showMessage('Document ajouté', 'success')
+}
+function affairDocs(a) {
+  const names = a.attachment_name ? a.attachment_name.split(',').filter(Boolean) : []
+  const urls = a.attachment_url ? a.attachment_url.split(',') : []
+  return names.map((n, i) => ({ name: n, url: urls[i] || '' }))
 }
 
 // Affaire terminée : marquée "done" à la main OU déchargement strictement passé (échu)
@@ -2432,6 +2578,34 @@ h3 { font-size: 16px; margin: 0; }
 .chat-modal-input input { flex: 1; min-width: 0; padding: 10px 12px; border: 1px solid var(--border-light, #444); border-radius: 10px; background: var(--bg-input, #2a2a45); color: var(--text, #e0e0e0); font-size: 15px; }
 .chat-modal-input button { padding: 10px 16px; background: var(--color1); color: #fff; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; box-shadow: none; min-width: auto; }
 .chat-modal-input button:disabled { opacity: 0.4; }
+/* Éditeur de zones (à l'envoi) */
+.zone-modal-overlay { position: fixed; inset: 0; z-index: 1000; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; padding: 12px; }
+.zone-modal { width: 100%; max-width: 560px; max-height: 92vh; display: flex; flex-direction: column; background: var(--bg-card, #1a1a2e); border-radius: 14px; overflow: hidden; }
+.zone-modal-head { display: flex; align-items: center; gap: 8px; padding: 12px 14px; background: var(--color1); }
+.zone-modal-title { flex: 1; font-size: 16px; font-weight: 800; color: #fff; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.zone-modal-close { background: transparent; border: none; font-size: 18px; cursor: pointer; color: #fff; box-shadow: none; min-width: auto; }
+.zone-modal-body { flex: 1; min-height: 0; overflow-y: auto; padding: 12px 14px; }
+.zone-hint { font-size: 13px; color: var(--text-muted, #aaa); margin: 0 0 12px; }
+.ze-block { margin-bottom: 14px; }
+.ze-banner { font-weight: 800; font-size: 14px; padding: 5px 10px; border-radius: 8px 8px 0 0; color: #fff; }
+.ze-banner.facade { background: #3b82f6; }
+.ze-banner.retour { background: #f59e0b; }
+.ze-banner.systeme { background: #8b5cf6; }
+.ze-banner.scene { background: #10b981; }
+.ze-block textarea {
+  width: 100%; box-sizing: border-box; border: 1px solid var(--border-light, #444);
+  border-top: none; border-radius: 0 0 8px 8px; padding: 10px; font-size: 14px;
+  background: var(--bg-input, #2a2a45); color: var(--text, #e0e0e0); resize: vertical; line-height: 1.4;
+}
+.ze-docs { margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--border, #3a3a55); display: flex; flex-direction: column; gap: 6px; }
+.ze-docs-title { font-size: 13px; font-weight: 700; color: var(--text-muted, #aaa); }
+.ze-doc-link { font-size: 13px; color: var(--color1); text-decoration: none; }
+.ze-doc-new { font-size: 13px; color: var(--text, #ccc); display: flex; align-items: center; gap: 6px; }
+.ze-doc-x { background: transparent; border: none; color: #ef4444; cursor: pointer; font-size: 13px; box-shadow: none; min-width: auto; padding: 0 4px; }
+.ze-doc-add { display: inline-block; align-self: flex-start; font-size: 13px; font-weight: 700; color: var(--color1); cursor: pointer; padding: 4px 0; }
+.zone-modal-foot { display: flex; gap: 8px; padding: 10px 14px; border-top: 1px solid var(--border, #3a3a55); }
+.ze-skip { flex: 1; padding: 11px; background: transparent; border: 1px solid var(--border-light, #555); border-radius: 10px; color: var(--text, #ccc); font-weight: 700; cursor: pointer; box-shadow: none; }
+.ze-send { flex: 2; padding: 11px; background: var(--color1); border: none; border-radius: 10px; color: #fff; font-weight: 800; cursor: pointer; box-shadow: none; }
 .card-expanded { padding: 8px; border-top: 1px solid var(--border-light, #eee); margin-top: 6px; }
 .detail-hint { margin-top: 6px; font-size: 11px; font-weight: 700; color: var(--color1-dark, #2e7d32); }
 
@@ -2440,6 +2614,7 @@ h3 { font-size: 16px; margin: 0; }
   display: flex; flex-wrap: wrap; gap: 6px; margin-top: -2px;
   padding: 2px 0; background: transparent;
 }
+.fiche-cal { margin: 8px 0; }
 .mini-cal-day {
   display: flex; flex-direction: column; align-items: center; gap: 1px;
   min-width: 30px; padding: 3px 2px;

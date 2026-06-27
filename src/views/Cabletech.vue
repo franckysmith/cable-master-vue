@@ -44,6 +44,7 @@
           {{ g.label }}
           <button class="ov-edit" @click="editDistribution(g.role)" title="Modifier">✏️</button>
         </div>
+        <div v-if="g.desc" class="ov-desc">{{ g.desc }}</div>
         <div v-for="it in g.items" :key="it.cableid" class="ov-item">
           <span class="ov-qty">{{ it.need }}</span>
           <span class="ov-name">{{ it.name }}</span>
@@ -576,6 +577,7 @@ function editDistribution(role) {
 // Besoins déclarés par poste (câbles avec quantité > 0), empilés du Front au Stage
 const needsByRole = computed(() => {
   const need = o => (o.spare_count||0)+(o.z1||0)+(o.z2||0)+(o.z3||0)+(o.z4||0)+(o.z5||0)+(o.z6||0)
+  const a = selectedAffair.value
   const groups = ROLE_DEFS.map(def => {
     const map = {}
     for (const o of allOrders.value) if ((o.role || 'front') === def.role) map[o.cableid] = o
@@ -587,8 +589,10 @@ const needsByRole = computed(() => {
       if (n <= 0) continue
       items.push({ cableid: cable.cableid, name: cable.name, need: n })
     }
-    return { ...def, items }
-  }).filter(g => g.items.length > 0)
+    // Description de zone saisie par le master (materiel_front/monitor/system/stage)
+    const desc = (a && a[`materiel_${def.role}`]) ? a[`materiel_${def.role}`] : ''
+    return { ...def, items, desc }
+  }).filter(g => g.items.length > 0 || g.desc)
 
   // Micros (caisse commune)
   const mitems = []
@@ -1752,6 +1756,11 @@ function colorForType(type) {
   background: var(--bg-section, #f1f1f4); border-radius: 5px; padding: 1px 4px;
 }
 .ov-name { flex: 1; }
+.ov-desc {
+  white-space: pre-wrap; font-size: 13px; line-height: 1.4;
+  background: var(--bg-section, #f1f1f4); color: var(--text, #222);
+  border-radius: 8px; padding: 8px 10px; margin-bottom: 6px;
+}
 .ov-empty { text-align: center; color: var(--text-muted, #888); padding: 30px 12px; }
 .ov-actions { text-align: center; margin-top: 12px; }
 .ov-edit-all {
