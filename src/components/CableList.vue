@@ -137,7 +137,7 @@ function startNamePress(cable, e) {
   namePressTimer = setTimeout(() => {
     nameDidLongPress = true
     emit('longpress', cable)
-  }, 800)
+  }, 1200)
 }
 
 function endNamePress(cable, e) {

@@ -1049,16 +1049,20 @@ function miniCalFull(a) {
   return days.map(d => ({ date: d, marks: map[d] }))
 }
 const MINI_CAL_MAX = 5 // au-delà : on montre 5 jours (les prochains) + « … »
-function miniCalDays(a) {
+// Jours à afficher : uniquement aujourd'hui et à venir (les dates passées ne nous intéressent plus)
+function miniCalBase(a) {
   const all = miniCalFull(a)
-  if (!all.length) return null
-  if (all.length <= MINI_CAL_MAX) return all
+  if (!all.length) return []
   const today = todayISO()
   const upcoming = all.filter(x => x.date >= today)
-  return (upcoming.length >= MINI_CAL_MAX ? upcoming : all).slice(0, MINI_CAL_MAX)
+  return upcoming.length ? upcoming : all // tout passé (ex. affaire échue) → repli sur tout
 }
-// Y a-t-il plus de jours que ce qu'on affiche (→ ajouter « … ») ?
-function miniCalMore(a) { return miniCalFull(a).length > MINI_CAL_MAX }
+function miniCalDays(a) {
+  const base = miniCalBase(a)
+  return base.length ? base.slice(0, MINI_CAL_MAX) : null
+}
+// Y a-t-il plus de jours (à venir) que ce qu'on affiche (→ ajouter « … ») ?
+function miniCalMore(a) { return miniCalBase(a).length > MINI_CAL_MAX }
 // Techniciens d'une affaire (tous les postes actifs)
 function allTechs(a) {
   const all = []

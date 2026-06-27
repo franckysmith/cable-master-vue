@@ -105,8 +105,8 @@
         >Cablekit</button>
       </div>
 
-      <!-- Ajout rapide de câble -->
-      <div v-if="showAddInput" class="quick-add">
+      <!-- Ajout rapide de câble (édition autorisée) -->
+      <div v-if="showAddInput && canEditCables" class="quick-add">
         <input
           ref="addInput"
           v-model="newCableName"
@@ -115,6 +115,19 @@
           @keydown.enter="quickAddCable"
         />
         <button class="quick-add-btn" @click="quickAddCable">Ajouter</button>
+      </div>
+
+      <!-- Technicien : câble absent de la liste → demande au master -->
+      <div v-if="showAddInput && !canEditCables" class="quick-add quick-request">
+        <input
+          ref="addInput"
+          v-model="requestText"
+          class="quick-add-input"
+          placeholder="Câble manquant à demander à l'entreprise…"
+          @keydown.enter="sendCableRequest"
+        />
+        <button class="quick-add-btn" @click="sendCableRequest" :disabled="!requestText.trim()">Demander</button>
+        <div v-if="requestSent" class="request-ok">✅ Demande envoyée</div>
       </div>
 
       <!-- Édition de câble (seulement si c'est ma liste ou si je suis master) -->
@@ -169,7 +182,7 @@
               @mousedown="startHeaderPress('zone', i)" @mouseup="endHeaderPress('zone', i)" @mouseleave="cancelHeaderPress"
               @touchstart="startHeaderPress('zone', i)" @touchmove="onHeaderMove" @touchend.prevent="endHeaderPress('zone', i)" @touchcancel="cancelHeaderPress"
             >
-              <span :class="{ 'solo-selected': soloMode && zoneSoloFilter === i }">{{ zoneLabels[`lz${i}`] || `Zone${i}` }}</span>
+              <span :class="{ 'solo-selected': soloMode && zoneSoloFilter === i }">{{ zoneBase(zoneLabels[`lz${i}`]) || `Zone${i}` }}<span v-if="zoneStereo(zoneLabels[`lz${i}`])" class="zstar">*</span></span>
             </div>
             <div class="head-total-spacer"></div>
           </div>
@@ -364,9 +377,11 @@
           <div class="le-rows">
             <label v-for="f in labelEditor.fields" :key="f.key" class="le-row">
               <span class="le-tag">{{ f.placeholder }}</span>
-              <input v-model="f.value" :placeholder="f.placeholder" maxlength="20" @keydown.enter="saveLabelEditor" />
+              <input v-model="f.value" :placeholder="f.placeholder" :maxlength="labelEditor.type === 'zone' ? 21 : 20" @keydown.enter="saveLabelEditor" />
+              <button v-if="labelEditor.type === 'zone'" type="button" class="le-stereo" :class="{ on: stereoOf(f) }" @click.prevent="toggleStereoField(f)" title="Stéréo (par côté)">*</button>
             </label>
           </div>
+          <div v-if="labelEditor.type === 'zone'" class="le-legend">* = par côté (stéréo)</div>
           <div class="le-actions">
             <button class="le-cancel" @click="cancelLabelEditor">Annuler</button>
             <button class="le-save" @click="saveLabelEditor">Valider</button>
@@ -418,12 +433,14 @@ async function checkCtContent() {
 const userRole = inject('userRole', ref('technician'))
 const isMaster = computed(() => userRole.value === 'master')
 const canEditCables = computed(() => {
-  // On peut modifier si c'est sa propre liste ou si on est Cable Master
+  // Seuls les masters éditent la liste d'une entreprise.
   if (isMaster.value) return true
-  const affairCatalog = selectedAffair.value?.catalog_id
-  const myCatalog = parseInt(localStorage.getItem('cablemaster-catalogid')) || 1
-  // Pas de catalogue d'affaire ou même catalogue que le mien = ma liste
-  return !affairCatalog || affairCatalog === myCatalog || affairCatalog === 1
+  // Un technicien rattaché à une entreprise (invité, lien reçu) ne modifie PAS sa liste :
+  // il peut seulement déclarer ses besoins / signaler un câble manquant.
+  const companyId = parseInt(localStorage.getItem('cablemaster-companyid')) || 0
+  if (companyId) return false
+  // Freelance sans entreprise → c'est sa liste perso, édition autorisée.
+  return true
 })
 
 function onHelpClick(id, action) {
@@ -774,6 +791,16 @@ function saveLabelEditor() {
 }
 function cancelLabelEditor() { labelEditor.open = false }
 
+// Stéréo « par côté » : marqué par un astérisque en fin de titre de zone
+function stereoOf(f) { return /\*\s*$/.test(f.value || '') }
+function toggleStereoField(f) {
+  const base = (f.value || '').replace(/\s*\*\s*$/, '')
+  f.value = stereoOf(f) ? base : base + '*'
+}
+// Affichage en-tête : titre sans l'astérisque + détection du flag stéréo
+function zoneBase(lbl) { return (lbl || '').replace(/\s*\*\s*$/, '') }
+function zoneStereo(lbl) { return /\*\s*$/.test(lbl || '') }
+
 const ctEditMode = ref(false)
 let ctBtnTimer = null
 let ctBtnDidLong = false
@@ -936,6 +963,25 @@ async function quickAddCable() {
       buildJoinedData(orders || [], cableStore.cables)
     }
   }
+}
+
+// Demande de câble manquant : envoyée au master via le fil de messages de l'affaire
+const requestText = ref('')
+const requestSent = ref(false)
+async function sendCableRequest() {
+  const txt = requestText.value.trim()
+  const a = selectedAffair.value
+  if (!txt || !a) return
+  await supabase.from('message').insert({
+    affairid: a.affairid,
+    sender_role: 'tech',
+    text: `🔌 Besoin câble : ${txt}`,
+    read_by_tech: true,
+    read_by_master: false,
+  })
+  requestText.value = ''
+  requestSent.value = true
+  setTimeout(() => { requestSent.value = false; showAddInput.value = false }, 1500)
 }
 
 function onCableLongPress(cable) {
@@ -2369,6 +2415,8 @@ button {
   align-items: center;
   justify-content: center;
 }
+.quick-request { flex-wrap: wrap; }
+.request-ok { width: 100%; text-align: center; color: #15803d; font-weight: 700; font-size: 13px; }
 .quick-add {
   display: flex;
   gap: 6px;
@@ -2533,6 +2581,16 @@ button {
   background: var(--bg-input, #fff); color: var(--text, #333);
 }
 .le-row input:focus { outline: none; border-color: var(--color1); }
+.le-stereo {
+  flex-shrink: 0; width: 30px; height: 30px; border-radius: 6px;
+  border: 1px solid var(--border-light, #ccc); background: var(--bg-input, #fff);
+  color: var(--text-muted, #999); font-size: 18px; font-weight: 800; cursor: pointer;
+  line-height: 1; padding: 0;
+}
+.le-stereo.on { background: #6b46c1; color: #fff; border-color: #6b46c1; }
+.le-legend { font-size: 12px; color: var(--text-muted, #888); margin-top: 8px; text-align: center; }
+.zstar { flex-shrink: 0; color: #6b46c1; font-weight: 900; margin-left: 1px; }
+:global(.dark) .zstar { color: #c4b5fd; }
 .le-actions { display: flex; gap: 8px; margin-top: 14px; }
 .le-cancel, .le-save {
   flex: 1; padding: 10px; border-radius: 8px; font-size: 14px; font-weight: 700;
