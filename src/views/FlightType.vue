@@ -73,10 +73,11 @@
       <div class="ck-editor">
         <div class="ck-title">Renommer les cablekits</div>
         <div class="ck-rows">
-          <label v-for="f in ckEditor.fields" :key="f.key" class="ck-row">
+          <div v-for="(f, idx) in ckEditor.fields" :key="f.key" class="ck-row">
             <span class="ck-tag">{{ f.placeholder }}</span>
             <input v-model="f.value" :placeholder="f.placeholder" maxlength="10" @keydown.enter="saveCkEditor" />
-          </label>
+            <button type="button" class="ck-del" @click="deleteCk(idx + 1)" title="Supprimer ce cablekit">✕</button>
+          </div>
         </div>
         <div class="ck-actions">
           <button class="ck-cancel" @click="cancelCkEditor">Annuler</button>
@@ -306,6 +307,33 @@ function saveCkEditor() {
   for (const f of ckEditor.fields) settingsStore.defaultCtLabels[f.key] = (f.value || '').trim()
   ckEditor.open = false
 }
+
+// Supprimer un cablekit : on retire la colonne k et on décale les suivantes (libellés + données)
+async function deleteCk(k) {
+  if (ckCount.value <= 1) { alert('Au moins un cablekit doit rester.'); return }
+  if (!ckIsEmpty(k) && !confirm(`« ${ckLabel(k)} » contient des câbles. Le supprimer quand même ?`)) return
+  if (ckIsEmpty(k) && !confirm(`Supprimer le cablekit « ${ckLabel(k)} » ?`)) return
+  // Supprimer le mfc de la colonne k, renommer les suivants CK{i} → CK{i-1}
+  const del = mfcByCk[k]
+  if (del) await mfcStore.deleteMfc(del.mfcid)
+  for (let i = k + 1; i <= ckCount.value; i++) {
+    const m = mfcByCk[i]
+    if (m) await mfcStore.updateMfc(m.mfcid, { name: `CK${i - 1}` })
+  }
+  // Décaler les libellés
+  for (let i = k; i < ckCount.value; i++) {
+    settingsStore.defaultCtLabels[`ct${i}`] = settingsStore.defaultCtLabels[`ct${i + 1}`] || ''
+  }
+  settingsStore.defaultCtLabels[`ct${ckCount.value}`] = ''
+  ckCount.value -= 1
+  localStorage.setItem('cablemaster-ckcount', String(ckCount.value))
+  // Recharger mfc + comptes depuis la base
+  for (const key in mfcByCk) delete mfcByCk[key]
+  counts.value = {}
+  await mfcStore.fetchMfcs()
+  await loadAllCk()
+  if (ckEditor.open) openCkEditor()
+}
 function cancelCkEditor() { ckEditor.open = false }
 
 function colorForType(type) {
@@ -375,9 +403,9 @@ function colorForType(type) {
   background: var(--bg-card, #fff); border-bottom: 1px solid var(--border-light, #ddd);
   margin-bottom: 2px; box-shadow: 0 2px 3px rgba(0, 0, 0, 0.12);
 }
-.cable-row.row-band .cable-name { background: var(--bg-section, #d5d5d5); border-radius: 6px; padding-top: 4px; padding-bottom: 4px; }
+.cable-row.row-band .cable-name { background: var(--bg-section, #d5d5d5); border-radius: 8px 0 0 8px; padding-top: 4px; padding-bottom: 4px; }
 .cable-row.row-active .cable-name {
-  border: 2px solid #fff !important; border-radius: 6px; color: var(--text) !important;
+  border: 2px solid #fff !important; border-radius: 8px 0 0 8px; color: var(--text) !important;
   font-weight: 800; background: var(--bg-card) !important; padding: 4px 6px !important;
 }
 .cable-row.row-active .ct-cell { border: 1.5px solid var(--color1); }
@@ -385,6 +413,7 @@ function colorForType(type) {
   flex: 0 0 130px; width: 130px; font-size: 15px; font-weight: 700; padding-left: 6px;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; color: var(--text, #333);
   position: sticky; left: 0; z-index: 5; background: var(--bg-card, #fff);
+  border-radius: 8px 0 0 8px;
   box-shadow: 5px 0 6px -2px rgba(0, 0, 0, 0.35);
 }
 .ct-cell {
@@ -407,6 +436,7 @@ function colorForType(type) {
 .ck-tag { flex: 0 0 46px; font-size: 12px; font-weight: 700; color: var(--text-muted, #888); }
 .ck-row input { flex: 1; min-width: 0; padding: 8px 10px; font-size: 16px; border: 1px solid var(--border-light, #ccc); border-radius: 8px; background: var(--bg-input, #fff); color: var(--text, #333); }
 .ck-row input:focus { outline: none; border-color: var(--color1); }
+.ck-del { flex-shrink: 0; width: 30px; height: 30px; border-radius: 6px; border: 1px solid #ef4444; background: transparent; color: #ef4444; font-size: 13px; font-weight: 800; cursor: pointer; box-shadow: none; min-width: auto; padding: 0; }
 .ck-actions { display: flex; gap: 8px; margin-top: 14px; }
 .ck-cancel, .ck-save { flex: 1; padding: 10px; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; border: none; box-shadow: none; }
 .ck-cancel { background: var(--bg-section, #eee); color: var(--text, #333); border: 1px solid var(--border-light, #ccc); }

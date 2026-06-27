@@ -2642,7 +2642,12 @@ button {
 }
 .le-stereo.on { background: #6b46c1; color: #fff; border-color: #6b46c1; }
 .le-legend { font-size: 12px; color: var(--text-muted, #888); margin-top: 8px; text-align: center; }
-.zstar { flex-shrink: 0; color: #6b46c1; font-weight: 900; margin-right: 2px; }
+/* Astérisque « par côté » : doit suivre le texte oblique, pas être repositionné en absolu */
+.head-label-angled .zstar {
+  position: static; transform: none; left: auto; bottom: auto;
+  display: inline; color: #6b46c1; font-weight: 900;
+  font-size: 17px; margin-right: 3px; line-height: 0;
+}
 :global(.dark) .zstar { color: #c4b5fd; }
 .le-actions { display: flex; gap: 8px; margin-top: 14px; }
 .le-cancel, .le-save {
