@@ -15,7 +15,9 @@
       <button class="filter-soon prep" :class="{ active: sortMode === 'prep' }" @click="toggleSort('prep')">Prépa</button>
       <button class="filter-soon out" :class="{ active: sortMode === 'out' }" @click="toggleSort('out')">Charg.</button>
       <button class="filter-soon back" :class="{ active: sortMode === 'back' }" @click="toggleSort('back')">Déch.</button>
-      <button class="filter-soon follow" :class="{ active: followOnly }" @click="followOnly = !followOnly" title="À suivre">★ À suivre</button>
+      <button class="filter-soon msg-btn" :class="{ active: msgFilter, 'has-msg': unreadTotal > 0 }" @click="toggleMsgFilter" title="Messages reçus">
+        ✉️<span v-if="unreadTotal" class="msg-badge">{{ unreadTotal }}</span>
+      </button>
     </div>
     <div v-if="!showForm" class="time-filters">
       <button class="time-btn today" :class="{ active: timeFilter === 'd0' }" @click="toggleTime('d0')">Aujourd'hui</button>
@@ -39,6 +41,7 @@
       <button class="btn-mine" :class="{ active: mineOnly }" @click="mineOnly = !mineOnly" title="Afficher seulement mes affaires (gérant)">
         <span class="bm-main">Mes</span><span class="bm-sub">affaires</span>
       </button>
+      <button class="star-btn" :class="{ active: followOnly }" @click="followOnly = !followOnly" title="À suivre (★)">★</button>
       <button :class="{ active: tab === 'new' }" @click="tab = tab === 'new' ? 'all' : 'new'">NEW</button>
       <button :class="{ active: tab === 'sent' }" @click="tab = tab === 'sent' ? 'all' : 'sent'">Envoyé</button>
       <select
@@ -293,9 +296,9 @@
           <!-- Carte sélectionnée → menu éditable ; sinon → filtre par gérant -->
           <select v-if="selected?.affairid === affair.affairid" class="manager-select" :value="affair.manager || ''" @click.stop @change="onManagerChange(affair, $event)" title="Qui gère cette affaire">
             <option value="">— gérant</option>
-            <option v-for="m in managerOptions" :key="m" :value="m">{{ m }}</option>
+            <option v-for="m in managerOptions" :key="m.value" :value="m.value">{{ m.label }}</option>
           </select>
-          <button v-else class="manager-chip" :class="{ none: !affair.manager, active: managerFilter && managerFilter === affair.manager }" @click.stop="clickManager(affair)" :title="affair.manager ? 'Voir les affaires gérées par ' + affair.manager : 'Aucun gérant'">
+          <button v-else class="manager-chip" :class="{ none: !affair.manager, active: managerFilter && managerFilter === affair.manager, 'mgr-gerant': managerRole(affair.manager) === 'gerant', 'mgr-principal': managerRole(affair.manager) === 'principal' }" @click.stop="clickManager(affair)" :title="affair.manager ? 'Voir les affaires gérées par ' + affair.manager : 'Aucun gérant'">
             {{ affair.manager || '— gérant' }}
           </button>
         </div>
@@ -969,24 +972,36 @@ async function loadTechnicians() {
   if (!resolvedCompanyId.value) return
   const { data } = await supabase.from('technician').select('*').eq('company_id', resolvedCompanyId.value).order('name')
   technicians.value = data || []
-  const { data: comp } = await supabase.from('company').select('resp_firstname, resp_lastname, resp_nickname').eq('companyid', resolvedCompanyId.value).single()
+  const { data: comp } = await supabase.from('company').select('resp_firstname, resp_lastname, resp_nickname, master_techid').eq('companyid', resolvedCompanyId.value).single()
   companyResp.value = comp || null
 }
 
-// Masters pouvant gérer une affaire : responsable principal + masters secondaires.
+// Masters pouvant gérer une affaire : gérant (responsable) + master principal + secondaires.
 // Affiché par surnom (diminutif) si présent, sinon prénom.
 const managerOptions = computed(() => {
-  const opts = []
   const r = companyResp.value
-  if (r && (r.resp_nickname || r.resp_firstname)) opts.push(r.resp_nickname || r.resp_firstname)
-  ;(technicians.value || []).forEach(t => {
-    if (t.can_manage_affairs) {
-      const label = t.nickname || t.firstname || t.name
-      if (label) opts.push(label)
-    }
-  })
-  return [...new Set(opts)]
+  const out = []
+  if (r && (r.resp_nickname || r.resp_firstname)) {
+    const v = r.resp_nickname || r.resp_firstname
+    out.push({ value: v, label: `🧭 ${v} · gérant`, role: 'gerant' })
+  }
+  const principalId = r?.master_techid
+  for (const t of (technicians.value || [])) {
+    if (!t.can_manage_affairs) continue
+    const v = t.nickname || t.firstname || t.name
+    if (!v) continue
+    if (principalId && t.techid === principalId) out.push({ value: v, label: `👑 ${v} · master`, role: 'principal' })
+    else out.push({ value: v, label: v, role: 'secondary' })
+  }
+  const seen = new Set()
+  return out.filter(o => !seen.has(o.value) && seen.add(o.value))
 })
+// Rôle d'un nom de gérant (pour colorer la puce sur les cartes)
+function managerRole(name) {
+  if (!name) return ''
+  const o = managerOptions.value.find(x => x.value === name)
+  return o ? o.role : ''
+}
 async function onManagerChange(affair, ev) {
   const v = ev.target.value || null
   affair.manager = v
@@ -1026,6 +1041,10 @@ async function loadTrashed() {
 const sortMode = ref('')
 const timeFilter = ref('') // '' | 'd0' | 'd1' | 'd2' | 'd3' | 'd4plus'
 const followOnly = ref(false) // n'afficher que les affaires "à suivre" (★)
+// Messages : enveloppe en haut → nb d'affaires avec messages non lus + filtre
+const msgFilter = ref(false)
+const unreadTotal = computed(() => Object.keys(unreadAffairs.value || {}).length)
+function toggleMsgFilter() { msgFilter.value = !msgFilter.value }
 const affairSearch = ref('') // moteur de recherche d'affaires
 const searchPast = ref(false) // false = affaires à venir ; true = affaires passées/terminées
 function toggleSort(mode) {
@@ -1474,6 +1493,7 @@ const filteredAffairs = computed(() => {
   let out = followOnly.value ? list.filter(a => a.followed) : list
   if (managerFilter.value) out = out.filter(a => a.manager === managerFilter.value)
   if (mineOnly.value) out = out.filter(isMyAffair)
+  if (msgFilter.value) out = out.filter(a => !!unreadAffairs.value[a.affairid])
   return out
 })
 
@@ -2279,6 +2299,9 @@ h3 { font-size: 16px; margin: 0; }
 }
 .manager-chip.none { color: var(--text-muted, #999); font-weight: 600; }
 .manager-chip.active { background: var(--color1); color: #fff; border-color: var(--color1); }
+/* Gérant : couleur dédiée (cyan) ; master principal : surligné jaune */
+.manager-chip.mgr-gerant { border-color: #06b6d4; color: #06b6d4; font-weight: 800; }
+.manager-chip.mgr-principal { background: #facc15; border-color: #eab308; color: #000; font-weight: 800; }
 .manager-filter-chip {
   display: flex; align-items: center; gap: 6px; margin: 2px 0 8px;
   font-size: 13px; color: var(--text);
@@ -2446,6 +2469,14 @@ h3 { font-size: 16px; margin: 0; }
 .filter-soon.out.active { background: #3b82f6; border-color: #3b82f6; color: #fff; }
 .filter-soon.back.active { background: #15803d; border-color: #15803d; color: #fff; }
 .filter-soon.follow.active { background: #f59e0b; border-color: #f59e0b; color: #fff; }
+/* Enveloppe messages (haut droite) */
+.msg-btn { position: relative; }
+.msg-btn.has-msg { border-color: #ef4444; }
+.msg-btn.active { background: var(--color1); border-color: var(--color1); color: #fff; }
+.msg-badge { position: absolute; top: -6px; right: -6px; background: #ef4444; color: #fff; font-size: 10px; font-weight: 800; min-width: 16px; height: 16px; line-height: 16px; border-radius: 8px; padding: 0 3px; text-align: center; }
+/* Étoile « à suivre » (barre du bas) */
+.star-btn { color: #f59e0b; font-size: 16px; font-weight: 800; }
+.star-btn.active { background: #f59e0b; border-color: #f59e0b; color: #fff; }
 
 .affair-search-bar { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; }
 .affair-search-field { position: relative; flex: 1; }
