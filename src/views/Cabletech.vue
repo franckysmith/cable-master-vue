@@ -178,14 +178,15 @@
               <button class="mini-btn" :class="{ 'active-blue': incrementStep === 10 }" @click="incrementStep = incrementStep === 10 ? 1 : 10">
                 +10
               </button>
+              <div class="ct-star-legend" title="Astérisque = par côté (stéréo)"><span class="csl-star">*</span><span class="csl-sub">par côté</span></div>
             </div>
-            <div class="head-label-angled head-spare"><span>Spare</span></div>
+            <div class="head-label-angled head-spare" @click="onSpareSolo"><span :class="{ 'solo-selected': soloMode && zoneSoloFilter === 0 }">Spare</span></div>
             <div
               v-for="i in 6" :key="'zh'+i" class="head-label-angled"
               @mousedown="startHeaderPress('zone', i)" @mouseup="endHeaderPress('zone', i)" @mouseleave="cancelHeaderPress"
               @touchstart="startHeaderPress('zone', i)" @touchmove="onHeaderMove" @touchend.prevent="endHeaderPress('zone', i)" @touchcancel="cancelHeaderPress"
             >
-              <span :class="{ 'solo-selected': soloMode && zoneSoloFilter === i }">{{ zoneBase(zoneLabels[`lz${i}`]) || `Zone${i}` }}<span v-if="zoneStereo(zoneLabels[`lz${i}`])" class="zstar">*</span></span>
+              <span :class="{ 'solo-selected': soloMode && zoneSoloFilter === i }"><span v-if="zoneStereo(zoneLabels[`lz${i}`])" class="zstar">*</span>{{ zoneBase(zoneLabels[`lz${i}`]) || `Zone${i}` }}</span>
             </div>
             <div class="head-total-spacer"></div>
           </div>
@@ -380,8 +381,8 @@
           <div class="le-rows">
             <label v-for="f in labelEditor.fields" :key="f.key" class="le-row">
               <span class="le-tag">{{ f.placeholder }}</span>
-              <input v-model="f.value" :placeholder="f.placeholder" :maxlength="labelEditor.type === 'zone' ? 21 : 20" @keydown.enter="saveLabelEditor" />
-              <button v-if="labelEditor.type === 'zone'" type="button" class="le-stereo" :class="{ on: stereoOf(f) }" @click.prevent="toggleStereoField(f)" title="Stéréo (par côté)">*</button>
+              <input v-model="f.value" :placeholder="f.placeholder" maxlength="10" @keydown.enter="saveLabelEditor" />
+              <button v-if="labelEditor.type === 'zone'" type="button" class="le-stereo" :class="{ on: stereoOf(f) }" @click.prevent="toggleStereoField(f)" title="Stéréo (par côté)">par côté *</button>
             </label>
           </div>
           <div v-if="labelEditor.type === 'zone'" class="le-legend">* = par côté (stéréo)</div>
@@ -700,11 +701,16 @@ watch([zoneSoloFilter, fcSoloFilter, ctSoloFilter], ([z, f, c]) => {
   if (z || f || c) searchKey.value = ''
 })
 
+// Spare soloable : clic sur l'en-tête Spare → solo sur la colonne Spare (0) ; re-clic = éteint
+function onSpareSolo() {
+  if (soloMode.value && zoneSoloFilter.value === 0) { soloMode.value = false; zoneSoloFilter.value = null }
+  else { soloMode.value = true; zoneSoloFilter.value = 0; typeChoose.value = '' }
+}
+
 function onCtHeaderClick(i) {
-  // Clic = changer de CT (toujours une sélectionnée)
-  ctSolo.value = true
-  ctSoloFilter.value = i
-  typeChoose.value = ''
+  // Clic → solo sur ce cablekit ; re-clic sur le même = éteint
+  if (ctSolo.value && ctSoloFilter.value === i) { ctSolo.value = false; ctSoloFilter.value = null }
+  else { ctSolo.value = true; ctSoloFilter.value = i; typeChoose.value = '' }
 }
 
 function onFcHeaderClick(i) {
@@ -758,10 +764,17 @@ function onHeaderMove() {
 function endHeaderPress(type, index) {
   clearTimeout(headerPressTimer)
   if (headerMoved || headerLongFired) return
-  // Tap court → sélection solo (seulement si le mode S est actif)
+  // Tap court sur un en-tête → passe direct en solo sur cette colonne ; re-clic = éteint
   if (type === 'ct') { onCtHeaderClick(index); return }
-  if (type === 'fc') { if (fcSolo.value) { fcSoloFilter.value = index; typeChoose.value = '' } return }
-  if (type === 'zone') { if (soloMode.value) zoneSoloFilter.value = index }
+  if (type === 'fc') {
+    if (fcSolo.value && fcSoloFilter.value === index) { fcSolo.value = false; fcSoloFilter.value = null }
+    else { fcSolo.value = true; fcSoloFilter.value = index; typeChoose.value = '' }
+    return
+  }
+  if (type === 'zone') {
+    if (soloMode.value && zoneSoloFilter.value === index) { soloMode.value = false; zoneSoloFilter.value = null }
+    else { soloMode.value = true; zoneSoloFilter.value = index; typeChoose.value = '' }
+  }
 }
 
 function cancelHeaderPress() {
@@ -1590,6 +1603,25 @@ const categoryTotals = computed(() => {
 // Quantité par type (pour les pastilles sur les boutons de type)
 const typeCounts = computed(() => {
   const m = {}
+  // Solo zone (Spare = 0, zones 1-6) → comptes du contenu de cette colonne par type
+  if (soloMode.value && layout.value === 'cableTechBase' && zoneSoloFilter.value !== null) {
+    const k = zoneSoloFilter.value
+    for (const c of joinedData.value) {
+      const n = k === 0 ? (c.spare_count || 0) : (c[`z${k}`] || 0)
+      if (n > 0) m[c.type] = (m[c.type] || 0) + n
+    }
+    return m
+  }
+  // Solo flight-case → comptes par type du contenu de la FC choisie
+  if (fcSolo.value && fcSoloFilter.value !== null) {
+    const k = fcSoloFilter.value
+    for (const c of joinedData.value) {
+      const n = c[`tfc${k}`] || 0
+      if (n > 0) m[c.type] = (m[c.type] || 0) + n
+    }
+    return m
+  }
+  // Sinon : totaux globaux par type
   for (const t of categoryTotals.value) m[t.type] = t.count
   return m
 })
@@ -1671,7 +1703,7 @@ function calculateTotal(cable) {
 function colorForType(type) {
   const colors = {
     speaker: 'var(--color1)', electrical: '#f3e309', microphone: '#eb910a',
-    module: '#8b5cf6', special: '#ef4444', other: '#a16207',
+    module: '#ef4444', special: '#3b82f6', other: '#a16207',
     c_type: '#06b6d4', accessory: '#84cc16', digital: '#f97316',
     type8: '#ec4899', type9: '#14b8a6', type10: '#a855f7',
   }
@@ -2166,10 +2198,16 @@ function colorForType(type) {
   z-index: 2;
   background: var(--bg, #fff);
 }
+.ct-star-legend {
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
+  line-height: 1.05; flex-shrink: 0; width: 32px;
+}
+.csl-star { color: var(--text, #fff); font-weight: 900; font-size: 18px; }
+.csl-sub { color: var(--text, #fff); font-size: 10px; font-weight: 700; text-align: center; white-space: normal; }
 .ct-btn-row {
   display: flex;
   align-items: flex-end;
-  gap: 4px;
+  gap: 3px;
   padding-bottom: 4px;
 }
 .mini-btn {
@@ -2315,17 +2353,18 @@ function colorForType(type) {
   background: #06b6d4 !important;
   border: 1px solid #0891b2;
   border-radius: 4px;
-  padding: 2px 2px;
-  font-size: 8px;
+  padding: 2px 4px;
+  font-size: 9px;
   font-weight: 700;
   color: #fff !important;
   display: inline-block;
-  width: 55px;
-  height: 18px;
-  line-height: 14px;
+  box-sizing: border-box;
+  width: 66px;
+  height: 20px;
+  line-height: 16px;
   text-align: center;
   white-space: nowrap;
-  white-space: nowrap;
+  overflow: hidden;
 }
 .head-zone-scroll .head-label-angled-fc span,
 .sync-header-inner .head-label-angled-fc span {
@@ -2345,16 +2384,18 @@ function colorForType(type) {
   background: var(--color1-light);
   border: 1px solid var(--color1);
   border-radius: 4px;
-  padding: 2px 2px;
-  font-size: 8px;
+  padding: 2px 4px;
+  font-size: 9px;
   font-weight: 700;
   color: #2c3e50;
   display: inline-block;
-  width: 55px;
-  height: 18px;
-  line-height: 14px;
+  box-sizing: border-box;
+  width: 66px;
+  height: 20px;
+  line-height: 16px;
   text-align: center;
   white-space: nowrap;
+  overflow: hidden;
 }
 .fc-clickable:hover .fc-label-btn {
   background: var(--color1);
@@ -2594,14 +2635,14 @@ button {
 }
 .le-row input:focus { outline: none; border-color: var(--color1); }
 .le-stereo {
-  flex-shrink: 0; width: 30px; height: 30px; border-radius: 6px;
+  flex-shrink: 0; height: 30px; border-radius: 6px; white-space: nowrap;
   border: 1px solid var(--border-light, #ccc); background: var(--bg-input, #fff);
-  color: var(--text-muted, #999); font-size: 18px; font-weight: 800; cursor: pointer;
-  line-height: 1; padding: 0;
+  color: var(--text-muted, #999); font-size: 12px; font-weight: 800; cursor: pointer;
+  line-height: 1; padding: 0 8px; min-width: auto;
 }
 .le-stereo.on { background: #6b46c1; color: #fff; border-color: #6b46c1; }
 .le-legend { font-size: 12px; color: var(--text-muted, #888); margin-top: 8px; text-align: center; }
-.zstar { flex-shrink: 0; color: #6b46c1; font-weight: 900; margin-left: 1px; }
+.zstar { flex-shrink: 0; color: #6b46c1; font-weight: 900; margin-right: 2px; }
 :global(.dark) .zstar { color: #c4b5fd; }
 .le-actions { display: flex; gap: 8px; margin-top: 14px; }
 .le-cancel, .le-save {

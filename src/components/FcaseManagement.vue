@@ -245,7 +245,7 @@ function cancelPress() {
 function colorForType(type) {
   const colors = {
     speaker: 'var(--color1)', electrical: '#f3e309', microphone: '#eb910a',
-    module: '#8b5cf6', special: '#ef4444', other: '#a16207',
+    module: '#ef4444', special: '#3b82f6', other: '#a16207',
     c_type: '#06b6d4', accessory: '#84cc16', digital: '#f97316',
   }
   return colors[type] || '#ccc'
@@ -347,6 +347,10 @@ function colorForType(type) {
   user-select: none;
   -webkit-user-select: none;
   transition: background 0.15s, transform 0.1s;
+}
+.fc-cell.solo-col {
+  background: #bfdbfe !important;
+  box-shadow: inset 0 0 0 2px #3b82f6;
 }
 .fc-cell.disabled {
   cursor: default;

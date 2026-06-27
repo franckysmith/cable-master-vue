@@ -11,7 +11,7 @@
         over: overTypes[t.value],
         distributed: (counts[t.value] || 0) > 0 && distributedTypes[t.value] && !overTypes[t.value],
       }"
-      :style="(counts[t.value] || 0) > 0 ? { borderColor: colorFor(t.value) } : null"
+      :style="(alwaysColor || (counts[t.value] || 0) > 0) ? { borderColor: colorFor(t.value) } : null"
     >
       {{ t.label }}
       <span v-if="counts[t.value]" class="type-count" :style="{ background: colorFor(t.value) }">{{ counts[t.value] }}</span>
@@ -34,6 +34,7 @@ const props = defineProps({
   overTypes: { type: Object, default: () => ({}) },
   counts: { type: Object, default: () => ({}) },
   showAll: { type: Boolean, default: false },
+  alwaysColor: { type: Boolean, default: false }, // borde toujours les onglets de leur couleur (sans chiffres)
 })
 defineEmits(['select'])
 
@@ -41,7 +42,7 @@ const settingsStore = useSettingsStore()
 
 const TYPE_COLORS = {
   speaker: 'var(--color1)', electrical: '#f3e309', microphone: '#eb910a',
-  module: '#8b5cf6', special: '#ef4444', other: '#a16207',
+  module: '#ef4444', special: '#3b82f6', other: '#a16207',
   c_type: '#06b6d4', accessory: '#84cc16', digital: '#f97316',
   type8: '#ec4899', type9: '#14b8a6', type10: '#a855f7',
 }

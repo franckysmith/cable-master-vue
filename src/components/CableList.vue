@@ -28,7 +28,7 @@
             disabled: cable.cableid !== activeCableId,
             'col-even': idx % 2 === 1,
             'col-spare': field === 'spare_count',
-            'solo-col': soloActive && field === `z${soloFilter}`
+            'solo-col': soloActive && field === soloField
           }"
           @mousedown="startPress(cable, field, $event)"
           @mouseup="endPress(cable, field, $event)"
@@ -48,7 +48,7 @@
     </div>
 
     <!-- Séparateur + câbles inactifs en mode solo -->
-    <template v-if="soloMode && !soloFilter && inactiveCables.length > 0">
+    <template v-if="soloMode && soloFilter === null && inactiveCables.length > 0">
       <div class="solo-separator"></div>
       <div
         v-for="(cable, rowIdx) in inactiveCables"
@@ -114,13 +114,15 @@ const props = defineProps({
 
 const activeCables = computed(() => props.cables.filter(c => getTotal(c) > 0))
 const inactiveCables = computed(() => props.cables.filter(c => getTotal(c) === 0))
-const soloActive = computed(() => props.soloMode && !!props.soloFilter)
+const soloActive = computed(() => props.soloMode && props.soloFilter !== null)
+// Champ de la colonne soloée : Spare (0) → spare_count, sinon z{n}
+const soloField = computed(() => props.soloFilter === 0 ? 'spare_count' : `z${props.soloFilter}`)
 
 const displayedCables = computed(() => {
   if (!props.soloMode) return props.cables
-  // Solo sur une zone précise : ne montrer que les câbles présents dans cette zone
-  if (props.soloFilter) {
-    return props.cables.filter(c => (c[`z${props.soloFilter}`] || 0) > 0)
+  // Solo sur une colonne précise (Spare ou zone) : seulement les câbles présents dedans
+  if (props.soloFilter !== null) {
+    return props.cables.filter(c => (c[soloField.value] || 0) > 0)
   }
   return activeCables.value
 })
@@ -234,8 +236,8 @@ function colorForType(type) {
     speaker: 'var(--color1)',
     electrical: '#f3e309',
     microphone: '#eb910a',
-    module: '#8b5cf6',
-    special: '#ef4444',
+    module: '#ef4444',
+    special: '#3b82f6',
     other: '#a16207',
     c_type: '#06b6d4',
     accessory: '#84cc16',
@@ -328,6 +330,10 @@ function colorForType(type) {
 }
 .zone-cell.col-spare {
   background: #f0d9b5;
+}
+.zone-cell.solo-col {
+  background: #bfdbfe !important;
+  box-shadow: inset 0 0 0 2px #3b82f6;
 }
 .zone-cell.disabled {
   cursor: default;

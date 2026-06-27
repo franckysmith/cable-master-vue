@@ -140,7 +140,7 @@ function typeLabel(type) {
 function colorForType(type) {
   const colors = {
     speaker: 'var(--color1)', electrical: '#f3e309', microphone: '#eb910a',
-    module: '#8b5cf6', special: '#ef4444', other: '#a16207',
+    module: '#ef4444', special: '#3b82f6', other: '#a16207',
     c_type: '#06b6d4', accessory: '#84cc16', digital: '#f97316',
   }
   return colors[type] || '#ccc'
