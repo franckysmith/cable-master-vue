@@ -209,16 +209,17 @@ provide('helpMode', helpMode)
 
 const users = [
   { id: 'T', label: 'T', role: 'technician', name: 'Franck (Admin)', superadmin: true, techId: 0 },
-  { id: 'T1', label: 'T1', role: 'technician', name: 'Franck (Entreprise M)', techId: 1, catalogId: 6, companyId: 1 },
+  { id: 'T1', label: 'T1FR', role: 'technician', name: 'Franck (Entreprise M)', techId: 1, catalogId: 6, companyId: 1 },
   { id: 'T2', label: 'T2', role: 'technician', name: 'Robert (Entreprise M)', techId: 2, catalogId: 6, companyId: 1 },
   { id: 'T3', label: 'T3', role: 'technician', name: 'Michel', techId: 3 },
   { id: 'F', label: 'F', role: 'technician', name: 'Freelance (Franck)', techId: 20, catalogId: 3, freelance: true },
   { id: 'F1', label: 'F1', role: 'technician', name: 'Léa (freelance)', techId: 21, catalogId: 4, freelance: true },
   { id: 'F2', label: 'F2', role: 'technician', name: 'Marc (freelance)', techId: 22, catalogId: 5, freelance: true },
-  { id: 'M', label: 'M', role: 'master', name: 'Super Admin Master', superadmin: true, techId: 0, catalogId: 6, companyId: null },
-  { id: 'M1', label: 'M1', role: 'master', name: 'Pierre (Entreprise M)', techId: 11, catalogId: 6, companyId: 1 },
-  { id: 'M2', label: 'M2', role: 'master', name: 'Sophie (Entreprise M)', techId: 12, catalogId: 6, companyId: 1 },
-  { id: 'M3', label: 'M3', role: 'master', name: 'Jean (TarPo)', techId: 13, catalogId: 1, companyId: 1 },
+  { id: 'M', label: 'M', role: 'master', name: 'Mathieu (Master)', superadmin: true, techId: 0, catalogId: 6, companyId: null },
+  { id: 'M1', label: 'M1', role: 'master', name: 'Kevin « Kev »', techId: 22, catalogId: 6, companyId: 1 },
+  { id: 'M2', label: 'M2', role: 'master', name: 'Pierre', techId: 1, catalogId: 6, companyId: 1 },
+  { id: 'M3', label: 'M3', role: 'master', name: 'Sophie', techId: 2, catalogId: 6, companyId: 1 },
+  { id: 'G', label: 'G', role: 'gerant', name: 'Gérant (Entreprise M)', techId: 30, catalogId: 6, companyId: 1 },
 ]
 
 const currentUser = ref(localStorage.getItem('cablemaster-userid') || 'T')
@@ -232,9 +233,9 @@ const companyName = ref(localStorage.getItem('cablemaster-company') || '')
 // Items "Employeurs" selon le rôle / les permissions
 const isSuper = computed(() => !!currentUserObj.value?.superadmin)
 const employerItems = computed(() => {
-  // Partie employeur réservée au rôle master. En technicien : rien (Home, Micros,
-  // Réglages, About uniquement) — même pour un super-admin tant qu'il est en technicien.
-  if (userRole.value !== 'master') return []
+  // Partie employeur réservée aux rôles master et gérant. En technicien : rien (Home,
+  // Micros, Réglages, About uniquement) — même pour un super-admin tant qu'il est en technicien.
+  if (userRole.value !== 'master' && userRole.value !== 'gerant') return []
   return [
     { label: 'Entreprise', to: '/company', icon: 'apartment' },
     { label: 'CableList', to: '/CableList', icon: 'settings_input_component' },
@@ -266,13 +267,15 @@ function switchUser(u) {
     localStorage.removeItem('cablemaster-superadmin')
   }
   showUserMenu.value = false
-  if (u.role === 'master' && !companyName.value) {
+  if ((u.role === 'master' || u.role === 'gerant') && !companyName.value) {
     loadCompany()
   }
 }
 
 provide('userRole', userRole)
 provide('companyName', companyName)
+// État du drawer partagé : la visionneuse de docs se place à droite si la gauche est prise (drawer ouvert)
+provide('drawerOpen', drawer)
 provide('currentUser', currentUser)
 
 async function loadCompany() {
@@ -610,6 +613,10 @@ select {
   border-color: #ef4444;
   color: #ef4444;
 }
+.user-btn.gerant {
+  border-color: #8b5cf6;
+  color: #8b5cf6;
+}
 .user-btn.active {
   color: #fff;
 }
@@ -618,6 +625,9 @@ select {
 }
 .user-btn.active.master {
   background: #ef4444;
+}
+.user-btn.active.gerant {
+  background: #8b5cf6;
 }
 .help-btn {
   display: inline-flex;

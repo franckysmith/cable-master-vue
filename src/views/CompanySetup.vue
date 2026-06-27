@@ -61,9 +61,15 @@
         </div>
         <div class="form-grid">
           <div class="form-row half">
+            <label>Code postal <span v-if="editing" class="lock-badge">🔒</span></label>
+            <input v-model="form.postal_code" placeholder="ex. 31000" inputmode="numeric" :readonly="editing" :class="{ locked: editing }" />
+          </div>
+          <div class="form-row half">
             <label>Ville <span v-if="editing" class="lock-badge">🔒</span></label>
             <input v-model="form.city" placeholder="Ville" :readonly="editing" :class="{ locked: editing }" />
           </div>
+        </div>
+        <div class="form-grid">
           <div class="form-row half">
             <label>Pays <span v-if="editing" class="lock-badge">🔒</span></label>
             <input v-model="form.country" placeholder="Pays" :readonly="editing" :class="{ locked: editing }" />
@@ -81,7 +87,7 @@
         </div>
 
         <div class="resp-block">
-          <div class="resp-title">👑 Responsable (master principal)</div>
+          <div class="resp-title">👑 Responsable (gérant)</div>
           <div class="form-grid">
             <div class="form-row half">
               <label>Prénom</label>
@@ -108,7 +114,7 @@
               <input v-model="form.resp_phone" placeholder="+33..." />
             </div>
           </div>
-          <p class="hint">Seul le master principal peut modifier la fiche de l'entreprise.</p>
+          <p class="hint">Seul le gérant peut modifier la fiche de l'entreprise et définir les masters.</p>
         </div>
 
         <div class="form-actions">
@@ -125,7 +131,10 @@
     <div v-if="activeCompanyId" class="managers-section">
       <!-- Master principal enregistré (confirmation) -->
       <div v-if="activeCompany && (activeCompany.resp_firstname || activeCompany.resp_lastname)" class="principal-card">
-        <div class="principal-title">👑 Master principal (M)</div>
+        <div class="principal-title">
+          👑 Gérant
+          <button class="mgr-edit-btn principal-edit" @click="editPrincipal" title="Modifier le gérant">✎</button>
+        </div>
         <div class="principal-name">
           {{ activeCompany.resp_firstname }} {{ activeCompany.resp_lastname }}
           <span v-if="activeCompany.resp_nickname" class="principal-nick">« {{ activeCompany.resp_nickname }} »</span>
@@ -134,12 +143,12 @@
           {{ activeCompany.resp_email }}{{ activeCompany.resp_phone ? ' · ' + activeCompany.resp_phone : '' }}
         </div>
       </div>
-      <p v-else-if="activeCompany" class="hint">⚠️ Aucun master principal enregistré — renseigne le « Responsable » dans la fiche entreprise ci-dessus.</p>
+      <p v-else-if="activeCompany" class="hint">⚠️ Aucun gérant enregistré — renseigne le « Responsable » dans la fiche entreprise ci-dessus.</p>
 
-      <h3>Masters secondaires (M Secondary)</h3>
-      <p class="hint">Inscrits par les M. Ils peuvent inviter des techniciens et créer/suivre des affaires (qui vont et viennent), mais ne peuvent pas modifier la fiche de l'entreprise.</p>
+      <h3>Master &amp; masters secondaires</h3>
+      <p class="hint">Définis par le gérant. Le <b>master (M)</b> est le principal ; les autres sont des <b>masters secondaires</b>. Tous peuvent inviter des techniciens et créer/suivre des affaires, mais pas modifier la fiche de l'entreprise.</p>
 
-      <div v-for="mgr in managers" :key="mgr.techid" class="manager-card">
+      <div v-for="mgr in orderedManagers" :key="mgr.techid" class="manager-card" :class="{ 'is-principal': isPrincipalMaster(mgr) }">
         <template v-if="editManagerId === mgr.techid">
           <div class="form-grid">
             <div class="form-row half"><label>Prénom</label><input v-model="editManager.firstname" placeholder="Prénom" /></div>
@@ -159,12 +168,17 @@
         </template>
         <template v-else>
           <div class="mgr-info">
-            <div class="mgr-name">{{ mgr.name }}<span v-if="mgr.nickname" class="mgr-nick"> « {{ mgr.nickname }} »</span></div>
+            <div class="mgr-name">
+              <span v-if="isPrincipalMaster(mgr)" class="mgr-badge principal">👑 Master</span>
+              <span v-else class="mgr-badge secondary">Master secondaire</span>
+              {{ mgr.name }}<span v-if="mgr.nickname" class="mgr-nick"> « {{ mgr.nickname }} »</span>
+            </div>
             <div class="mgr-contact">{{ mgr.email }}{{ mgr.phone ? ' · ' + mgr.phone : '' }}</div>
           </div>
           <div class="mgr-actions">
+            <button v-if="!isPrincipalMaster(mgr)" class="mgr-promote-btn" @click="setPrincipalMaster(mgr)" title="Désigner master principal">M</button>
             <button class="mgr-edit-btn" @click="startEditManager(mgr)" title="Modifier">✎</button>
-            <button class="mgr-delete-btn" @click="deleteManager(mgr)" title="Retirer">✕</button>
+            <button class="mgr-delete-btn" @click="deleteManager(mgr)" title="Révoquer (repasser technicien)">✕</button>
           </div>
         </template>
       </div>
@@ -308,6 +322,19 @@ const newEmployee = reactive({
 const activeCompany = computed(() => companies.value.find(c => c.companyid === activeCompanyId.value) || null)
 // Gestionnaires (suivi des affaires) = techniciens marqués can_manage_affairs
 const managers = computed(() => employees.value.filter(e => e.can_manage_affairs))
+// Le master principal (M) de l'entreprise ; les autres managers sont « secondaires »
+function isPrincipalMaster(mgr) { return !!activeCompany.value && activeCompany.value.master_techid === mgr.techid }
+// Master principal en premier, puis les secondaires
+const orderedManagers = computed(() =>
+  [...managers.value].sort((a, b) => (isPrincipalMaster(b) ? 1 : 0) - (isPrincipalMaster(a) ? 1 : 0))
+)
+async function setPrincipalMaster(mgr) {
+  if (!activeCompany.value) return
+  const { error } = await supabase.from('company').update({ master_techid: mgr.techid }).eq('companyid', activeCompany.value.companyid)
+  if (error) { showMessage('Erreur: ' + error.message, 'error'); return }
+  await loadCompanies()
+  showMessage(`${mgr.name} est désormais le master principal`, 'success')
+}
 const staff = computed(() => employees.value.filter(e => !e.can_manage_affairs))
 const showAddManager = ref(false)
 const newManager = reactive({ firstname: '', lastname: '', nickname: '', email: '', phone: '' })
@@ -325,6 +352,7 @@ const form = reactive({
   siret: '',
   departments: [],
   address: '',
+  postal_code: '',
   city: '',
   country: '',
   phone: '',
@@ -370,6 +398,7 @@ function selectCompany(c) {
   form.siret = c.siret || ''
   form.departments = c.domain ? c.domain.split(',') : []
   form.address = c.address || ''
+  form.postal_code = c.postal_code || ''
   form.city = c.city || ''
   form.country = c.country || ''
   form.phone = c.phone || ''
@@ -381,10 +410,17 @@ function selectCompany(c) {
   form.resp_phone = c.resp_phone || ''
 }
 
+// Crayon « Gérant » → ouvre la fiche entreprise pré-remplie pour modifier le responsable/gérant
+function editPrincipal() {
+  if (!activeCompany.value) return
+  selectCompany(activeCompany.value)
+  if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
 function resetForm() {
   editing.value = false
   selectedCompany.value = null
-  Object.assign(form, { name: '', siret: '', departments: [], address: '', city: '', country: '', phone: '', email: '', resp_firstname: '', resp_lastname: '', resp_nickname: '', resp_email: '', resp_phone: '' })
+  Object.assign(form, { name: '', siret: '', departments: [], address: '', postal_code: '', city: '', country: '', phone: '', email: '', resp_firstname: '', resp_lastname: '', resp_nickname: '', resp_email: '', resp_phone: '' })
   message.value = ''
 }
 
@@ -447,6 +483,7 @@ async function submit() {
         siret: form.siret,
         domain: form.departments.join(','),
         address: form.address,
+        postal_code: form.postal_code,
         city: form.city,
         country: form.country,
         phone: form.phone,
@@ -649,11 +686,17 @@ async function saveManager(mgr) {
   }
 }
 
+// Révoquer = rétrograder en technicien (on garde la personne, on retire juste le rôle master)
 async function deleteManager(mgr) {
-  if (!confirm(`Retirer ${mgr.name} ?`)) return
-  await supabase.from('technician').delete().eq('techid', mgr.techid)
+  if (!confirm(`Révoquer ${mgr.name} comme master ? Il redevient technicien.`)) return
+  await supabase.from('technician').update({ can_manage_affairs: false }).eq('techid', mgr.techid)
+  // S'il était le master principal, on libère la place
+  if (isPrincipalMaster(mgr) && activeCompany.value) {
+    await supabase.from('company').update({ master_techid: null }).eq('companyid', activeCompany.value.companyid)
+    await loadCompanies()
+  }
   await loadEmployees()
-  showMessage(`${mgr.name} retiré`, 'success')
+  showMessage(`${mgr.name} redevient technicien`, 'success')
 }
 
 function showMessage(msg, type) {
@@ -699,7 +742,7 @@ h3 {
 }
 .company-card.selected {
   border-color: var(--color1);
-  background: var(--color1-light);
+  background: rgba(139, 92, 246, 0.16);
 }
 .company-info {
   display: flex;
@@ -736,8 +779,8 @@ h3 {
   min-width: auto;
 }
 .btn-connect.active {
-  background: #ccc;
-  color: #666;
+  background: #eb910a;
+  color: #fff;
 }
 .form-panel {
   background: var(--bg-card, #fafafa);
@@ -827,8 +870,9 @@ h3 {
   font-size: 11px;
 }
 input.locked {
-  background: var(--bg-locked, #f0f0f0) !important;
-  color: var(--text-muted, #888) !important;
+  background: rgba(139, 92, 246, 0.16) !important;
+  color: var(--text, #333) !important;
+  border-color: rgba(139, 92, 246, 0.5) !important;
   cursor: not-allowed;
 }
 .form-actions {
@@ -895,7 +939,8 @@ input.locked {
   background: var(--bg-section);
   border-radius: 8px; padding: 10px 12px; margin-bottom: 12px;
 }
-.principal-title { font-size: 12px; font-weight: 700; color: var(--color1); text-transform: uppercase; letter-spacing: 0.5px; }
+.principal-title { font-size: 12px; font-weight: 700; color: var(--color1); text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 8px; }
+.principal-edit { margin-left: auto; }
 .principal-name { font-size: 16px; font-weight: 700; margin-top: 2px; color: var(--text); }
 .principal-nick { font-weight: 600; color: var(--color1); }
 .principal-contact { font-size: 13px; color: var(--text-muted, #888); margin-top: 2px; }
@@ -911,6 +956,10 @@ input.locked {
   margin-bottom: 6px;
   background: var(--bg-section);
 }
+.manager-card.is-principal { border-width: 2px; box-shadow: 0 0 0 1px var(--color1) inset; }
+.mgr-badge { display: inline-block; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.3px; padding: 1px 6px; border-radius: 6px; margin-right: 6px; vertical-align: middle; }
+.mgr-badge.principal { background: var(--color1); color: #fff; }
+.mgr-badge.secondary { background: rgba(139, 92, 246, 0.16); color: var(--color1); }
 .mgr-name {
   font-size: 14px;
   font-weight: 700;
@@ -931,6 +980,18 @@ input.locked {
   font-size: 14px;
   cursor: pointer;
   padding: 2px 8px;
+  box-shadow: none;
+  min-width: auto;
+}
+.mgr-promote-btn {
+  background: transparent;
+  border: 1px solid var(--color1);
+  color: var(--color1);
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  padding: 2px 9px;
   box-shadow: none;
   min-width: auto;
 }

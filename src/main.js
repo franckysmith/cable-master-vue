@@ -18,6 +18,14 @@ app.use(Quasar, { lang: quasarLangFr })
 app.use(router)
 app.mount('#app')
 
+// Effacer le badge de l'icône (Badging API) dès que l'app est ouverte / revient au premier plan
+function clearAppBadge() {
+  if (navigator.clearAppBadge) { try { navigator.clearAppBadge() } catch (e) {} }
+  navigator.serviceWorker?.ready?.then((r) => r.active?.postMessage({ type: 'clear-badge' })).catch(() => {})
+}
+clearAppBadge()
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') clearAppBadge() })
+
 // Désactiver le zoom de la page (pincement iOS + double-tap + Ctrl/molette desktop)
 // — c'est lui qui provoquait le "flottement" horizontal une fois zoomé.
 // IMPORTANT : ne PAS bloquer sur les champs de saisie / en-têtes éditables, sinon

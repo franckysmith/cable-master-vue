@@ -1,5 +1,7 @@
 <template>
   <div class="main">
+    <!-- Grand écran : visionneuse de documents/liens de l'affaire (colonne gauche) -->
+    <DocViewer :affair="selectedAffair" />
     <AddAffair
       v-if="affairIsOpen"
       :affair="editingAffair"
@@ -409,6 +411,7 @@ import MicroList from '../components/MicroList.vue'
 import CtypeList from '../components/CtypeList.vue'
 import ButtonCableType from '../components/ButtonCableType.vue'
 import AllCasesView from '../components/AllCasesView.vue'
+import DocViewer from '../components/DocViewer.vue'
 import AmpCalculator from '../components/AmpCalculator.vue'
 import { useSettingsStore } from '../stores/settings'
 import { useMfcStore } from '../stores/mfc'

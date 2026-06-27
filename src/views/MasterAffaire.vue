@@ -1,5 +1,7 @@
 <template>
   <div class="master-affaire">
+    <!-- Grand écran : visionneuse de documents/liens de l'affaire sélectionnée (colonne gauche) -->
+    <DocViewer :affair="selected" />
     <div class="page-title-row">
       <button class="page-switch" :class="{ active: showGantt }" @click="showGantt = !showGantt">📊 Timeline</button>
       <button v-if="showGantt" class="page-switch tl-masquer" :class="{ active: showHiddenTl }" @click="showHiddenTl = !showHiddenTl">{{ showHiddenTl ? '👁 Masqués' : 'Masquer' }}</button>
@@ -34,6 +36,9 @@
       <button class="mfc-clear" @click="managerFilter = ''" title="Tout afficher">✕</button>
     </div>
     <div v-if="!showForm" class="affair-tabs">
+      <button class="btn-mine" :class="{ active: mineOnly }" @click="mineOnly = !mineOnly" title="Afficher seulement mes affaires (gérant)">
+        <span class="bm-main">Mes</span><span class="bm-sub">affaires</span>
+      </button>
       <button :class="{ active: tab === 'new' }" @click="tab = tab === 'new' ? 'all' : 'new'">NEW</button>
       <button :class="{ active: tab === 'sent' }" @click="tab = tab === 'sent' ? 'all' : 'sent'">Envoyé</button>
       <select
@@ -250,8 +255,9 @@
       <div class="form-row">
         <label>Documents joints</label>
         <input type="file" @change="onFileSelect" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" multiple class="file-input" />
+        <button type="button" class="ze-doc-add" @click="addFormLink">+ Enregistrer un lien</button>
         <div v-for="(f, i) in attachmentFiles" :key="i" class="attachment-info">📎 {{ f.name }}</div>
-        <div v-for="(name, i) in existingAttachments" :key="'ex'+i" class="attachment-info">📎 {{ name }}</div>
+        <div v-for="(name, i) in existingAttachments" :key="'ex'+i" class="attachment-info">🔗 {{ name }}</div>
       </div>
 
       <div class="form-actions">
@@ -405,9 +411,12 @@
           <div class="ze-docs">
             <div class="ze-docs-title">📎 Documents</div>
             <a v-for="(d, i) in affairDocs(affair)" :key="'fd'+i" :href="d.url" target="_blank" class="ze-doc-link">📄 {{ d.name }}</a>
-            <label class="ze-doc-add">+ Envoyer un document
-              <input type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" @change="addDetailDoc(affair, $event)" hidden />
-            </label>
+            <div class="ze-doc-row">
+              <label class="ze-doc-add">+ Envoyer un document
+                <input type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" @change="addDetailDoc(affair, $event)" hidden />
+              </label>
+              <button type="button" class="ze-doc-add" @click="addDetailLink(affair)">+ Enregistrer un lien</button>
+            </div>
           </div>
         </div>
 
@@ -513,10 +522,20 @@
             <div class="ze-docs-title">📎 Documents (plan de scène, patch…)</div>
             <a v-for="(d, i) in zoneEditor.docNames" :key="'ed'+i" :href="zoneEditor.docUrls[i]" target="_blank" class="ze-doc-link">📄 {{ d }}</a>
             <div v-for="(f, i) in zoneEditor.newFiles" :key="'nf'+i" class="ze-doc-new">📎 {{ f.name }} <button class="ze-doc-x" @click="removeZoneNewFile(i)">✕</button></div>
-            <label class="ze-doc-add">+ Ajouter un document
-              <input type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" @change="onZoneFiles" hidden />
-            </label>
+            <div class="ze-doc-row">
+              <label class="ze-doc-add">+ Ajouter un document
+                <input type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" @change="onZoneFiles" hidden />
+              </label>
+              <button type="button" class="ze-doc-add" @click="addZoneLink">+ Enregistrer un lien</button>
+            </div>
           </div>
+        </div>
+        <div class="ze-notify">
+          <label class="ze-notify-toggle">
+            <input type="checkbox" v-model="zoneEditor.notify" />
+            🔔 Notifier les techniciens à l'envoi
+          </label>
+          <textarea v-if="zoneEditor.notify" v-model="zoneEditor.notifyMsg" rows="3" class="ze-notify-msg" placeholder="Message de la notification…"></textarea>
         </div>
         <div class="zone-modal-foot">
           <button class="ze-skip" @click="confirmSendAffair(false)">Enregistrer</button>
@@ -559,6 +578,7 @@ import { ref, reactive, computed, watch, onMounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { supabase } from '../lib/supabase'
 import AllCasesView from '../components/AllCasesView.vue'
+import DocViewer from '../components/DocViewer.vue'
 import AmpCalculator from '../components/AmpCalculator.vue'
 import TourCalendar from '../components/TourCalendar.vue'
 import TimelineGantt from '../components/TimelineGantt.vue'
@@ -972,6 +992,21 @@ async function onManagerChange(affair, ev) {
   affair.manager = v
   await supabase.from('affair').update({ manager: v }).eq('affairid', affair.affairid)
 }
+// « Mes affaires » : affaires dont je suis le gérant
+const mineOnly = ref(false)
+// Toutes les étiquettes possibles de mon identité de gérant (surnom, prénom, nom)
+const myManagerKeys = computed(() => {
+  const techId = parseInt(localStorage.getItem('cablemaster-techid')) || 0
+  const keys = []
+  const t = (technicians.value || []).find(x => x.techid === techId)
+  if (t) keys.push(t.nickname, t.firstname, t.name)
+  const r = companyResp.value
+  if (r) keys.push(r.resp_nickname, r.resp_firstname, `${r.resp_firstname || ''} ${r.resp_lastname || ''}`.trim())
+  return keys.filter(Boolean).map(s => s.trim().toLowerCase())
+})
+function isMyAffair(a) {
+  return !!a.manager && myManagerKeys.value.includes(a.manager.trim().toLowerCase())
+}
 // Filtre par gérant : clic sur le nom (carte non sélectionnée) → toutes ses affaires
 const managerFilter = ref('')
 function clickManager(affair) {
@@ -1246,7 +1281,7 @@ const ZONE_TPL = {
   monitor: 'Nb circuits : …\nRetours : 8 X12, 8 X15…\nSides : oui / non\nDrumfill : oui / non\nType d\'amplis : …\n(pas d\'astérisque ici)',
   stage: 'Nb groupes : …\nPatches / groupe : … → patch 24/32/48\nPlan de scène : (joint ?)\nPieds de micro : …\nBase micro : voir technicien façade',
 }
-const zoneEditor = reactive({ open: false, affair: null, front: '', monitor: '', system: '', stage: '', docNames: [], docUrls: [], newFiles: [] })
+const zoneEditor = reactive({ open: false, affair: null, front: '', monitor: '', system: '', stage: '', docNames: [], docUrls: [], newFiles: [], notify: true, notifyMsg: '' })
 
 // Clic « Envoyer » → ouvre l'éditeur de zones (le master renseigne chaque poste avant d'envoyer)
 function sendAffair(a) {
@@ -1258,6 +1293,9 @@ function sendAffair(a) {
   zoneEditor.docNames = a.attachment_name ? a.attachment_name.split(',').filter(Boolean) : []
   zoneEditor.docUrls = a.attachment_url ? a.attachment_url.split(',') : []
   zoneEditor.newFiles = []
+  const d = a.receipt_date || (Array.isArray(a.out_dates) && a.out_dates[0]) || a.prep_date || ''
+  zoneEditor.notify = true
+  zoneEditor.notifyMsg = `Salut ! Tu as accès aux infos pour « ${a.name || 'l\'affaire'} »${d ? ' (' + shortDate(d) + ')' : ''}. Ouvre Cinod-Prep pour faire ta liste de câblage.`
   zoneEditor.open = true
 }
 function onZoneFiles(e) {
@@ -1265,6 +1303,19 @@ function onZoneFiles(e) {
   e.target.value = ''
 }
 function removeZoneNewFile(i) { zoneEditor.newFiles.splice(i, 1) }
+// Demande un lien (URL + nom) ; renvoie { name, url } ou null
+function promptLink() {
+  const url = (prompt('Lien (URL) — ex. plan de scène :') || '').trim()
+  if (!url) return null
+  const name = ((prompt('Nom du lien (optionnel) :') || '').trim() || url).replace(/,/g, ' ')
+  return { name, url }
+}
+function addZoneLink() {
+  const l = promptLink()
+  if (!l) return
+  zoneEditor.docNames.push(l.name)
+  zoneEditor.docUrls.push(l.url)
+}
 
 // Upload d'une liste de fichiers vers le bucket documents → renvoie {names, urls}
 async function uploadDocuments(files, names = [], urls = []) {
@@ -1302,8 +1353,27 @@ async function confirmSendAffair(send = false) {
   Object.assign(a, patch)
   const { error } = await supabase.from('affair').update(patch).eq('affairid', a.affairid)
   if (error) { showMessage('Erreur: ' + error.message, 'error'); return }
+
+  // À l'envoi : notification push + trace chat aux techniciens assignés
+  let pushInfo = ''
+  if (send && zoneEditor.notify) {
+    const peers = chatPeers(a)
+    const msg = (zoneEditor.notifyMsg || '').trim()
+    if (peers.length && msg) {
+      try {
+        await supabase.from('message').insert(peers.map(p => ({
+          affairid: a.affairid, sender_role: 'master', text: msg,
+          peer_email: p.email, read_by_master: true, read_by_tech: false,
+        })))
+        const { data } = await supabase.functions.invoke('send-push', {
+          body: { emails: peers.map(p => p.email), title: a.name || 'Cinod-Prep', body: msg, url: '/?affair=' + a.affairid },
+        })
+        pushInfo = ` — notifié (${data?.sent || 0} appareil·s)`
+      } catch (e) { pushInfo = ' — notif non envoyée' }
+    }
+  }
   zoneEditor.open = false
-  showMessage(send ? 'Zones enregistrées — affaire envoyée' : 'Zones enregistrées', 'success')
+  showMessage(send ? 'Affaire envoyée' + pushInfo : 'Zones enregistrées', 'success')
 }
 
 // Fiche détail : ajouter un document à la volée
@@ -1323,6 +1393,17 @@ function affairDocs(a) {
   const names = a.attachment_name ? a.attachment_name.split(',').filter(Boolean) : []
   const urls = a.attachment_url ? a.attachment_url.split(',') : []
   return names.map((n, i) => ({ name: n, url: urls[i] || '' }))
+}
+// Fiche détail : ajouter un lien à la volée
+async function addDetailLink(a) {
+  const l = promptLink()
+  if (!l) return
+  const names = a.attachment_name ? a.attachment_name.split(',').filter(Boolean) : []
+  const urls = a.attachment_url ? a.attachment_url.split(',') : []
+  names.push(l.name); urls.push(l.url)
+  a.attachment_name = names.join(','); a.attachment_url = urls.join(',')
+  await supabase.from('affair').update({ attachment_name: a.attachment_name, attachment_url: a.attachment_url }).eq('affairid', a.affairid)
+  showMessage('Lien ajouté', 'success')
 }
 
 // Affaire terminée : marquée "done" à la main OU déchargement strictement passé (échu)
@@ -1392,6 +1473,7 @@ const filteredAffairs = computed(() => {
   })()
   let out = followOnly.value ? list.filter(a => a.followed) : list
   if (managerFilter.value) out = out.filter(a => a.manager === managerFilter.value)
+  if (mineOnly.value) out = out.filter(isMyAffair)
   return out
 })
 
@@ -2079,6 +2161,15 @@ function onFileSelect(e) {
   const files = Array.from(e.target.files || [])
   attachmentFiles.value = [...attachmentFiles.value, ...files]
 }
+// Formulaire : enregistrer un lien (URL) parmi les documents
+function addFormLink() {
+  const l = promptLink()
+  if (!l) return
+  existingAttachments.value = [...existingAttachments.value, l.name]
+  const urls = form.attachment_url ? form.attachment_url.split(',') : []
+  urls.push(l.url)
+  form.attachment_url = urls.join(',')
+}
 
 function showMessage(msg, type) {
   message.value = msg
@@ -2306,6 +2397,15 @@ h3 { font-size: 16px; margin: 0; }
   flex-shrink: 0;
   white-space: nowrap;
 }
+/* « Mes affaires » : compact, deux lignes (Mes / affaires) pour gagner de la largeur sur téléphone */
+.btn-mine {
+  display: inline-flex; flex-direction: column; align-items: center; justify-content: center;
+  line-height: 1; padding: 3px 8px; border-radius: 8px; cursor: pointer; flex-shrink: 0;
+  border: 1px solid var(--color1); background: transparent; color: var(--color1); box-shadow: none;
+}
+.btn-mine .bm-main { font-size: 12px; font-weight: 800; }
+.btn-mine .bm-sub { font-size: 9px; font-weight: 600; opacity: 0.85; margin-top: 1px; }
+.btn-mine.active { background: var(--color1); color: #fff; }
 .btn-create-affair:active { transform: scale(0.97); }
 .filter-soon {
   flex: 1 1 0;
@@ -2602,7 +2702,11 @@ h3 { font-size: 16px; margin: 0; }
 .ze-doc-link { font-size: 13px; color: var(--color1); text-decoration: none; }
 .ze-doc-new { font-size: 13px; color: var(--text, #ccc); display: flex; align-items: center; gap: 6px; }
 .ze-doc-x { background: transparent; border: none; color: #ef4444; cursor: pointer; font-size: 13px; box-shadow: none; min-width: auto; padding: 0 4px; }
-.ze-doc-add { display: inline-block; align-self: flex-start; font-size: 13px; font-weight: 700; color: var(--color1); cursor: pointer; padding: 4px 0; }
+.ze-doc-add { display: inline-block; align-self: flex-start; font-size: 13px; font-weight: 700; color: var(--color1); cursor: pointer; padding: 4px 0; background: transparent; border: none; box-shadow: none; min-width: auto; }
+.ze-doc-row { display: flex; gap: 16px; flex-wrap: wrap; }
+.ze-notify { padding: 10px 14px 0; }
+.ze-notify-toggle { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; color: var(--text, #ddd); cursor: pointer; }
+.ze-notify-msg { width: 100%; box-sizing: border-box; margin-top: 8px; border: 1px solid var(--border-light, #444); border-radius: 8px; padding: 8px; font-size: 13px; background: var(--bg-input, #2a2a45); color: var(--text, #e0e0e0); resize: vertical; line-height: 1.4; }
 .zone-modal-foot { display: flex; gap: 8px; padding: 10px 14px; border-top: 1px solid var(--border, #3a3a55); }
 .ze-skip { flex: 1; padding: 11px; background: transparent; border: 1px solid var(--border-light, #555); border-radius: 10px; color: var(--text, #ccc); font-weight: 700; cursor: pointer; box-shadow: none; }
 .ze-send { flex: 2; padding: 11px; background: var(--color1); border: none; border-radius: 10px; color: #fff; font-weight: 800; cursor: pointer; box-shadow: none; }
