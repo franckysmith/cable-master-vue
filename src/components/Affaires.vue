@@ -499,8 +499,17 @@ const filteredAffairs = computed(() => {
   return list
 })
 
+// Dernière date d'événement (déchargement) — sert à savoir si l'affaire est passée
+function lastEventDate(a) {
+  const arr = (Array.isArray(a.back_dates) && a.back_dates.length)
+    ? a.back_dates
+    : (a.return_date ? [a.return_date] : (a.receipt_date ? [a.receipt_date] : []))
+  const valid = arr.filter(Boolean).slice().sort()
+  return valid.length ? valid[valid.length - 1] : null
+}
+
 const groupedAffairs = computed(() => {
-  const now = new Date()
+  const today = new Date().toISOString().slice(0, 10)
   const groups = {
     current: { label: 'En cours', affairs: [] },
     upcoming: { label: 'À venir', affairs: [] },
@@ -508,12 +517,13 @@ const groupedAffairs = computed(() => {
   }
 
   for (const a of filteredAffairs.value) {
-    const receipt = a.receipt_date ? new Date(a.receipt_date) : null
-    const ret = a.return_date ? new Date(a.return_date) : null
+    const last = lastEventDate(a)
+    const start = a.receipt_date || (Array.isArray(a.out_dates) && a.out_dates[0]) || null
 
-    if (ret && ret < now) {
+    // Échue (déchargement passé) ou clôturée → Passées
+    if ((a.status || '') === 'done' || (last && last < today)) {
       groups.past.affairs.push(a)
-    } else if (receipt && receipt <= now) {
+    } else if (start && start <= today) {
       groups.current.affairs.push(a)
     } else {
       groups.upcoming.affairs.push(a)

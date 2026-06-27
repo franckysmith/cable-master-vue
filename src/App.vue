@@ -232,19 +232,16 @@ const companyName = ref(localStorage.getItem('cablemaster-company') || '')
 // Items "Employeurs" selon le rôle / les permissions
 const isSuper = computed(() => !!currentUserObj.value?.superadmin)
 const employerItems = computed(() => {
-  const items = []
-  if (isSuper.value) {
-    items.push({ label: 'Entreprise', to: '/company', icon: 'apartment' })
-  }
-  if (isSuper.value || userRole.value === 'master') {
-    items.push(
-      { label: 'CableList', to: '/CableList', icon: 'settings_input_component' },
-      { label: 'Cablekit', to: '/FlightType', icon: 'inventory_2' },
-      { label: 'TechList', to: '/techlist', icon: 'groups' },
-      { label: 'MasterAffaire', to: '/MasterAffaire', icon: 'event_note' },
-    )
-  }
-  return items
+  // Partie employeur réservée au rôle master. En technicien : rien (Home, Micros,
+  // Réglages, About uniquement) — même pour un super-admin tant qu'il est en technicien.
+  if (userRole.value !== 'master') return []
+  return [
+    { label: 'Entreprise', to: '/company', icon: 'apartment' },
+    { label: 'CableList', to: '/CableList', icon: 'settings_input_component' },
+    { label: 'Cablekit', to: '/FlightType', icon: 'inventory_2' },
+    { label: 'TechList', to: '/techlist', icon: 'groups' },
+    { label: 'MasterAffaire', to: '/MasterAffaire', icon: 'event_note' },
+  ]
 })
 
 function switchUser(u) {

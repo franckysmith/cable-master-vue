@@ -33,7 +33,32 @@
       </div>
     </div>
 
-    <div class="content-liste" v-if="selectedAffair && !allCasesMode">
+    <!-- Vue d'ensemble par poste (clic technicien) : Front → Monitor → System → Stage empilés -->
+    <div v-if="selectedAffair && overviewMode" class="overview">
+      <div class="affair-open-bar">
+        <span class="affair-open-name">{{ selectedAffair.name || '(Sans nom)' }}</span>
+        <button class="affair-del-btn" @click="deleteSelectedAffair" title="Supprimer l'affaire">🗑</button>
+      </div>
+      <div v-for="g in needsByRole" :key="g.role" class="ov-role">
+        <div class="ov-role-head" :style="{ borderColor: g.color, color: g.color }">
+          {{ g.label }}
+          <button class="ov-edit" @click="editDistribution(g.role)" title="Modifier">✏️</button>
+        </div>
+        <div v-for="it in g.items" :key="it.cableid" class="ov-item">
+          <span class="ov-qty">{{ it.need }}</span>
+          <span class="ov-name">{{ it.name }}</span>
+        </div>
+      </div>
+      <div v-if="needsByRole.length === 0" class="ov-empty">
+        Aucun besoin déclaré pour le moment.
+        <button class="ov-edit-all" @click="overviewMode = false">Commencer la liste</button>
+      </div>
+      <div v-else class="ov-actions">
+        <button class="ov-edit-all" @click="overviewMode = false">✏️ Modifier la distribution</button>
+      </div>
+    </div>
+
+    <div class="content-liste" v-if="selectedAffair && !allCasesMode && !overviewMode">
       <!-- Barre d'affaire ouverte : nom + suppression -->
       <div class="affair-open-bar">
         <span class="affair-open-name">{{ selectedAffair.name || '(Sans nom)' }}</span>
@@ -508,14 +533,59 @@ const incrementStep = ref(1)
 const ctMode = ref(false)
 const allCasesMode = ref(false)
 
+// Vue d'ensemble par poste (Front → Monitor → System → Stage) : par défaut au clic technicien
+const overviewMode = ref(false)
+
 function toggleAllCases() {
   allCasesMode.value = !allCasesMode.value
   if (allCasesMode.value) {
     microMode.value = false
     ctMode.value = false
     directMode.value = false
+    overviewMode.value = false
   }
 }
+
+// Quitter la vue d'ensemble pour éditer la distribution
+function editDistribution(role) {
+  overviewMode.value = false
+  if (role && role !== 'micro') {
+    onSelectRole(role)
+  } else if (role === 'micro') {
+    microMode.value = true
+  }
+}
+
+// Besoins déclarés par poste (câbles avec quantité > 0), empilés du Front au Stage
+const needsByRole = computed(() => {
+  const need = o => (o.spare_count||0)+(o.z1||0)+(o.z2||0)+(o.z3||0)+(o.z4||0)+(o.z5||0)+(o.z6||0)
+  const groups = ROLE_DEFS.map(def => {
+    const map = {}
+    for (const o of allOrders.value) if ((o.role || 'front') === def.role) map[o.cableid] = o
+    const items = []
+    for (const cable of cableStore.cables) {
+      const o = map[cable.cableid]
+      if (!o) continue
+      const n = need(o)
+      if (n <= 0) continue
+      items.push({ cableid: cable.cableid, name: cable.name, need: n })
+    }
+    return { ...def, items }
+  }).filter(g => g.items.length > 0)
+
+  // Micros (caisse commune)
+  const mitems = []
+  for (const cable of cableStore.cables) {
+    if (cable.type !== 'microphone') continue
+    const o = allOrders.value.find(x => x.cableid === cable.cableid && (x.role || 'front') === 'micro')
+    if (!o) continue
+    const n = need(o)
+    if (n <= 0) continue
+    mitems.push({ cableid: cable.cableid, name: cable.name, need: n })
+  }
+  if (mitems.length) groups.push({ role: 'micro', label: '🎤 Micros', color: '#eb910a', items: mitems })
+  return groups
+})
 
 function getZoneCables() {
   return joinedData.value.filter(c => {
@@ -1299,6 +1369,9 @@ async function onAffairSelected(affair) {
   activeCableId.value = null
   editingCable.value = null
   showAddInput.value = false
+  // Technicien : afficher d'abord la vue d'ensemble par poste ; master : grille d'édition directe
+  overviewMode.value = !isMaster.value
+  allCasesMode.value = false
 }
 
 function onAffairCreated(affair) {
@@ -1610,6 +1683,35 @@ function colorForType(type) {
   min-width: auto;
 }
 .affair-del-btn:active { background: rgba(239, 68, 68, 0.15); }
+/* Vue d'ensemble par poste */
+.overview { padding: 0 8px 24px; }
+.ov-role { margin-bottom: 14px; }
+.ov-role-head {
+  display: flex; align-items: center; gap: 8px;
+  font-weight: 800; font-size: 15px;
+  border-left: 4px solid; padding: 4px 0 4px 8px;
+  margin-bottom: 4px;
+}
+.ov-edit {
+  margin-left: auto; background: transparent; border: none;
+  font-size: 14px; cursor: pointer; padding: 2px 6px; box-shadow: none;
+}
+.ov-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 5px 8px; border-bottom: 1px solid var(--border-light, #eee);
+  font-size: 14px; color: var(--text, #222);
+}
+.ov-qty {
+  min-width: 28px; text-align: center; font-weight: 800;
+  background: var(--bg-section, #f1f1f4); border-radius: 5px; padding: 1px 4px;
+}
+.ov-name { flex: 1; }
+.ov-empty { text-align: center; color: var(--text-muted, #888); padding: 30px 12px; }
+.ov-actions { text-align: center; margin-top: 12px; }
+.ov-edit-all {
+  background: #6b46c1; color: #fff; border: none; border-radius: 8px;
+  padding: 8px 16px; font-size: 14px; font-weight: 700; cursor: pointer; margin-top: 10px;
+}
 .mode-bar {
   display: flex;
   flex-wrap: wrap;
