@@ -67,23 +67,23 @@
         <span class="affair-open-name">{{ selectedAffair.name || '(Sans nom)' }}</span>
         <button class="affair-del-btn" @click="deleteSelectedAffair" title="Supprimer l'affaire">🗑</button>
       </div>
-      <!-- Mode toggle : Select / flight-case / Micro -->
-      <div class="mode-bar" v-if="!ctMode && !allCasesMode">
+      <!-- Mode toggle : Select / flight-case / Micro (restent visibles même en Cablekit) -->
+      <div class="mode-bar" v-if="!allCasesMode">
         <button
           class="mode-btn"
-          :class="{ active: !microMode && layout === 'cableTechBase' }"
-          @click="microMode = false; onHelpClick('select', () => layout = 'cableTechBase')"
+          :class="{ active: !microMode && !ctMode && layout === 'cableTechBase' }"
+          @click="microMode = false; ctMode = false; onHelpClick('select', () => layout = 'cableTechBase')"
         >Select</button>
         <span class="mode-arrow">⮕</span>
         <button
           class="mode-btn"
-          :class="{ active: !microMode && layout === 'flightcase' }"
-          @click="microMode = false; onHelpClick('fc', () => layout = 'flightcase')"
+          :class="{ active: !microMode && !ctMode && layout === 'flightcase' }"
+          @click="microMode = false; ctMode = false; onHelpClick('fc', () => layout = 'flightcase')"
         >flight-case</button>
         <button
           class="mode-btn"
-          :class="{ active: microMode }"
-          @click="onHelpClick('micro', toggleMicroMode)"
+          :class="{ active: microMode && !ctMode }"
+          @click="ctMode = false; onHelpClick('micro', toggleMicroMode)"
         >Micro</button>
       </div>
       <div class="content-button2">
@@ -161,7 +161,7 @@
 
       <!-- Sticky : boutons type (sélection + quantité + cadre couleur) + en-têtes colonnes -->
       <div class="sticky-header" :class="{ 'sticky-micro': microMode }">
-        <ButtonCableType v-if="!microMode" :model-value="typeChoose" :distributed-types="distributedTypes" :over-types="overTypes" :counts="typeCounts" @select="typeChoose = $event" />
+        <ButtonCableType v-if="!microMode" :model-value="typeChoose" :distributed-types="distributedTypes" :over-types="overTypes" :counts="typeCounts" :show-calc="!ctMode && layout === 'cableTechBase'" @select="typeChoose = $event" @calc="ampWiringOpen = true" />
 
 
 
@@ -393,6 +393,17 @@
         </div>
       </div>
     </div>
+
+    <!-- Calculateur ampli → câblage (mode Select) -->
+    <AmpWiring
+      :open="ampWiringOpen"
+      :zone-label="ampWiringZoneLabel"
+      :zone-index="zoneSoloFilter"
+      :stereo="ampWiringStereo"
+      :cables="joinedData"
+      @close="ampWiringOpen = false"
+      @assign="onAmpAssign"
+    />
   </div>
 </template>
 
@@ -413,6 +424,7 @@ import CtypeList from '../components/CtypeList.vue'
 import ButtonCableType from '../components/ButtonCableType.vue'
 import AllCasesView from '../components/AllCasesView.vue'
 import DocViewer from '../components/DocViewer.vue'
+import AmpWiring from '../components/AmpWiring.vue'
 import AmpCalculator from '../components/AmpCalculator.vue'
 import { useSettingsStore } from '../stores/settings'
 import { useMfcStore } from '../stores/mfc'
@@ -700,6 +712,30 @@ const fcSolo = ref(false)
 watch([zoneSoloFilter, fcSoloFilter, ctSoloFilter], ([z, f, c]) => {
   if (z || f || c) searchKey.value = ''
 })
+
+// Calculateur ampli → câblage
+const ampWiringOpen = ref(false)
+const ampWiringZoneLabel = computed(() => {
+  const z = zoneSoloFilter.value
+  return z ? zoneBase(zoneLabels[`lz${z}`] || '') : ''
+})
+const ampWiringStereo = computed(() => {
+  const z = zoneSoloFilter.value
+  return z ? zoneStereo(zoneLabels[`lz${z}`] || '') : false
+})
+// Assigner le câblage proposé dans la colonne de zone (défaut zone 1 si aucune soloée)
+function onAmpAssign({ zone, items }) {
+  const z = (zone === 0 || zone) ? zone : 1
+  const field = z === 0 ? 'spare_count' : `z${z}`
+  // Repartir d'une base vierge : on vide toute la colonne de la zone avant d'assigner
+  for (const c of joinedData.value) c[field] = 0
+  for (const it of items) {
+    const c = joinedData.value.find(x => x.cableid === it.cableid)
+    if (c) c[field] = it.qty
+  }
+  scheduleAutoSave()
+  ampWiringOpen.value = false
+}
 
 // Spare soloable : clic sur l'en-tête Spare → solo sur la colonne Spare (0) ; re-clic = éteint
 function onSpareSolo() {
@@ -1617,6 +1653,15 @@ const typeCounts = computed(() => {
     const k = fcSoloFilter.value
     for (const c of joinedData.value) {
       const n = c[`tfc${k}`] || 0
+      if (n > 0) m[c.type] = (m[c.type] || 0) + n
+    }
+    return m
+  }
+  // Solo Cablekit (ct) → comptes par type du contenu de la caisse choisie
+  if (ctMode.value && ctSolo.value && ctSoloFilter.value !== null) {
+    const k = ctSoloFilter.value
+    for (const c of cableStore.cables) {
+      const n = ctAllCounts.value[c.cableid]?.[k] || 0
       if (n > 0) m[c.type] = (m[c.type] || 0) + n
     }
     return m

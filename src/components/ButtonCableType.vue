@@ -17,10 +17,11 @@
       <span v-if="counts[t.value]" class="type-count" :style="{ background: colorFor(t.value) }">{{ counts[t.value] }}</span>
     </button>
     <button
-      class="type-btn"
+      class="type-btn all-btn"
       @click="$emit('select', '')"
       :class="{ selectedtype: modelValue === '', distributed: allDone && !anyOver, over: anyOver }"
     >All</button>
+    <button v-if="showCalc" class="type-btn calc-btn" @click="$emit('calc')" title="Calculateur ampli → câblage">L.calc</button>
   </div>
 </template>
 
@@ -35,8 +36,9 @@ const props = defineProps({
   counts: { type: Object, default: () => ({}) },
   showAll: { type: Boolean, default: false },
   alwaysColor: { type: Boolean, default: false }, // borde toujours les onglets de leur couleur (sans chiffres)
+  showCalc: { type: Boolean, default: false }, // bouton « L.calc » (calculateur ampli → câblage) après All
 })
-defineEmits(['select'])
+defineEmits(['select', 'calc'])
 
 const settingsStore = useSettingsStore()
 
@@ -102,6 +104,16 @@ const anyOver = computed(() => Object.values(props.overTypes).some(Boolean))
   color: #fff;
   background: #555;
   border-color: #555;
+}
+/* Bouton « All » sélectionné : jaune flagrant, texte noir */
+.type-btn.all-btn.selectedtype {
+  background: #facc15 !important;
+  border-color: #facc15 !important;
+  color: #000 !important;
+  font-weight: 800;
+}
+.type-btn.calc-btn {
+  background: #0891b2; color: #fff; border-color: #0891b2; font-weight: 800;
 }
 /* Pastille quantité (couleur du type) */
 .type-count {

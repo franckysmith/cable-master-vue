@@ -23,7 +23,7 @@
           v-for="i in 7"
           :key="'ct'+i"
           class="ct-cell"
-          :class="{ disabled: cable.cableid !== activeCableId }"
+          :class="{ disabled: cable.cableid !== activeCableId, 'solo-col': soloMode && soloFilter === i }"
           @mousedown="startPress(cable, i, $event)"
           @mouseup="endPress(cable, i, $event)"
           @mouseleave="cancelPress"
@@ -258,6 +258,10 @@ function colorForType(type) {
 }
 .cable-row:not(.row-band) .ct-cell {
   background: #ebebeb;
+}
+.ct-cell.solo-col {
+  background: #bfdbfe !important;
+  box-shadow: inset 0 0 0 2px #3b82f6;
 }
 .ct-cell.disabled {
   cursor: default;

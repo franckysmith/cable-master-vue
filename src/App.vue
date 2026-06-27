@@ -90,6 +90,12 @@
             <q-item-section>Bibliothèque Micros</q-item-section>
           </q-item>
 
+          <!-- Calculateur L-Acoustics (panneau latéral sur grand écran, onglet sur mobile) -->
+          <q-item clickable active-class="drawer-active" @click="openCalc">
+            <q-item-section avatar><q-icon name="calculate" /></q-item-section>
+            <q-item-section>Calculateur L-Ac</q-item-section>
+          </q-item>
+
           <!-- Réglages + About (tout en bas) -->
           <q-item
             clickable
@@ -122,6 +128,16 @@
         </div>
       </q-page>
     </q-page-container>
+
+    <!-- Calculateur L-Acoustics : panneau latéral (grand écran) côté libre -->
+    <div v-if="calcPanelOpen" class="calc-panel" :class="drawer ? 'side-right' : 'side-left'">
+      <div class="calc-panel-head">
+        <span class="calc-panel-title">🔧 Calculateur L-Acoustics</span>
+        <a :href="calcUrl" target="_blank" class="calc-open" title="Ouvrir dans un onglet">↗</a>
+        <button class="calc-close" @click="calcPanelOpen = false" title="Fermer">✕</button>
+      </div>
+      <iframe :src="calcUrl" class="calc-frame" frameborder="0"></iframe>
+    </div>
 
     <!-- Menu sélecteur d'utilisateur (super admin) -->
     <div v-if="showUserMenu" class="user-menu">
@@ -201,6 +217,15 @@ function onLayoutScroll(info) {
 // Desktop (web) : drawer ouvert par défaut et persistant (ferme uniquement via le bouton).
 // Mobile : overlay qui se referme après navigation.
 const isDesktop = computed(() => $q.screen.gt.sm)
+
+// Calculateur L-Acoustics : panneau latéral (grand écran) / onglet (mobile)
+const calcUrl = 'https://cinod-lacoustics.netlify.app/#/AmpCalculator'
+const calcPanelOpen = ref(false)
+function openCalc() {
+  if (!isDesktop.value) { window.open(calcUrl, '_blank'); drawer.value = false; return }
+  calcPanelOpen.value = true
+  if (!isDesktop.value) drawer.value = false
+}
 const drawer = ref($q.screen.gt.sm)
 function closeDrawerOnMobile() {
   if (!isDesktop.value) drawer.value = false
@@ -629,6 +654,20 @@ select {
 .user-btn.active.gerant {
   background: #8b5cf6;
 }
+/* Panneau Calculateur L-Acoustics (iframe latéral) */
+.calc-panel {
+  position: fixed; top: 56px; bottom: 12px; width: min(440px, 42vw); z-index: 2000;
+  display: flex; flex-direction: column;
+  background: var(--bg-card, #1a1a2e); border: 1px solid var(--border, #3a3a55);
+  border-radius: 12px; overflow: hidden; box-shadow: 0 8px 28px rgba(0,0,0,0.4);
+}
+.calc-panel.side-right { right: 12px; left: auto; }
+.calc-panel.side-left { left: 12px; right: auto; }
+.calc-panel-head { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--color1); }
+.calc-panel-title { flex: 1; font-size: 14px; font-weight: 800; color: #fff; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.calc-open { color: #fff; text-decoration: none; font-size: 17px; font-weight: 800; }
+.calc-close { background: transparent; border: none; color: #fff; font-size: 17px; cursor: pointer; box-shadow: none; min-width: auto; }
+.calc-frame { flex: 1; width: 100%; border: none; background: #fff; }
 .help-btn {
   display: inline-flex;
   align-items: center;

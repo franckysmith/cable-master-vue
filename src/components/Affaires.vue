@@ -16,18 +16,11 @@
           <span class="tag tag-system role-tag" :class="{ 'role-active': activeRole === 'system' }" @click.stop="$emit('select-role', 'system')">System</span>
           <span class="tag tag-stage role-tag" :class="{ 'role-active': activeRole === 'stage' }" @click.stop="$emit('select-role', 'stage')">Stage</span>
         </div>
-        <div class="sel-dates">
-          <span class="sel-date-item">🚚 Chargement <b>{{ formatDate(affairStore.selectedAffair.receipt_date) || '—' }}</b></span>
-          <span class="sel-date-item">↩️ Déchargement <b>{{ formatDate(affairStore.selectedAffair.return_date) || '—' }}</b></span>
-          <span class="sel-date-item" v-if="affairStore.selectedAffair.prep_date">🔧 Prépa <b>{{ formatDate(affairStore.selectedAffair.prep_date) }}</b></span>
-        </div>
+        <MiniCal :affair="affairStore.selectedAffair" />
         <span class="sel-catalog">{{ getCatalogName(affairStore.selectedAffair) }}</span>
         <button v-if="isLinkedToCompany" class="btn-action-sel btn-chat" :class="{ 'has-unread': hasUnreadMessage }" @click.stop="toggleChat" title="Question">❓</button>
         <button class="btn-action-sel" @click.stop="showNote = !showNote" title="Note">📝</button>
-        <button class="btn-action-sel" @click.stop="showMateriel = !showMateriel" title="Matériel">
-          {{ showMateriel ? '▲' : '▼' }} 🔧
-        </button>
-        <button class="btn-action-sel" :class="{ active: allCasesActive }" @click.stop="$emit('toggle-all-cases')" title="Vue flight-cases">🔍</button>
+        <button class="btn-action-sel" :class="{ active: allCasesActive }" @click.stop="$emit('toggle-all-cases')" title="Vue flight-cases">📦</button>
         <button class="btn-action-sel" @click.stop="openCalendar" title="Calendrier de tournée">📅</button>
         <button class="btn-action-sel" @click.stop="$emit('share')" title="Partager">📤</button>
       </div>
@@ -81,34 +74,6 @@
           <button class="btn-send-note" @click="sendNote">📩 Envoyer par mail</button>
         </div>
       </div>
-      <div v-if="showMateriel" class="materiel-panel">
-        <div class="materiel-section" v-if="affairStore.selectedAffair.front">
-          <div class="materiel-title">🔊 Front</div>
-          <textarea v-model="materielFront" rows="2" class="materiel-input" placeholder="Enceintes, subs, amplis... ex: 6 K2, 4 KS28"></textarea>
-          <AmpCalculator :description="materielFront" />
-        </div>
-        <div class="materiel-section" v-if="affairStore.selectedAffair.monitor">
-          <div class="materiel-title">🎧 Monitor</div>
-          <textarea v-model="materielMonitor" rows="2" class="materiel-input" placeholder="Wedges, ears, amplis... ex: 8 X12, 2 SB18"></textarea>
-          <AmpCalculator :description="materielMonitor" />
-        </div>
-        <div class="materiel-section" v-if="affairStore.selectedAffair.system">
-          <div class="materiel-title">🎚 System</div>
-          <textarea v-model="materielSystem" rows="2" class="materiel-input" placeholder="Processeurs, drives, distribution..."></textarea>
-          <AmpCalculator :description="materielSystem" />
-        </div>
-        <div class="materiel-section" v-if="affairStore.selectedAffair.stage">
-          <div class="materiel-title">🎸 Stage</div>
-          <textarea v-model="materielStage" rows="2" class="materiel-input" placeholder="Front-fills, side-fills... ex: 4 X8, 2 SB15m"></textarea>
-          <AmpCalculator :description="materielStage" />
-        </div>
-        <div v-if="!affairStore.selectedAffair.front && !affairStore.selectedAffair.monitor && !affairStore.selectedAffair.system && !affairStore.selectedAffair.stage" class="materiel-empty">
-          Aucune zone définie
-        </div>
-        <div class="materiel-actions">
-          <button class="btn-save-note" @click="saveMateriel">Enregistrer</button>
-        </div>
-      </div>
     </div>
 
     <!-- Sinon : barre d'actions + liste -->
@@ -132,9 +97,10 @@
               <span class="card-date-main">{{ formatDate(affair.receipt_date) }}</span>
             </div>
             <div class="card-line2">
-              <span class="card-catalog">{{ getCatalogName(affair) }}</span>
+              <span class="card-catalog">{{ affair.catalog_id > 1 ? '🏢 ' + getCatalogName(affair) : '👤 Personnel' }}</span>
               <span class="card-updated">MAJ {{ formatDate(affair.updated_at || affair.created_at) }}</span>
             </div>
+            <MiniCal :affair="affair" :upcoming-only="true" :max="5" />
             <div class="card-line3">
               <div class="card-tags">
                 <span v-if="affair.front" class="tag tag-front">Front</span>
@@ -185,6 +151,7 @@ import { ref, computed, onMounted, inject } from 'vue'
 import { useAffairStore } from '../stores/affairs'
 import AmpCalculator from './AmpCalculator.vue'
 import TourCalendar from './TourCalendar.vue'
+import MiniCal from './MiniCal.vue'
 
 defineProps({ allCasesActive: { type: Boolean, default: false }, activeRole: { type: String, default: '' } })
 const emit = defineEmits(['selected', 'edit', 'openNew', 'materiel', 'share', 'toggle-all-cases', 'select-role'])
@@ -901,7 +868,9 @@ function deselectAffair() {
   font-size: 12px;
 }
 .affair-list {
-  max-height: 60vh;
+  /* Utilise presque toute la hauteur dispo (≈ écran − en-tête app − barre boutons),
+     au lieu d'une boîte bridée à 60vh : sur ordinateur on voit beaucoup plus de fiches. */
+  max-height: calc(100dvh - 120px);
   overflow-y: auto;
 }
 .search-input {

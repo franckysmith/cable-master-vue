@@ -110,15 +110,17 @@ function onDayClick(cell) {
 }
 
 const months = computed(() => {
-  // Mois de départ : le plus tôt entre prépa / 1ʳᵉ sortie / 1ʳᵉ date / aujourd'hui
-  const candidates = [props.prepDate, ...Object.keys(props.prepDays || {}), ...(props.outDates || []), ...(props.tourDates || [])].filter(Boolean).sort()
-  const start = candidates[0] ? new Date(candidates[0] + 'T00:00:00') : new Date()
-  let y = start.getFullYear()
-  let mo = start.getMonth()
+  // Mois de départ : le plus tôt entre la 1ʳᵉ date saisie et aujourd'hui, moins 1 mois de marge
+  // (sinon, si les dates sont en juillet, on ne pouvait plus reculer vers juin/aujourd'hui).
+  const candidates = [props.prepDate, ...Object.keys(props.prepDays || {}), ...(props.outDates || []), ...(props.backDates || []), ...(props.tourDates || [])].filter(Boolean).sort()
+  const first = candidates[0] ? new Date(candidates[0] + 'T00:00:00') : new Date()
+  const now = new Date()
+  const base = first < now ? first : now
   const list = []
-  for (let k = 0; k < 9; k++) {
-    const year = y + Math.floor((mo + k) / 12)
-    const month = (mo + k) % 12
+  for (let k = 0; k < 12; k++) {
+    const dt = new Date(base.getFullYear(), base.getMonth() - 1 + k, 1) // −1 mois de marge
+    const year = dt.getFullYear()
+    const month = dt.getMonth()
     const daysInMonth = new Date(year, month + 1, 0).getDate()
     const firstWd = (new Date(year, month, 1).getDay() + 6) % 7 // Lundi = 0
     const cells = []
