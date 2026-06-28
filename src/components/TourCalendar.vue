@@ -34,11 +34,24 @@
               @click="onDayClick(cell)"
             >
               <span v-if="prepDays[cell]" class="cal-prep" :class="'prep-' + prepDays[cell]"></span>
-              <span v-if="isOut(cell)" class="cal-arrow out" :class="outPeriods[cell] === 'am' ? 'pos-bottom' : 'pos-top'">→</span>
-              <span v-if="isBack(cell)" class="cal-arrow back" :class="backPeriods[cell] === 'am' ? 'pos-bottom' : 'pos-top'">←</span>
+              <span v-if="isOut(cell)" class="cal-arrow out" :class="[outPeriods[cell] === 'am' ? 'pos-bottom' : 'pos-top', { 'has-time': outTimes[cell] }]" @click.stop="editTime('out', cell)">{{ outTimes[cell] || '→' }}</span>
+              <span v-if="isBack(cell)" class="cal-arrow back" :class="[backPeriods[cell] === 'am' ? 'pos-bottom' : 'pos-top', { 'has-time': backTimes[cell] }]" @click.stop="editTime('back', cell)">{{ backTimes[cell] || '←' }}</span>
               <span class="cal-num">{{ Number(cell.slice(-2)) }}</span>
             </button>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Saisie de l'heure de chargement / déchargement (master) -->
+    <div v-if="timeEdit.open" class="tc-time-overlay" @click.self="timeEdit.open = false">
+      <div class="tc-time-box">
+        <div class="tc-time-title">{{ timeEdit.kind === 'out' ? '→ Chargement' : '← Déchargement' }} · {{ timeEdit.date.slice(8, 10) }}/{{ timeEdit.date.slice(5, 7) }}</div>
+        <input v-model="timeEdit.value" class="tc-time-input" placeholder="ex. 8h, 14:30" @keydown.enter="saveTime" />
+        <div class="tc-time-actions">
+          <button class="tc-time-clear" @click="clearTime">Effacer</button>
+          <button class="tc-time-cancel" @click="timeEdit.open = false">Annuler</button>
+          <button class="tc-time-ok" @click="saveTime">OK</button>
         </div>
       </div>
     </div>
@@ -46,7 +59,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, reactive, computed } from 'vue'
 
 const props = defineProps({
   tourDates: { type: Array, default: () => [] },
@@ -58,8 +71,29 @@ const props = defineProps({
   prepDate: { type: String, default: '' },
   editable: { type: Boolean, default: true },
   prepOnly: { type: Boolean, default: false }, // technicien : ne peut marquer QUE la prépa (repérage)
+  outTimes: { type: Object, default: () => ({}) },  // date → heure de chargement (ex. "8h")
+  backTimes: { type: Object, default: () => ({}) }, // date → heure de déchargement
+  timeEditable: { type: Boolean, default: false },  // seul le master saisit/modifie les heures
 })
-const emit = defineEmits(['toggle', 'toggle-out', 'toggle-back', 'cycle-prep'])
+const emit = defineEmits(['toggle', 'toggle-out', 'toggle-back', 'cycle-prep', 'set-out-time', 'set-back-time'])
+
+// Clic sur la flèche (master) → petite modale pour saisir l'heure de chargement/déchargement
+const timeEdit = reactive({ open: false, kind: 'out', date: '', value: '' })
+function editTime(kind, cell) {
+  if (!props.timeEditable) return
+  timeEdit.kind = kind
+  timeEdit.date = cell
+  timeEdit.value = (kind === 'out' ? props.outTimes : props.backTimes)[cell] || ''
+  timeEdit.open = true
+}
+function saveTime() {
+  emit(timeEdit.kind === 'out' ? 'set-out-time' : 'set-back-time', { date: timeEdit.date, value: (timeEdit.value || '').trim() })
+  timeEdit.open = false
+}
+function clearTime() {
+  emit(timeEdit.kind === 'out' ? 'set-out-time' : 'set-back-time', { date: timeEdit.date, value: '' })
+  timeEdit.open = false
+}
 
 const mode = ref(props.prepOnly ? 'prep' : 'concert')
 
@@ -269,8 +303,24 @@ const months = computed(() => {
 }
 .cal-arrow.out { left: 2px; color: #60a5fa; }
 .cal-arrow.back { right: 2px; color: #22c55e; }
+/* Quand une heure est saisie : on l'affiche à la place de la flèche (texte court lisible) */
+.cal-arrow.has-time {
+  font-size: 9px; font-weight: 800; line-height: 1.1; -webkit-text-stroke: 0;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.95); padding: 0 1px; letter-spacing: -0.3px;
+}
+.cal-arrow.out.has-time { left: 1px; }
+.cal-arrow.back.has-time { right: 1px; }
 .cal-arrow.pos-top { top: 0; bottom: auto; }
 .cal-arrow.pos-bottom { bottom: 0; top: auto; }
 .cal-day.concert .cal-arrow { text-shadow: 0 0 3px rgba(0, 0, 0, 0.9); }
 .cal-num { margin-top: 0; position: relative; z-index: 1; }
+/* Modale heure de chargement/déchargement */
+.tc-time-overlay { position: fixed; inset: 0; z-index: 3000; background: rgba(0,0,0,0.55); display: flex; align-items: center; justify-content: center; padding: 16px; }
+.tc-time-box { width: 100%; max-width: 300px; background: var(--bg-card, #1a1a2e); border: 1px solid var(--border, #3a3a55); border-radius: 14px; padding: 16px; }
+.tc-time-title { font-size: 15px; font-weight: 800; color: var(--text, #fff); margin-bottom: 10px; text-align: center; }
+.tc-time-input { width: 100%; box-sizing: border-box; padding: 10px; font-size: 16px; text-align: center; border: 1px solid var(--border-light, #555); border-radius: 10px; background: var(--bg-input, #2a2a45); color: var(--text, #fff); margin-bottom: 12px; }
+.tc-time-actions { display: flex; gap: 6px; }
+.tc-time-clear { flex: 1; padding: 9px; background: transparent; border: 1px solid #ef4444; border-radius: 9px; color: #ef4444; font-weight: 700; cursor: pointer; box-shadow: none; }
+.tc-time-cancel { flex: 1; padding: 9px; background: transparent; border: 1px solid var(--border-light, #555); border-radius: 9px; color: var(--text, #ccc); font-weight: 700; cursor: pointer; box-shadow: none; }
+.tc-time-ok { flex: 1; padding: 9px; background: var(--color1, #2563eb); border: none; border-radius: 9px; color: #fff; font-weight: 800; cursor: pointer; box-shadow: none; }
 </style>

@@ -85,8 +85,8 @@
     <template v-else>
       <div class="top-bar">
         <button class="btn-new" @click="$emit('openNew', true)">New</button>
-        <button v-if="unreadCount" class="home-env" @click="openFirstUnread" title="Messages reçus">
-          <q-icon name="mail" size="20px" /><span class="he-badge">{{ unreadCount }}</span>
+        <button class="home-env" :class="{ 'has-msg': unreadCount > 0 }" @click="openFirstUnread" title="Messages reçus — ouvre l'affaire concernée">
+          <q-icon name="mail" size="20px" /><span v-if="unreadCount" class="he-badge">{{ unreadCount }}</span>
         </button>
       </div>
 
@@ -1282,10 +1282,10 @@ function deselectAffair() {
 }
 .home-env {
   position: relative; display: inline-flex; align-items: center; justify-content: center;
-  width: 36px; height: 32px; border: 1px solid #ef4444; border-radius: 8px;
-  background: transparent; color: #ef4444; cursor: pointer; box-shadow: none; min-width: auto;
-  animation: chat-blink 1.4s infinite;
+  width: 36px; height: 32px; border: 1px solid var(--border-light, #bbb); border-radius: 8px;
+  background: transparent; color: var(--text-muted, #888); cursor: pointer; box-shadow: none; min-width: auto;
 }
+.home-env.has-msg { border-color: #ef4444; color: #ef4444; animation: chat-blink 1.4s infinite; }
 .home-env .he-badge {
   position: absolute; top: -7px; right: -7px; background: #ef4444; color: #fff;
   font-size: 10px; font-weight: 800; min-width: 16px; height: 16px; line-height: 16px;

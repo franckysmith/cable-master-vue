@@ -16,9 +16,6 @@
       <button class="filter-soon prep" :class="{ active: sortMode === 'prep' }" @click="toggleSort('prep')">Prépa</button>
       <button class="filter-soon out" :class="{ active: sortMode === 'out' }" @click="toggleSort('out')">Charg.</button>
       <button class="filter-soon back" :class="{ active: sortMode === 'back' }" @click="toggleSort('back')">Déch.</button>
-      <button class="filter-soon msg-btn" :class="{ active: msgFilter, 'has-msg': unreadTotal > 0 }" @click="toggleMsgFilter" title="Messages reçus">
-        <q-icon name="mail" size="20px" /><span v-if="unreadTotal" class="msg-badge">{{ unreadTotal }}</span>
-      </button>
     </div>
     <div v-if="!showForm" class="time-filters">
       <button class="time-btn today" :class="{ active: timeFilter === 'd0' }" @click="toggleTime('d0')">Aujourd'hui</button>
@@ -44,6 +41,9 @@
       </button>
       <button class="star-btn" :class="{ active: followOnly }" @click="followOnly = !followOnly" title="À suivre (★)">★</button>
       <button :class="{ active: tab === 'new' }" @click="tab = tab === 'new' ? 'all' : 'new'">NEW</button>
+      <button class="tab-msg" :class="{ 'has-msg': unreadTotal > 0 }" @click="openMessages" title="Messages reçus — ouvre l'affaire concernée">
+        <q-icon name="mail" size="18px" /><span v-if="unreadTotal" class="tab-msg-badge">{{ unreadTotal }}</span>
+      </button>
       <button :class="{ active: tab === 'sent' }" @click="tab = tab === 'sent' ? 'all' : 'sent'">Envoyé</button>
       <select
         class="tab-select"
@@ -286,8 +286,9 @@
       <div
         v-for="affair in filteredAffairs"
         :key="affair.affairid"
+        :id="'aff-' + affair.affairid"
         class="affair-card"
-        :class="{ selected: selected?.affairid === affair.affairid, trashed: tab === 'trash', fresh: isFreshAffair(affair) }"
+        :class="{ selected: selected?.affairid === affair.affairid, trashed: tab === 'trash', fresh: isFreshAffair(affair), 'msg-highlight': highlightId === affair.affairid }"
         @click="onCardClick(affair)"
       >
         <!-- Actions fixes en haut à droite (fiche ouverte) -->
@@ -336,8 +337,9 @@
             <span class="mcd-dow">{{ dowLetter(d.date) }}</span>
             <span class="mcd-num">{{ dayNum(d.date) }}</span>
             <span class="mcd-bars">
-              <span v-for="(m, i) in d.marks" :key="i" class="mcd-mark" :title="EVENT_LABELS[m.type] + periodSuffix(m.period)">
-                <span v-if="isArrowType(m.type)" class="mcd-arrow" :style="{ color: EVENT_COLORS[m.type] }">{{ arrowFor(m.type, m.period) }}</span>
+              <span v-for="(m, i) in d.marks" :key="i" class="mcd-mark" :class="{ 'mcd-clickable': isArrowType(m.type) }" @click.stop="isArrowType(m.type) ? openFicheTime(affair, m.type, d.date) : null" :title="EVENT_LABELS[m.type] + periodSuffix(m.period) + (m.time ? ' — ' + m.time : '')">
+                <span v-if="isArrowType(m.type) && m.time" class="mcd-time" :style="{ background: EVENT_COLORS[m.type] }">{{ m.time }}</span>
+                <span v-else-if="isArrowType(m.type)" class="mcd-arrow" :style="{ color: EVENT_COLORS[m.type] }">{{ arrowFor(m.type, m.period) }}</span>
                 <span v-else class="mcd-bar" :style="{ background: EVENT_COLORS[m.type] }"></span>
               </span>
             </span>
@@ -411,12 +413,14 @@
           </div>
           <!-- Calendrier complet de l'événement (jours passés inclus) -->
           <div v-if="miniCalAllDays(affair)" class="mini-cal fiche-cal">
+            <div class="fiche-cal-hint">⏱ Touche une flèche → / ← pour renseigner l'heure de chargement / déchargement.</div>
             <div v-for="d in miniCalAllDays(affair)" :key="d.date" class="mini-cal-day">
               <span class="mcd-dow">{{ dowLetter(d.date) }}</span>
               <span class="mcd-num">{{ dayNum(d.date) }}</span>
               <span class="mcd-bars">
-                <span v-for="(m, i) in d.marks" :key="i" class="mcd-mark" :title="EVENT_LABELS[m.type] + periodSuffix(m.period)">
-                  <span v-if="isArrowType(m.type)" class="mcd-arrow" :style="{ color: EVENT_COLORS[m.type] }">{{ arrowFor(m.type, m.period) }}</span>
+                <span v-for="(m, i) in d.marks" :key="i" class="mcd-mark" :class="{ 'mcd-clickable': isArrowType(m.type) }" @click.stop="isArrowType(m.type) ? openFicheTime(affair, m.type, d.date) : null" :title="EVENT_LABELS[m.type] + periodSuffix(m.period) + (m.time ? ' — ' + m.time : '')">
+                  <span v-if="isArrowType(m.type) && m.time" class="mcd-time" :style="{ background: EVENT_COLORS[m.type] }">{{ m.time }}</span>
+                  <span v-else-if="isArrowType(m.type)" class="mcd-arrow" :style="{ color: EVENT_COLORS[m.type] }">{{ arrowFor(m.type, m.period) }}</span>
                   <span v-else class="mcd-bar" :style="{ background: EVENT_COLORS[m.type] }"></span>
                 </span>
               </span>
@@ -601,6 +605,19 @@
       </div>
     </div>
 
+    <!-- Saisie heure chargement/déchargement depuis le mini-calendrier de la fiche -->
+    <div v-if="ficheTime.open" class="ft-overlay" @click.self="ficheTime.open = false">
+      <div class="ft-box">
+        <div class="ft-title">{{ ficheTime.kind === 'out' ? '→ Chargement' : '← Déchargement' }} · {{ ficheTime.date.slice(8, 10) }}/{{ ficheTime.date.slice(5, 7) }}</div>
+        <input v-model="ficheTime.value" class="ft-input" placeholder="ex. 14h, 12h30" @keydown.enter="saveFicheTime" />
+        <div class="ft-actions">
+          <button class="ft-clear" @click="clearFicheTime">Effacer</button>
+          <button class="ft-cancel" @click="ficheTime.open = false">Annuler</button>
+          <button class="ft-ok" @click="saveFicheTime">OK</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Popup « Envoyé » : date d'envoi + relancer -->
     <div v-if="sentInfo.open && sentInfo.affair" class="sent-pop-overlay" @click.self="sentInfo.open = false">
       <div class="sent-pop">
@@ -629,11 +646,16 @@
           :back-dates="form.back_dates"
           :out-periods="form.out_periods"
           :back-periods="form.back_periods"
+          :out-times="form.out_times"
+          :back-times="form.back_times"
+          :time-editable="true"
           :prep-days="form.prep_days"
           :prep-date="form.prep_date"
           @toggle="toggleTourDate"
           @toggle-out="toggleOutDate"
           @toggle-back="toggleBackDate"
+          @set-out-time="setOutTime"
+          @set-back-time="setBackTime"
           @cycle-prep="cyclePrepDay"
         />
       </div>
@@ -720,6 +742,18 @@ function toggleBackDate(dateStr) {
   updateNbDays()
 }
 
+// Saisie de l'heure de chargement / déchargement (master) : valeur vide → on efface
+function setOutTime({ date, value }) {
+  const t = { ...(form.out_times || {}) }
+  if (value) t[date] = value; else delete t[date]
+  form.out_times = t
+}
+function setBackTime({ date, value }) {
+  const t = { ...(form.back_times || {}) }
+  if (value) t[date] = value; else delete t[date]
+  form.back_times = t
+}
+
 // Prépa : rien → demi-haut → demi-bas → journée pleine → rien
 function cyclePrepDay(dateStr) {
   const cur = form.prep_days?.[dateStr]
@@ -750,6 +784,8 @@ const form = reactive({
   back_dates: [],
   out_periods: {},
   back_periods: {},
+  out_times: {},
+  back_times: {},
   prep_days: {},
   tech_name: '', tech_firstname: '', tech_email: '', tech_phone: '',
   tech_name_monitor: '', tech_firstname_monitor: '', tech_email_monitor: '', tech_phone_monitor: '',
@@ -773,7 +809,7 @@ const newTech = reactive({ firstname: '', name: '', email: '', phone: '' })
 
 function resetForm() {
   Object.assign(form, {
-    name: '', reference: '', event_type: '', city: '', venue: '', nb_days: null, tour_dates: [], out_dates: [], back_dates: [], out_periods: {}, back_periods: {}, prep_days: {},
+    name: '', reference: '', event_type: '', city: '', venue: '', nb_days: null, tour_dates: [], out_dates: [], back_dates: [], out_periods: {}, back_periods: {}, out_times: {}, back_times: {}, prep_days: {},
     tech_name: '', tech_firstname: '', tech_email: '', tech_phone: '',
     tech_name_monitor: '', tech_firstname_monitor: '', tech_email_monitor: '', tech_phone_monitor: '',
     tech_name_system: '', tech_firstname_system: '', tech_email_system: '', tech_phone_system: '',
@@ -808,6 +844,8 @@ function openCalendarFor(affair) {
   form.back_dates = Array.isArray(affair.back_dates) ? [...affair.back_dates] : []
   form.out_periods = affair.out_periods && typeof affair.out_periods === 'object' ? { ...affair.out_periods } : {}
   form.back_periods = affair.back_periods && typeof affair.back_periods === 'object' ? { ...affair.back_periods } : {}
+  form.out_times = affair.out_times && typeof affair.out_times === 'object' ? { ...affair.out_times } : {}
+  form.back_times = affair.back_times && typeof affair.back_times === 'object' ? { ...affair.back_times } : {}
   form.prep_days = affair.prep_days && typeof affair.prep_days === 'object' ? { ...affair.prep_days } : {}
   calAffairId.value = affair.affairid
   showCalendar.value = true
@@ -828,6 +866,8 @@ async function closeCalendar() {
       back_dates: form.back_dates || [],
       out_periods: form.out_periods || {},
       back_periods: form.back_periods || {},
+      out_times: form.out_times || {},
+      back_times: form.back_times || {},
       prep_days: form.prep_days || {},
       prep_date: form.prep_date || null,
       receipt_date: form.receipt_date || null,
@@ -981,6 +1021,7 @@ const router = useRouter()
 const showGantt = ref(false)
 const showHiddenTl = ref(false) // mode « Masqués » de la timeline (bouton à droite)
 const detailOpen = ref(false)
+const highlightId = ref(null) // affaire mise en évidence (cadre) après clic sur l'enveloppe
 function onGanttSelect(a) { selectAffair(a); detailOpen.value = true }
 let unreadTimer = null
 function onVisRefresh() { if (document.visibilityState === 'visible') refreshUnread() }
@@ -1153,6 +1194,28 @@ function toggleMsgFilter() {
     refreshUnread()
   }
 }
+// Clic sur l'enveloppe : ouvre directement l'affaire du message non-lu le plus récent
+// (unreadAffairs est rempli par ordre décroissant de date → la 1ʳᵉ clé = la plus récente)
+// Clic sur l'enveloppe : on lève les filtres, on scrolle jusqu'à l'affaire concernée,
+// on l'ouvre et on l'entoure d'un cadre. L'utilisateur clique ensuite le 💬 (qui porte un rond).
+async function openMessages() {
+  await refreshUnread()
+  const ids = Object.keys(unreadAffairs.value || {})
+  if (!ids.length) { showMessage('Aucun nouveau message', 'success'); return }
+  const firstId = parseInt(ids[0])
+  // S'assurer que l'affaire est visible (lever les filtres qui pourraient la masquer)
+  tab.value = 'all'; timeFilter.value = ''; sortMode.value = ''
+  followOnly.value = false; mineOnly.value = false; managerFilter.value = ''; msgFilter.value = false
+  await nextTick()
+  const a = filteredAffairs.value.find(x => x.affairid === firstId) || affairs.value.find(x => x.affairid === firstId)
+  if (!a) return
+  selectAffair(a)
+  detailOpen.value = true
+  highlightId.value = firstId
+  await nextTick()
+  document.getElementById('aff-' + firstId)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  setTimeout(() => { if (highlightId.value === firstId) highlightId.value = null }, 4000)
+}
 const affairSearch = ref('') // moteur de recherche d'affaires
 const searchPast = ref(false) // false = affaires à venir ; true = affaires passées/terminées
 function toggleSort(mode) {
@@ -1217,6 +1280,8 @@ function nextEvent(a) {
 }
 function eventMoment(a, ev) {
   if (ev.type === 'prep') return prepMoment((a.prep_days || {})[ev.date])
+  const times = (ev.type === 'out' ? a.out_times : a.back_times) || {}
+  if (times[ev.date]) return ' ' + times[ev.date] // heure précise → prioritaire sur matin/après-midi
   const per = (ev.type === 'out' ? a.out_periods : a.back_periods) || {}
   return periodTag(per[ev.date])
 }
@@ -1258,19 +1323,19 @@ function dowLetter(d) { return ['D', 'L', 'M', 'M', 'J', 'V', 'S'][new Date(d + 
 function dayNum(d) { return parseInt(d.slice(8, 10), 10) }
 // Tous les jours-clés (prépa / chargement / concert / déchargement), triés
 function miniCalFull(a) {
-  const map = {} // date -> [{ type, period }]
-  const add = (d, t, period) => {
+  const map = {} // date -> [{ type, period, time }]
+  const add = (d, t, period, time) => {
     if (!d) return
     map[d] = map[d] || []
-    if (!map[d].some(m => m.type === t)) map[d].push({ type: t, period: period || null })
+    if (!map[d].some(m => m.type === t)) map[d].push({ type: t, period: period || null, time: time || null })
   }
   const pk = Object.keys(a.prep_days || {})
   if (pk.length) pk.forEach(d => add(d, 'prep')); else add(a.prep_date, 'prep')
-  const out = a.out_dates || [], op = a.out_periods || {}
-  if (out.length) out.forEach(d => add(d, 'out', op[d])); else add(a.receipt_date, 'out')
+  const out = a.out_dates || [], op = a.out_periods || {}, ot = a.out_times || {}
+  if (out.length) out.forEach(d => add(d, 'out', op[d], ot[d])); else add(a.receipt_date, 'out')
   ;(a.tour_dates || []).forEach(d => add(d, 'show'))
-  const back = a.back_dates || [], bp = a.back_periods || {}
-  if (back.length) back.forEach(d => add(d, 'back', bp[d])); else add(a.return_date, 'back')
+  const back = a.back_dates || [], bp = a.back_periods || {}, bt = a.back_times || {}
+  if (back.length) back.forEach(d => add(d, 'back', bp[d], bt[d])); else add(a.return_date, 'back')
   const days = Object.keys(map).filter(Boolean).sort()
   return days.map(d => ({ date: d, marks: map[d] }))
 }
@@ -1294,6 +1359,38 @@ function miniCalAllDays(a) {
   const all = miniCalFull(a)
   return all.length ? all : null
 }
+
+// Heure de chargement/déchargement saisie directement sur le mini-calendrier de la fiche (master)
+const ficheTime = reactive({ open: false, affair: null, kind: 'out', date: '', value: '' })
+function openFicheTime(affair, kind, date) {
+  if (kind !== 'out' && kind !== 'back') return
+  ficheTime.affair = affair
+  ficheTime.kind = kind
+  ficheTime.date = date
+  ficheTime.value = ((kind === 'out' ? affair.out_times : affair.back_times) || {})[date] || ''
+  ficheTime.open = true
+}
+// Format compact, minutes autorisées : « 14:30 »/« 14h30 » → « 14h30 » ; « 8 »/« 14 » → « 8h »/« 14h »
+function normalizeHour(v) {
+  v = (v || '').trim().toLowerCase().replace(/\s/g, '')
+  if (!v) return ''
+  const m = v.match(/^(\d{1,2})[:h.]?(\d{2})?/)
+  if (!m) return ''
+  return m[2] ? `${m[1]}h${m[2]}` : `${m[1]}h`
+}
+async function saveFicheTime() {
+  const a = ficheTime.affair
+  if (!a) return
+  const col = ficheTime.kind === 'out' ? 'out_times' : 'back_times'
+  const map = { ...(a[col] || {}) }
+  const v = normalizeHour(ficheTime.value)
+  if (v) map[ficheTime.date] = v; else delete map[ficheTime.date]
+  a[col] = map // maj locale immédiate (réactif)
+  ficheTime.open = false
+  const { error } = await supabase.from('affair').update({ [col]: map }).eq('affairid', a.affairid)
+  if (error) showMessage('Erreur enregistrement heure', 'error')
+}
+function clearFicheTime() { ficheTime.value = ''; saveFicheTime() }
 // Techniciens d'une affaire (tous les postes actifs)
 function allTechs(a) {
   const all = []
@@ -1332,11 +1429,12 @@ function compactPrep(a) {
   if (v !== 'full' && !moreAfter) return shortDate(shown) + prepMoment(v)
   return shortDate(shown) + ' …'
 }
-function compactList(arr0, periods, fallback) {
+function compactList(arr0, periods, fallback, times) {
   const arr = (arr0 && arr0.length) ? [...arr0].sort() : (fallback ? [fallback] : [])
   if (!arr.length) return ''
   const shown = nextShown(arr)
-  const base = shortDate(shown) + periodTag((periods || {})[shown])
+  const moment = (times && times[shown]) ? ' ' + times[shown] : periodTag((periods || {})[shown])
+  const base = shortDate(shown) + moment
   return arr.some(d => d > shown) ? base + ' …' : base
 }
 
@@ -1349,8 +1447,8 @@ function cardDateLine(a) {
     if (!ev) return { label: '', val: '', type: 'prep' }
     return { label: TYPE_LABELS[ev.type], val: shortDate(ev.date) + eventMoment(a, ev), type: ev.type }
   }
-  if (sortMode.value === 'out') return { label: 'Chargement', val: compactList(a.out_dates, a.out_periods, a.receipt_date), type: 'out' }
-  if (sortMode.value === 'back') return { label: 'Déchargement', val: compactList(a.back_dates, a.back_periods, a.return_date), type: 'back' }
+  if (sortMode.value === 'out') return { label: 'Chargement', val: compactList(a.out_dates, a.out_periods, a.receipt_date, a.out_times), type: 'out' }
+  if (sortMode.value === 'back') return { label: 'Déchargement', val: compactList(a.back_dates, a.back_periods, a.return_date, a.back_times), type: 'back' }
   return { label: 'Prépa', val: compactPrep(a), type: 'prep' }
 }
 function todayISO() {
@@ -2110,6 +2208,8 @@ async function selectAffair(affair) {
     back_dates: Array.isArray(affair.back_dates) ? [...affair.back_dates] : [],
     out_periods: affair.out_periods && typeof affair.out_periods === 'object' ? { ...affair.out_periods } : {},
     back_periods: affair.back_periods && typeof affair.back_periods === 'object' ? { ...affair.back_periods } : {},
+    out_times: affair.out_times && typeof affair.out_times === 'object' ? { ...affair.out_times } : {},
+    back_times: affair.back_times && typeof affair.back_times === 'object' ? { ...affair.back_times } : {},
     prep_days: affair.prep_days && typeof affair.prep_days === 'object' ? { ...affair.prep_days } : {},
     tech_name: affair.tech_name || '', tech_firstname: affair.tech_firstname || '',
     tech_email: affair.tech_email || '', tech_phone: affair.tech_phone || '',
@@ -2240,6 +2340,8 @@ async function saveAffair() {
     back_dates: form.back_dates || [],
     out_periods: form.out_periods || {},
     back_periods: form.back_periods || {},
+    out_times: form.out_times || {},
+    back_times: form.back_times || {},
     prep_days: form.prep_days || {},
     attachment_name: form.attachment_name || '',
     attachment_url: form.attachment_url || '',
@@ -2501,6 +2603,11 @@ h3 { font-size: 16px; margin: 0; }
   color: #fff;
   border-color: var(--color1);
 }
+/* Enveloppe messages dans la barre NEW : rouge clignotant quand il y a du non-lu */
+.tab-msg { position: relative; display: inline-flex; align-items: center; }
+.tab-msg.has-msg { border-color: #ef4444; color: #ef4444; animation: tab-msg-pulse 1.4s infinite; }
+.tab-msg-badge { position: absolute; top: -6px; right: -6px; background: #ef4444; color: #fff; font-size: 10px; font-weight: 800; min-width: 16px; height: 16px; line-height: 16px; border-radius: 8px; padding: 0 3px; text-align: center; }
+@keyframes tab-msg-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.5); } 50% { box-shadow: 0 0 0 4px rgba(239,68,68,0); } }
 .tab-select {
   padding: 6px 10px;
   font-size: 12px;
@@ -2534,6 +2641,9 @@ h3 { font-size: 16px; margin: 0; }
 .affair-card.selected { border-color: var(--color1); }
 /* Affaire créée il y a moins d'une demi-journée → barre blanche épaisse à gauche */
 .affair-card.fresh { border-left: 6px solid #ffffff; }
+/* Affaire pointée par l'enveloppe : cadre rouge qui pulse pour la repérer */
+.affair-card.msg-highlight { border-color: #ef4444 !important; box-shadow: 0 0 0 3px rgba(239,68,68,0.45); animation: msg-frame 1s ease-in-out 3; }
+@keyframes msg-frame { 0%, 100% { box-shadow: 0 0 0 3px rgba(239,68,68,0.45); } 50% { box-shadow: 0 0 0 6px rgba(239,68,68,0.15); } }
 .card-top { display: flex; align-items: center; gap: 6px; }
 .card-status { font-size: 14px; }
 .card-head { display: flex; align-items: center; gap: 8px; flex-wrap: nowrap; min-width: 0; }
@@ -3069,10 +3179,23 @@ h3 { font-size: 16px; margin: 0; }
 }
 .mcd-dow { font-size: 9px; font-weight: 700; color: var(--text, #cbd5e1); opacity: 0.85; text-transform: uppercase; }
 .mcd-num { font-size: 15px; font-weight: 800; color: var(--text, #333); line-height: 1; }
-.mcd-bars { display: flex; align-items: center; gap: 3px; margin-top: 2px; height: 18px; }
-.mcd-mark { display: flex; align-items: center; }
+.mcd-bars { display: flex; align-items: flex-start; gap: 3px; margin-top: 2px; min-height: 18px; }
+.mcd-mark { display: inline-flex; flex-direction: column; align-items: center; }
 .mcd-bar { width: 7px; height: 7px; border-radius: 2px; }
 .mcd-arrow { font-size: 22px; font-weight: 900; line-height: 1; -webkit-text-stroke: 0.5px currentColor; }
+.mcd-clickable { cursor: pointer; padding: 2px 5px; border-radius: 6px; min-width: 22px; }
+.mcd-clickable:active { background: rgba(255,255,255,0.12); }
+.mcd-time { font-size: 12px; font-weight: 800; line-height: 1.25; color: #fff; padding: 1px 5px; border-radius: 7px; white-space: nowrap; cursor: pointer; }
+.fiche-cal-hint { font-size: 11px; color: var(--text-muted, #93a0b5); margin-bottom: 4px; font-style: italic; }
+/* Modale heure (mini-calendrier fiche) */
+.ft-overlay { position: fixed; inset: 0; z-index: 3000; background: rgba(0,0,0,0.55); display: flex; align-items: center; justify-content: center; padding: 16px; }
+.ft-box { width: 100%; max-width: 300px; background: var(--bg-card, #1a1a2e); border: 1px solid var(--border, #3a3a55); border-radius: 14px; padding: 16px; }
+.ft-title { font-size: 15px; font-weight: 800; color: var(--text, #fff); margin-bottom: 10px; text-align: center; }
+.ft-input { width: 100%; box-sizing: border-box; padding: 10px; font-size: 16px; text-align: center; border: 1px solid var(--border-light, #555); border-radius: 10px; background: var(--bg-input, #2a2a45); color: var(--text, #fff); margin-bottom: 12px; }
+.ft-actions { display: flex; gap: 6px; }
+.ft-clear { flex: 1; padding: 9px; background: transparent; border: 1px solid #ef4444; border-radius: 9px; color: #ef4444; font-weight: 700; cursor: pointer; box-shadow: none; }
+.ft-cancel { flex: 1; padding: 9px; background: transparent; border: 1px solid var(--border-light, #555); border-radius: 9px; color: var(--text, #ccc); font-weight: 700; cursor: pointer; box-shadow: none; }
+.ft-ok { flex: 1; padding: 9px; background: var(--color1, #2563eb); border: none; border-radius: 9px; color: #fff; font-weight: 800; cursor: pointer; box-shadow: none; }
 .mini-cal-more { align-self: center; font-size: 20px; font-weight: 800; color: var(--text-muted, #999); padding: 0 6px; }
 .detail-actions { margin-top: 8px; }
 .btn-edit-detail {

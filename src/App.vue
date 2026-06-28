@@ -231,7 +231,7 @@ provide('helpMode', helpMode)
 const users = [
   { id: 'T', label: 'T', role: 'technician', name: 'Franck (Admin)', superadmin: true, techId: 0 },
   { id: 'T1', label: 'T1FR', role: 'technician', name: 'Franck Richard', techId: 8, email: 'fr.cinod@gmail.com', catalogId: 6, companyId: 1 },
-  { id: 'T2', label: 'T2N', role: 'technician', name: 'Naïm Richard', techId: 2, catalogId: 6, companyId: 1 },
+  { id: 'T2', label: 'T2N', role: 'technician', name: 'Naïma Richard', email: 'naima.cinod@gmail.com', techId: 11, catalogId: 6, companyId: 1 },
   { id: 'T3', label: 'T3', role: 'technician', name: 'Michel', techId: 3 },
   { id: 'F', label: 'F', role: 'technician', name: 'Freelance (Franck)', techId: 20, catalogId: 3, freelance: true },
   { id: 'F1', label: 'F1', role: 'technician', name: 'Léa (freelance)', techId: 21, catalogId: 4, freelance: true },

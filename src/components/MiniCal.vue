@@ -5,8 +5,9 @@
       <span class="mcd-dow">{{ dowLetter(d.date) }}</span>
       <span class="mcd-num">{{ dayNum(d.date) }}</span>
       <span class="mcd-bars">
-        <span v-for="(m, i) in d.marks" :key="i" class="mcd-mark" :title="EVENT_LABELS[m.type] + periodSuffix(m.period)">
-          <span v-if="isArrowType(m.type)" class="mcd-arrow" :style="{ color: EVENT_COLORS[m.type] }">{{ arrowFor(m.type, m.period) }}</span>
+        <span v-for="(m, i) in d.marks" :key="i" class="mcd-mark" :title="EVENT_LABELS[m.type] + periodSuffix(m.period) + (m.time ? ' — ' + m.time : '')">
+          <span v-if="isArrowType(m.type) && m.time" class="mcd-time" :style="{ background: EVENT_COLORS[m.type] }">{{ m.time }}</span>
+          <span v-else-if="isArrowType(m.type)" class="mcd-arrow" :style="{ color: EVENT_COLORS[m.type] }">{{ arrowFor(m.type, m.period) }}</span>
           <span v-else class="mcd-bar" :style="{ background: EVENT_COLORS[m.type] }"></span>
         </span>
       </span>
@@ -46,18 +47,18 @@ const days = computed(() => {
   const a = props.affair
   if (!a) return []
   const map = {}
-  const add = (d, t, period) => {
+  const add = (d, t, period, time) => {
     if (!d) return
     map[d] = map[d] || []
-    if (!map[d].some(m => m.type === t)) map[d].push({ type: t, period: period || null })
+    if (!map[d].some(m => m.type === t)) map[d].push({ type: t, period: period || null, time: time || null })
   }
   const pk = Object.keys(a.prep_days || {})
   if (pk.length) pk.forEach(d => add(d, 'prep')); else add(a.prep_date, 'prep')
-  const out = a.out_dates || [], op = a.out_periods || {}
-  if (out.length) out.forEach(d => add(d, 'out', op[d])); else add(a.receipt_date, 'out')
+  const out = a.out_dates || [], op = a.out_periods || {}, ot = a.out_times || {}
+  if (out.length) out.forEach(d => add(d, 'out', op[d], ot[d])); else add(a.receipt_date, 'out')
   ;(a.tour_dates || []).forEach(d => add(d, 'show'))
-  const back = a.back_dates || [], bp = a.back_periods || {}
-  if (back.length) back.forEach(d => add(d, 'back', bp[d])); else add(a.return_date, 'back')
+  const back = a.back_dates || [], bp = a.back_periods || {}, bt = a.back_times || {}
+  if (back.length) back.forEach(d => add(d, 'back', bp[d], bt[d])); else add(a.return_date, 'back')
   let all = Object.keys(map).filter(Boolean).sort().map(d => ({ date: d, marks: map[d] }))
   if (props.upcomingOnly) {
     // À partir d'aujourd'hui (repli sur tout si l'événement est entièrement passé)
@@ -82,9 +83,10 @@ const days = computed(() => {
 .mcd-month { font-size: 9px; font-weight: 800; color: var(--color1, #6b46c1); text-transform: uppercase; min-height: 11px; line-height: 1; }
 .mcd-dow { font-size: 9px; font-weight: 700; color: var(--text, #cbd5e1); opacity: 0.85; text-transform: uppercase; }
 .mcd-num { font-size: 15px; font-weight: 800; color: var(--text, #333); line-height: 1; }
-.mcd-bars { display: flex; align-items: center; gap: 3px; margin-top: 2px; height: 18px; }
-.mcd-mark { display: flex; align-items: center; }
+.mcd-bars { display: flex; align-items: flex-start; gap: 3px; margin-top: 2px; min-height: 18px; }
+.mcd-mark { display: inline-flex; flex-direction: column; align-items: center; }
 .mcd-bar { width: 7px; height: 7px; border-radius: 2px; }
 .mcd-arrow { font-size: 22px; font-weight: 900; line-height: 1; -webkit-text-stroke: 0.5px currentColor; }
+.mcd-time { font-size: 11px; font-weight: 800; line-height: 1.25; color: #fff; padding: 1px 5px; border-radius: 7px; white-space: nowrap; }
 .mcd-more { align-self: center; font-size: 18px; font-weight: 800; color: var(--text-muted, #999); padding: 0 4px; }
 </style>
