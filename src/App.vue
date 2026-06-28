@@ -1,7 +1,7 @@
 <template>
   <q-layout view="hHh LpR fFf" @scroll="onLayoutScroll">
     <!-- ===== Header fixe — se cache au scroll vers le bas, revient en remontant ===== -->
-    <q-header class="app-header" :class="{ 'header-hidden': headerHidden }">
+    <q-header v-if="!nochrome" class="app-header" :class="{ 'header-hidden': headerHidden }">
       <q-toolbar class="app-toolbar">
         <q-btn flat round icon="menu" class="hdr-nav-btn" aria-label="Menu" @click="drawer = !drawer" />
         <span class="header-title">{{ pageTitle }}</span>
@@ -20,12 +20,12 @@
     </q-header>
 
     <!-- Bouton menu flottant — visible quand le header est caché -->
-    <div v-show="headerHidden" class="floating-hamburger" @click="drawer = !drawer">
+    <div v-show="headerHidden && !nochrome" class="floating-hamburger" @click="drawer = !drawer">
       <q-icon name="menu" size="24px" />
     </div>
 
     <!-- ===== Drawer (menu latéral) ===== -->
-    <q-drawer v-model="drawer" side="left" bordered :width="230" :breakpoint="599" class="app-drawer">
+    <q-drawer v-if="!nochrome" v-model="drawer" side="left" bordered :width="230" :breakpoint="599" class="app-drawer">
       <q-scroll-area class="fit">
         <div class="drawer-top">
           <q-btn flat dense round icon="chevron_left" aria-label="Fermer le menu" @click="drawer = false" />
@@ -92,6 +92,14 @@
             <q-item-section>Calculateur L-Ac</q-item-section>
           </q-item>
 
+          <!-- Vue multi-colonnes (grand écran / iPad) -->
+          <div v-if="isWide" class="split-toggle">
+            <span class="split-toggle-label">Colonnes</span>
+            <div class="split-toggle-btns">
+              <button v-for="n in 3" :key="n" class="split-toggle-btn" :class="{ active: splitView.columns === n }" @click="splitView.setColumns(n)">{{ n }}</button>
+            </div>
+          </div>
+
           <!-- Réglages + About (tout en bas) -->
           <q-item
             clickable
@@ -119,7 +127,8 @@
     <!-- ===== Contenu (centré, type application) ===== -->
     <q-page-container>
       <q-page class="app-page">
-        <div class="app-content">
+        <SplitView v-if="splitActive" />
+        <div v-else class="app-content">
           <router-view />
         </div>
       </q-page>
@@ -155,6 +164,8 @@ import { useAffairStore } from './stores/affairs'
 import { useRouter, useRoute } from 'vue-router'
 import { getQueue } from './lib/offlineCache'
 import { flushQueue } from './lib/syncService'
+import SplitView from './components/SplitView.vue'
+import { useSplitViewStore } from './stores/splitView'
 
 const $q = useQuasar()
 const affairStore = useAffairStore()
@@ -172,6 +183,17 @@ const PAGE_TITLES = {
   '/about': 'About',
 }
 const pageTitle = computed(() => PAGE_TITLES[currentRoute.path] || '')
+
+// ===== Vue multi-colonnes (web / grand écran) =====
+const splitView = useSplitViewStore()
+// nochrome=1 → page affichée DANS une colonne iframe : on masque header/drawer/etc.
+const nochrome = computed(() => currentRoute.query.nochrome === '1')
+const isWide = ref(typeof window !== 'undefined' && window.innerWidth >= 1024)
+function onResizeWide() { isWide.value = window.innerWidth >= 1024 }
+// SplitView affichée seulement sur grand écran, hors iframe, et si ≥ 2 colonnes
+const splitActive = computed(() => isWide.value && !nochrome.value && splitView.columns > 1)
+provide('splitView', splitView)
+provide('isWide', isWide)
 
 // « Home » : revenir à l'accueil = désélectionner l'affaire en cours
 function goHome() {
@@ -332,6 +354,9 @@ let syncTimer = null
 onMounted(() => {
   window.addEventListener('online', onOnline)
   window.addEventListener('offline', onOffline)
+  window.addEventListener('resize', onResizeWide)
+  // Un PDF/lien cliqué dans une colonne iframe demande au parent de l'ouvrir
+  window.addEventListener('message', onFrameMessage)
   if (userRole.value === 'master') loadCompany()
   // Vérifie périodiquement la file et tente l'envoi si en ligne
   syncTimer = setInterval(() => {
@@ -342,8 +367,17 @@ onMounted(() => {
 onUnmounted(() => {
   window.removeEventListener('online', onOnline)
   window.removeEventListener('offline', onOffline)
+  window.removeEventListener('resize', onResizeWide)
+  window.removeEventListener('message', onFrameMessage)
   if (syncTimer) clearInterval(syncTimer)
 })
+
+// Message envoyé par une colonne iframe (ou un composant) pour ouvrir un doc dans une colonne
+function onFrameMessage(e) {
+  if (e.origin !== window.location.origin) return
+  const d = e.data
+  if (d && d.type === 'cinod-open-doc' && d.url) splitView.openDoc(d.url)
+}
 </script>
 
 <style>
@@ -497,6 +531,40 @@ select {
 .app-drawer {
   background: var(--bg-card);
   color: var(--text);
+}
+/* Sélecteur de colonnes (vue multi-colonnes) dans le drawer */
+.split-toggle {
+  margin: 10px 12px;
+  padding: 8px 10px;
+  border: 1px dashed var(--border-light, #ccc);
+  border-radius: 10px;
+}
+.split-toggle-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--text-muted, #888);
+  margin-bottom: 6px;
+}
+.split-toggle-btns { display: flex; gap: 6px; }
+.split-toggle-btn {
+  flex: 1;
+  padding: 7px 0;
+  border: 1px solid var(--border-light, #ccc);
+  border-radius: 8px;
+  background: var(--bg-input, #fff);
+  color: var(--text, #333);
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: none;
+}
+.split-toggle-btn.active {
+  background: var(--color1);
+  border-color: var(--color1);
+  color: #fff;
 }
 .drawer-top {
   display: flex;

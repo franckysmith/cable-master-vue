@@ -312,7 +312,6 @@
         <template v-else>
         <!-- Actions fixes en haut à droite (fiche ouverte) -->
         <div v-if="selected?.affairid === affair.affairid && detailOpen" class="card-tr">
-          <button class="card-zones-btn" @click.stop="sendAffair(affair)" title="Renseigner les zones / le matériel par poste">🎛 Zones</button>
           <button class="card-edit-btn" @click.stop="editCurrentAffair" title="Modifier l'affaire">✏️</button>
           <button class="card-edit-btn" @click.stop="closeCard" title="Fermer la fiche">✕</button>
         </div>
@@ -348,6 +347,9 @@
           <button class="card-chat-btn" :class="{ unread: !!unreadAffairs[affair.affairid] }" @click.stop="openChatModal(affair)" title="Chat">
             💬<span v-if="unreadAffairs[affair.affairid]" class="card-chat-badge">!</span>
           </button>
+        </div>
+        <div v-if="selected?.affairid === affair.affairid && detailOpen" class="card-zones-row">
+          <button class="card-zones-btn" @click.stop="sendAffair(affair)" title="Renseigner les zones / le matériel par poste">🎛 Zones</button>
         </div>
 
         <!-- Mini-calendrier des jours-clés sous la date (jusqu'à 10 jours, sinon « … ») -->
@@ -451,7 +453,7 @@
           <!-- Documents joints (consulter / ajouter) -->
           <div class="ze-docs">
             <div class="ze-docs-title">📎 Documents</div>
-            <a v-for="(d, i) in affairDocs(affair)" :key="'fd'+i" :href="d.url" target="_blank" class="ze-doc-link">📄 {{ d.name }}</a>
+            <a v-for="(d, i) in affairDocs(affair)" :key="'fd'+i" :href="d.url" target="_blank" class="ze-doc-link" @click.prevent="openDocSmart(d.url)">📄 {{ d.name }}</a>
             <div class="ze-doc-row">
               <label class="ze-doc-add">+ Envoyer un document
                 <input type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" @change="addDetailDoc(affair, $event)" hidden />
@@ -541,19 +543,51 @@
           <p class="zone-hint">Le technicien retrouvera ces infos pré-remplies en ouvrant son câblage. <b>*</b> = par côté (stéréo), sauf retours.</p>
           <div v-if="zoneEditor.affair.front" class="ze-block">
             <div class="ze-banner facade">🔵 FOH — {{ zoneEditor.affair.tech_name || '?' }}</div>
-            <textarea v-model="zoneEditor.front" rows="5" :placeholder="ZONE_TPL.front"></textarea>
+            <textarea v-model="zoneEditor.front" rows="4" :placeholder="ZONE_TPL.front"></textarea>
+            <div class="ze-zn">
+              <div class="ze-zn-title">📋 Noms des colonnes (zones) · <b>*</b> = par côté</div>
+              <label v-for="i in 6" :key="i" class="ze-zn-row">
+                <span class="ze-zn-tag">Z{{ i }}</span>
+                <input v-model="zoneEditor.labels.front['lz' + i]" maxlength="12" placeholder="—" />
+                <button type="button" class="ze-zn-star" :class="{ on: znStereo(zoneEditor.labels.front['lz' + i]) }" @click.prevent="znToggle(zoneEditor.labels.front, 'lz' + i)" title="Par côté (stéréo)">*</button>
+              </label>
+            </div>
           </div>
           <div v-if="zoneEditor.affair.system" class="ze-block">
             <div class="ze-banner systeme">🟣 Système — {{ zoneEditor.affair.tech_name_system || '?' }}</div>
-            <textarea v-model="zoneEditor.system" rows="5" :placeholder="ZONE_TPL.system"></textarea>
+            <textarea v-model="zoneEditor.system" rows="4" :placeholder="ZONE_TPL.system"></textarea>
+            <div class="ze-zn">
+              <div class="ze-zn-title">📋 Noms des colonnes (zones) · <b>*</b> = par côté</div>
+              <label v-for="i in 6" :key="i" class="ze-zn-row">
+                <span class="ze-zn-tag">Z{{ i }}</span>
+                <input v-model="zoneEditor.labels.system['lz' + i]" maxlength="12" placeholder="—" />
+                <button type="button" class="ze-zn-star" :class="{ on: znStereo(zoneEditor.labels.system['lz' + i]) }" @click.prevent="znToggle(zoneEditor.labels.system, 'lz' + i)" title="Par côté (stéréo)">*</button>
+              </label>
+            </div>
           </div>
           <div v-if="zoneEditor.affair.monitor" class="ze-block">
             <div class="ze-banner retour">🟠 Retours — {{ zoneEditor.affair.tech_name_monitor || '?' }}</div>
             <textarea v-model="zoneEditor.monitor" rows="4" :placeholder="ZONE_TPL.monitor"></textarea>
+            <div class="ze-zn">
+              <div class="ze-zn-title">📋 Noms des colonnes (zones)</div>
+              <label v-for="i in 6" :key="i" class="ze-zn-row">
+                <span class="ze-zn-tag">Z{{ i }}</span>
+                <input v-model="zoneEditor.labels.monitor['lz' + i]" maxlength="12" placeholder="—" />
+                <button type="button" class="ze-zn-star" :class="{ on: znStereo(zoneEditor.labels.monitor['lz' + i]) }" @click.prevent="znToggle(zoneEditor.labels.monitor, 'lz' + i)" title="Par côté (stéréo)">*</button>
+              </label>
+            </div>
           </div>
           <div v-if="zoneEditor.affair.stage" class="ze-block">
             <div class="ze-banner scene">🟢 Scène — {{ zoneEditor.affair.tech_name_stage || '?' }}</div>
             <textarea v-model="zoneEditor.stage" rows="4" :placeholder="ZONE_TPL.stage"></textarea>
+            <div class="ze-zn">
+              <div class="ze-zn-title">📋 Noms des colonnes (zones)</div>
+              <label v-for="i in 6" :key="i" class="ze-zn-row">
+                <span class="ze-zn-tag">Z{{ i }}</span>
+                <input v-model="zoneEditor.labels.stage['lz' + i]" maxlength="12" placeholder="—" />
+                <button type="button" class="ze-zn-star" :class="{ on: znStereo(zoneEditor.labels.stage['lz' + i]) }" @click.prevent="znToggle(zoneEditor.labels.stage, 'lz' + i)" title="Par côté (stéréo)">*</button>
+              </label>
+            </div>
           </div>
           <div v-if="!zoneEditor.affair.front && !zoneEditor.affair.monitor && !zoneEditor.affair.system && !zoneEditor.affair.stage" class="zone-empty">
             Aucun poste défini sur cette affaire.
@@ -690,6 +724,7 @@
 import { ref, reactive, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { supabase } from '../lib/supabase'
+import { openDocSmart } from '../lib/openDoc'
 import AllCasesView from '../components/AllCasesView.vue'
 import DocViewer from '../components/DocViewer.vue'
 import AmpCalculator from '../components/AmpCalculator.vue'
@@ -1581,7 +1616,7 @@ const ZONE_TPL = {
   monitor: 'Nb circuits : …\nRetours : 8 X12, 8 X15…\nSides : oui / non\nDrumfill : oui / non\nType d\'amplis : …\n(pas d\'astérisque ici)',
   stage: 'Nb groupes : …\nPatches / groupe : … → patch 24/32/48\nPlan de scène : (joint ?)\nPieds de micro : …\nBase micro : voir technicien façade',
 }
-const zoneEditor = reactive({ open: false, affair: null, front: '', monitor: '', system: '', stage: '', docNames: [], docUrls: [], newFiles: [], notify: true, notifyMsg: '' })
+const zoneEditor = reactive({ open: false, affair: null, front: '', monitor: '', system: '', stage: '', labels: { front: {}, monitor: {}, system: {}, stage: {} }, docNames: [], docUrls: [], newFiles: [], notify: true, notifyMsg: '' })
 
 // Popup date d'envoi / relancer (clic sur le badge « Envoyé »)
 const sentInfo = reactive({ open: false, affair: null })
@@ -1624,6 +1659,18 @@ async function resendAffair() {
   sentInfo.open = false
 }
 
+// Noms de zones (colonnes) saisis par le master : * en fin = par côté (stéréo)
+function znStereo(v) { return /\*\s*$/.test(v || '') }
+function znToggle(obj, key) {
+  const base = (obj[key] || '').replace(/\s*\*\s*$/, '')
+  obj[key] = znStereo(obj[key]) ? base : base + '*'
+}
+function mkZoneLabels(src) {
+  const o = {}
+  for (let i = 1; i <= 6; i++) o['lz' + i] = (src && src['lz' + i]) || ''
+  return o
+}
+
 // Clic « Envoyer » → ouvre l'éditeur de zones (le master renseigne chaque poste avant d'envoyer)
 function sendAffair(a) {
   zoneEditor.affair = a
@@ -1631,6 +1678,12 @@ function sendAffair(a) {
   zoneEditor.monitor = a.materiel_monitor || ''
   zoneEditor.system = a.materiel_system || ''
   zoneEditor.stage = a.materiel_stage || ''
+  // Noms de zones par poste (depuis role_labels existant)
+  const rl = a.role_labels || {}
+  zoneEditor.labels = {
+    front: mkZoneLabels(rl.front), monitor: mkZoneLabels(rl.monitor),
+    system: mkZoneLabels(rl.system), stage: mkZoneLabels(rl.stage),
+  }
   zoneEditor.docNames = a.attachment_name ? a.attachment_name.split(',').filter(Boolean) : []
   zoneEditor.docUrls = a.attachment_url ? a.attachment_url.split(',') : []
   zoneEditor.newFiles = []
@@ -1689,6 +1742,18 @@ async function confirmSendAffair(send = false) {
     materiel_system: zoneEditor.system || null,
     materiel_stage: zoneEditor.stage || null,
   }
+  // Noms de zones (colonnes) → role_labels par poste (on préserve les libellés FC existants)
+  const rl = { ...(a.role_labels || {}) }
+  for (const role of ['front', 'monitor', 'system', 'stage']) {
+    const cur = { ...(rl[role] || {}) }
+    for (let i = 1; i <= 6; i++) {
+      const v = (zoneEditor.labels[role]['lz' + i] || '').trim()
+      if (v) cur['lz' + i] = v; else delete cur['lz' + i]
+    }
+    rl[role] = cur
+  }
+  patch.role_labels = rl
+  a.role_labels = rl
   const { names, urls } = await uploadDocuments(zoneEditor.newFiles, zoneEditor.docNames, zoneEditor.docUrls)
   patch.attachment_name = names.join(',')
   patch.attachment_url = urls.join(',')
@@ -2788,6 +2853,7 @@ h3 { font-size: 16px; margin: 0; }
   font-size: 12px; font-weight: 800; line-height: 1; padding: 5px 8px; cursor: pointer;
   box-shadow: none; min-width: auto; flex-shrink: 0; white-space: nowrap;
 }
+.card-zones-row { display: flex; justify-content: flex-end; margin-top: 4px; }
 .cdl-badge {
   display: inline-flex;
   align-items: center;
@@ -3217,6 +3283,14 @@ h3 { font-size: 16px; margin: 0; }
   border-top: none; border-radius: 0 0 8px 8px; padding: 10px; font-size: 14px;
   background: var(--bg-input, #2a2a45); color: var(--text, #e0e0e0); resize: vertical; line-height: 1.4;
 }
+/* Éditeur de noms de zones (colonnes) par poste */
+.ze-zn { margin-top: 8px; }
+.ze-zn-title { font-size: 12px; font-weight: 700; color: var(--text-muted, #aaa); margin-bottom: 6px; }
+.ze-zn-row { display: flex; align-items: center; gap: 6px; margin-bottom: 5px; }
+.ze-zn-tag { flex: 0 0 26px; font-size: 11px; font-weight: 800; color: var(--text-muted, #999); text-align: center; }
+.ze-zn-row input { flex: 1; min-width: 0; padding: 6px 8px; font-size: 14px; border: 1px solid var(--border-light, #555); border-radius: 7px; background: var(--bg-input, #2a2a45); color: var(--text, #e0e0e0); }
+.ze-zn-star { flex: 0 0 auto; padding: 6px 9px; border: 1px solid var(--border-light, #555); border-radius: 7px; background: transparent; color: var(--text-muted, #888); font-weight: 900; font-size: 15px; cursor: pointer; box-shadow: none; min-width: auto; line-height: 1; }
+.ze-zn-star.on { background: #f59e0b; border-color: #f59e0b; color: #fff; }
 .ze-docs { margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--border, #3a3a55); display: flex; flex-direction: column; gap: 6px; }
 .ze-docs-title { font-size: 13px; font-weight: 700; color: var(--text-muted, #aaa); }
 .ze-doc-link { font-size: 13px; color: var(--color1); text-decoration: none; }

@@ -190,6 +190,7 @@ import { useAffairStore } from '../stores/affairs'
 import AmpCalculator from './AmpCalculator.vue'
 import TourCalendar from './TourCalendar.vue'
 import MiniCal from './MiniCal.vue'
+import { openDocSmart } from '../lib/openDoc'
 
 defineProps({ allCasesActive: { type: Boolean, default: false }, activeRole: { type: String, default: '' } })
 const emit = defineEmits(['selected', 'edit', 'openNew', 'materiel', 'share', 'toggle-all-cases', 'select-role'])
@@ -208,7 +209,7 @@ const affairDocs = computed(() => {
   return names.map((n, i) => ({ name: n, url: urls[i] || '' })).filter(d => d.url)
 })
 function isImgUrl(u) { return /\.(png|jpe?g|gif|webp|svg|avif)(\?|$)/i.test(u || '') }
-function openDoc(d) { if (d?.url) window.open(d.url, '_blank') }
+function openDoc(d) { if (d?.url) openDocSmart(d.url) }
 function openDocs() {
   if (affairDocs.value.length === 1) { openDoc(affairDocs.value[0]); return }
   showDocs.value = true
