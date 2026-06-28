@@ -288,9 +288,28 @@
         :key="affair.affairid"
         :id="'aff-' + affair.affairid"
         class="affair-card"
-        :class="{ selected: selected?.affairid === affair.affairid, trashed: tab === 'trash', fresh: isFreshAffair(affair), 'msg-highlight': highlightId === affair.affairid }"
+        :class="{ selected: selected?.affairid === affair.affairid, trashed: tab === 'trash', fresh: isFreshAffair(affair), 'msg-highlight': highlightId === affair.affairid, minimized: isMinimized(affair) }"
         @click="onCardClick(affair)"
       >
+        <!-- Carte minimisée : une seule ligne (nom + mini-calendrier) -->
+        <div v-if="isMinimized(affair)" class="card-mini" @click.stop="toggleMinimize(affair)">
+          <span v-if="isLocation(affair)" class="card-mini-loc">📦</span>
+          <span class="card-mini-name">{{ affair.name || '(Sans nom)' }}</span>
+          <div v-if="miniCalDays(affair)" class="mini-cal card-mini-cal">
+            <div v-for="d in miniCalDays(affair)" :key="d.date" class="mini-cal-day">
+              <span class="mcd-num">{{ dayNum(d.date) }}</span>
+              <span class="mcd-bars">
+                <span v-for="(m, i) in d.marks" :key="i" class="mcd-mark">
+                  <span v-if="isArrowType(m.type) && m.time" class="mcd-time" :style="{ background: EVENT_COLORS[m.type] }">{{ m.time }}</span>
+                  <span v-else-if="isArrowType(m.type)" class="mcd-arrow" :style="{ color: EVENT_COLORS[m.type] }">{{ arrowFor(m.type, m.period) }}</span>
+                  <span v-else class="mcd-bar" :style="{ background: EVENT_COLORS[m.type] }"></span>
+                </span>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <template v-else>
         <!-- Actions fixes en haut à droite (fiche ouverte) -->
         <div v-if="selected?.affairid === affair.affairid && detailOpen" class="card-tr">
           <button class="card-zones-btn" @click.stop="sendAffair(affair)" title="Renseigner les zones / le matériel par poste">🎛 Zones</button>
@@ -309,7 +328,7 @@
           <button v-if="isLocation(affair)" class="loc-badge" @click.stop="openLocation(affair)" title="Affaire sans technicien — sortie de matériel">📦 Location</button>
           <button class="follow-btn" :class="{ on: affair.followed }" @click.stop="toggleFollow(affair)" :title="affair.followed ? 'Suivi' : 'À suivre'">{{ affair.followed ? '★' : '☆' }}</button>
           <span v-if="unreadAffairs[affair.affairid]" class="unread-star" @click.stop="openChatOnly(affair)">★</span>
-          <span class="card-name" :class="{ 'is-today': isTodayFor(affair), 'is-tomorrow': !isTodayFor(affair) && isTomorrowFor(affair) }">{{ affair.name || '(Sans nom)' }}</span>
+          <span class="card-name" :class="{ 'is-today': isTodayFor(affair), 'is-tomorrow': !isTodayFor(affair) && isTomorrowFor(affair) }" @click.stop="toggleMinimize(affair)" title="Réduire la carte à une ligne">{{ affair.name || '(Sans nom)' }}</span>
           <!-- Carte sélectionnée → menu éditable ; sinon → filtre par gérant -->
           <select v-if="selected?.affairid === affair.affairid" class="manager-select" :value="affair.manager || ''" @click.stop @change="onManagerChange(affair, $event)" title="Qui gère cette affaire">
             <option value="">— Aucun</option>
@@ -413,12 +432,11 @@
           </div>
           <!-- Calendrier complet de l'événement (jours passés inclus) -->
           <div v-if="miniCalAllDays(affair)" class="mini-cal fiche-cal">
-            <div class="fiche-cal-hint">⏱ Touche une flèche → / ← pour renseigner l'heure de chargement / déchargement.</div>
             <div v-for="d in miniCalAllDays(affair)" :key="d.date" class="mini-cal-day">
               <span class="mcd-dow">{{ dowLetter(d.date) }}</span>
               <span class="mcd-num">{{ dayNum(d.date) }}</span>
               <span class="mcd-bars">
-                <span v-for="(m, i) in d.marks" :key="i" class="mcd-mark" :class="{ 'mcd-clickable': isArrowType(m.type) }" @click.stop="isArrowType(m.type) ? openFicheTime(affair, m.type, d.date) : null" :title="EVENT_LABELS[m.type] + periodSuffix(m.period) + (m.time ? ' — ' + m.time : '')">
+                <span v-for="(m, i) in d.marks" :key="i" class="mcd-mark" :title="EVENT_LABELS[m.type] + periodSuffix(m.period) + (m.time ? ' — ' + m.time : '')">
                   <span v-if="isArrowType(m.type) && m.time" class="mcd-time" :style="{ background: EVENT_COLORS[m.type] }">{{ m.time }}</span>
                   <span v-else-if="isArrowType(m.type)" class="mcd-arrow" :style="{ color: EVENT_COLORS[m.type] }">{{ arrowFor(m.type, m.period) }}</span>
                   <span v-else class="mcd-bar" :style="{ background: EVENT_COLORS[m.type] }"></span>
@@ -477,6 +495,7 @@
             <AmpCalculator :description="affair.description || ''" />
           </template>
         </div>
+        </template>
       </div>
       <div v-if="filteredAffairs.length === 0" class="empty">{{ tab === 'trash' ? 'Corbeille vide' : sortMode ? 'Rien à venir' : 'Aucune affaire' }}</div>
     </div>
@@ -562,7 +581,7 @@
         </div>
         <div class="zone-modal-foot">
           <button class="ze-skip" @click="confirmSendAffair(false)">Enregistrer</button>
-          <button class="ze-send" @click="confirmSendAffair(true)">Enregistrer &amp; Envoyer</button>
+          <button class="ze-send" :disabled="!staffed(zoneEditor.affair)" :title="staffed(zoneEditor.affair) ? '' : 'Assigne d\'abord un technicien'" @click="confirmSendAffair(true)">Enregistrer &amp; Envoyer</button>
         </div>
       </div>
     </div>
@@ -627,6 +646,7 @@
         </div>
         <div class="sent-pop-actions">
           <button class="sp-cancel" @click="sentInfo.open = false">Fermer</button>
+          <button class="sp-draft" @click="revertToNew">↩ NEW</button>
           <button class="sp-resend" @click="resendAffair">🔔 Relancer</button>
         </div>
       </div>
@@ -1022,6 +1042,15 @@ const showGantt = ref(false)
 const showHiddenTl = ref(false) // mode « Masqués » de la timeline (bouton à droite)
 const detailOpen = ref(false)
 const highlightId = ref(null) // affaire mise en évidence (cadre) après clic sur l'enveloppe
+// Cartes minimisées (réduites à une ligne) — préférence locale persistée
+const minimizedIds = ref(new Set(JSON.parse(localStorage.getItem('cm-min-cards') || '[]')))
+function isMinimized(a) { return minimizedIds.value.has(a.affairid) }
+function toggleMinimize(a) {
+  const s = new Set(minimizedIds.value)
+  if (s.has(a.affairid)) s.delete(a.affairid); else s.add(a.affairid)
+  minimizedIds.value = s
+  localStorage.setItem('cm-min-cards', JSON.stringify([...s]))
+}
 function onGanttSelect(a) { selectAffair(a); detailOpen.value = true }
 let unreadTimer = null
 function onVisRefresh() { if (document.visibilityState === 'visible') refreshUnread() }
@@ -1567,6 +1596,16 @@ function formatSentAt(iso) {
   if (isNaN(d)) return iso
   return d.toLocaleString('fr-FR', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })
 }
+// Repasser une affaire « Envoyé » en brouillon (NEW) — ex. envoyée par erreur sans technicien
+async function revertToNew() {
+  const a = sentInfo.affair
+  if (!a) return
+  a.status = 'draft'
+  sentInfo.open = false
+  const { error } = await supabase.from('affair').update({ status: 'draft' }).eq('affairid', a.affairid)
+  if (error) showMessage('Erreur', 'error')
+  else { await loadAffairs(); showMessage('Repassée en NEW', 'success') }
+}
 async function resendAffair() {
   const a = sentInfo.affair
   if (!a) return
@@ -1639,6 +1678,11 @@ async function uploadDocuments(files, names = [], urls = []) {
 async function confirmSendAffair(send = false) {
   const a = zoneEditor.affair
   if (!a) return
+  // Impossible d'envoyer une affaire sans technicien assigné (→ assigner, ou « Location » par appui long)
+  if (send && !staffed(a)) {
+    showMessage('Aucun technicien assigné — assigne un poste, ou utilise « Location » (appui long sur Envoyer).', 'error')
+    return
+  }
   const patch = {
     materiel_front: zoneEditor.front || null,
     materiel_monitor: zoneEditor.monitor || null,
@@ -2021,6 +2065,16 @@ async function openChatModal(affair) {
   chatSel.value = []
   await reloadMessages(affair)
   chatModalOpen.value = true
+  // Ouvrir directement le fil du technicien qui a écrit (sinon la vue « Équipe » est vide)
+  const unread = affairMessages.value.find(m => m.sender_role === 'tech' && !m.read_by_master && m.peer_email)
+  if (unread) await selectPeer(affair, unread.peer_email)
+  // Lire l'affaire = marquer ses messages lus → vide l'enveloppe, le badge 💬 et l'étoile ★
+  await supabase.from('message').update({ read_by_master: true })
+    .eq('affairid', affair.affairid).eq('sender_role', 'tech').eq('read_by_master', false)
+  if (unreadAffairs.value[affair.affairid]) {
+    delete unreadAffairs.value[affair.affairid]
+    unreadAffairs.value = { ...unreadAffairs.value }
+  }
 }
 function closeChatModal() { chatModalOpen.value = false }
 async function sendChatModal() {
@@ -2644,6 +2698,17 @@ h3 { font-size: 16px; margin: 0; }
 /* Affaire pointée par l'enveloppe : cadre rouge qui pulse pour la repérer */
 .affair-card.msg-highlight { border-color: #ef4444 !important; box-shadow: 0 0 0 3px rgba(239,68,68,0.45); animation: msg-frame 1s ease-in-out 3; }
 @keyframes msg-frame { 0%, 100% { box-shadow: 0 0 0 3px rgba(239,68,68,0.45); } 50% { box-shadow: 0 0 0 6px rgba(239,68,68,0.15); } }
+/* Carte minimisée : une seule ligne (nom + mini-calendrier) */
+.affair-card.minimized { padding: 7px 10px; }
+.card-mini { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.card-mini-loc { font-size: 13px; flex-shrink: 0; }
+.card-mini-name { font-size: 14px; font-weight: 800; color: var(--text, #222); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.card-mini-cal { margin: 0 0 0 auto; display: flex; gap: 4px; flex-shrink: 0; }
+.card-mini-cal .mini-cal-day { min-width: auto; padding: 0 1px; gap: 0; }
+.card-mini-cal .mcd-num { font-size: 12px; }
+.card-mini-cal .mcd-bars { min-height: 0; margin-top: 0; }
+.card-mini-cal .mcd-arrow { font-size: 15px; }
+.card-mini-cal .mcd-time { font-size: 9px; padding: 0 3px; border-radius: 5px; }
 .card-top { display: flex; align-items: center; gap: 6px; }
 .card-status { font-size: 14px; }
 .card-head { display: flex; align-items: center; gap: 8px; flex-wrap: nowrap; min-width: 0; }
@@ -3105,6 +3170,7 @@ h3 { font-size: 16px; margin: 0; }
 .sent-pop-date { font-size: 14px; color: var(--text, #ddd); margin-bottom: 14px; }
 .sent-pop-actions { display: flex; gap: 8px; }
 .sp-cancel { flex: 1; padding: 10px; background: transparent; border: 1px solid var(--border-light, #555); border-radius: 10px; color: var(--text, #ccc); font-weight: 700; cursor: pointer; box-shadow: none; }
+.sp-draft { flex: 1; padding: 10px; background: transparent; border: 1px solid var(--border-light, #888); border-radius: 10px; color: var(--text, #ccc); font-weight: 700; cursor: pointer; box-shadow: none; }
 .sp-resend { flex: 2; padding: 10px; background: var(--color1); border: none; border-radius: 10px; color: #fff; font-weight: 800; cursor: pointer; box-shadow: none; }
 /* Badge + popup « Location / enlèvement simple » */
 .loc-badge { flex: none; background: #0d9488; color: #fff; border: none; font-size: 10px; font-weight: 800; padding: 1px 6px; border-radius: 6px; letter-spacing: 0.3px; cursor: pointer; box-shadow: none; }
@@ -3164,6 +3230,7 @@ h3 { font-size: 16px; margin: 0; }
 .zone-modal-foot { display: flex; gap: 8px; padding: 10px 14px; border-top: 1px solid var(--border, #3a3a55); }
 .ze-skip { flex: 1; padding: 11px; background: transparent; border: 1px solid var(--border-light, #555); border-radius: 10px; color: var(--text, #ccc); font-weight: 700; cursor: pointer; box-shadow: none; }
 .ze-send { flex: 2; padding: 11px; background: var(--color1); border: none; border-radius: 10px; color: #fff; font-weight: 800; cursor: pointer; box-shadow: none; }
+.ze-send:disabled { opacity: 0.45; cursor: not-allowed; }
 .card-expanded { padding: 8px; border-top: 1px solid var(--border-light, #eee); margin-top: 6px; }
 .detail-hint { margin-top: 6px; font-size: 11px; font-weight: 700; color: var(--color1-dark, #2e7d32); }
 
