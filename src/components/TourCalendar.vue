@@ -1,12 +1,13 @@
 <template>
   <div class="tour-cal">
     <!-- Mode : que marque-t-on au clic ? -->
-    <div v-if="editable" class="cal-modes">
+    <div v-if="editable && !prepOnly" class="cal-modes">
       <button type="button" class="cal-mode concert" :class="{ active: mode === 'concert' }" @click="mode = 'concert'">🟢 Show</button>
       <button type="button" class="cal-mode prep" :class="{ active: mode === 'prep' }" @click="mode = 'prep'">▦ Prépa</button>
       <button type="button" class="cal-mode out" :class="{ active: mode === 'out' }" @click="mode = 'out'">→ Chargement</button>
       <button type="button" class="cal-mode back" :class="{ active: mode === 'back' }" @click="mode = 'back'">← Déchargement</button>
     </div>
+    <div v-if="editable && prepOnly" class="cal-prep-only">📍 Indique tes jours de <b>repérage / prépa</b> (clic). Le show et les dates de transport sont fixés par l'entreprise.</div>
 
     <div class="cal-legend">
       <span class="lg lg-concert">● Show</span>
@@ -56,10 +57,11 @@ const props = defineProps({
   prepDays: { type: Object, default: () => ({}) },
   prepDate: { type: String, default: '' },
   editable: { type: Boolean, default: true },
+  prepOnly: { type: Boolean, default: false }, // technicien : ne peut marquer QUE la prépa (repérage)
 })
 const emit = defineEmits(['toggle', 'toggle-out', 'toggle-back', 'cycle-prep'])
 
-const mode = ref('concert')
+const mode = ref(props.prepOnly ? 'prep' : 'concert')
 
 const weekdays = ['L', 'M', 'M', 'J', 'V', 'S', 'D']
 const monthNames = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre']
@@ -97,6 +99,8 @@ function windowOpenAt(d) {
 function onDayClick(cell) {
   if (!props.editable) return
   if (touchMoved) { touchMoved = false; return }
+  // Technicien : seule la prépa (repérage) est modifiable ; le reste est en lecture.
+  if (props.prepOnly) { emit('cycle-prep', cell); return }
   if (mode.value === 'out') emit('toggle-out', cell)
   else if (mode.value === 'back') emit('toggle-back', cell)
   else if (mode.value === 'prep') emit('cycle-prep', cell)
@@ -175,6 +179,8 @@ const months = computed(() => {
 .lg-back { color: #22c55e; }
 .lg-prep { color: #f59e0b; }
 .cal-hint { font-size: 10px; color: var(--text-muted, #999); padding: 0 4px 4px; font-style: italic; }
+.cal-prep-only { font-size: 12px; color: var(--text, #333); padding: 6px 8px; margin-bottom: 6px; background: rgba(234,88,12,0.12); border-radius: 8px; }
+.cal-prep-only b { color: #ea580c; }
 .cal-scroll {
   flex: 1;
   min-height: 0;

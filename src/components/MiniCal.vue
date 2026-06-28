@@ -28,9 +28,11 @@ const hasMore = computed(() => props.max > 0 && days.value.length > props.max)
 
 const EVENT_COLORS = { prep: '#ea580c', out: '#3b82f6', show: '#22c55e', back: '#15803d' }
 const EVENT_LABELS = { prep: 'Prépa', out: 'Chargement', show: 'Concert', back: 'Déchargement' }
+// ︎ force le rendu TEXTE (flèche fine) au lieu d'un emoji « badge » épais sur mobile (iOS)
 function arrowFor(type, period) {
-  if (type === 'out') return period === 'am' ? '↘' : period === 'pm' ? '↗' : '→'
-  if (type === 'back') return period === 'am' ? '↙' : period === 'pm' ? '↖' : '←'
+  const v = '\uFE0E'
+  if (type === 'out') return (period === 'am' ? '↘' : period === 'pm' ? '↗' : '→') + v
+  if (type === 'back') return (period === 'am' ? '↙' : period === 'pm' ? '↖' : '←') + v
   return ''
 }
 function isArrowType(t) { return t === 'out' || t === 'back' }

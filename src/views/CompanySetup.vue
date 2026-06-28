@@ -35,6 +35,12 @@
             <input v-model="form.name" placeholder="ex: Audio Test" required :readonly="editing" :class="{ locked: editing }" />
           </div>
           <div class="form-row half">
+            <label>Nom court (≈5 lettres)</label>
+            <input v-model="form.short_name" placeholder="ex: Moon" maxlength="8" />
+          </div>
+        </div>
+        <div class="form-grid">
+          <div class="form-row half">
             <label>SIRET <span v-if="editing" class="lock-badge">🔒</span></label>
             <input v-model="form.siret" placeholder="N° SIRET" inputmode="numeric" :readonly="editing" :class="{ locked: editing }" />
           </div>
@@ -290,6 +296,7 @@ const domains = [
 
 const form = reactive({
   name: '',
+  short_name: '',
   siret: '',
   departments: [],
   address: '',
@@ -312,9 +319,18 @@ function toggleDepartment(d) {
 }
 
 onMounted(async () => {
+  // Resync : l'entreprise connectée = celle du localStorage (peut avoir changé via le sélecteur)
+  activeCompanyId.value = parseInt(localStorage.getItem('cablemaster-companyid')) || activeCompanyId.value
   await loadCompanies()
   if (activeCompanyId.value) loadEmployees()
 })
+// Au retour sur la page (focus), resync aussi
+function syncActiveCompany() {
+  if (document.visibilityState === 'visible') {
+    activeCompanyId.value = parseInt(localStorage.getItem('cablemaster-companyid')) || activeCompanyId.value
+  }
+}
+if (typeof document !== 'undefined') document.addEventListener('visibilitychange', syncActiveCompany)
 
 async function loadCompanies() {
   const { data } = await supabase
@@ -336,6 +352,7 @@ function selectCompany(c) {
   selectedCompany.value = c
   editing.value = true
   form.name = c.name
+  form.short_name = c.short_name || ''
   form.siret = c.siret || ''
   form.departments = c.domain ? c.domain.split(',') : []
   form.address = c.address || ''
@@ -361,7 +378,7 @@ function editPrincipal() {
 function resetForm() {
   editing.value = false
   selectedCompany.value = null
-  Object.assign(form, { name: '', siret: '', departments: [], address: '', postal_code: '', city: '', country: '', phone: '', email: '', resp_firstname: '', resp_lastname: '', resp_nickname: '', resp_email: '', resp_phone: '' })
+  Object.assign(form, { name: '', short_name: '', siret: '', departments: [], address: '', postal_code: '', city: '', country: '', phone: '', email: '', resp_firstname: '', resp_lastname: '', resp_nickname: '', resp_email: '', resp_phone: '' })
   message.value = ''
 }
 
@@ -376,6 +393,7 @@ async function submit() {
       .update({
         // name / siret / address / city / country sont verrouillés après création
         domain: form.departments.join(','),
+        short_name: form.short_name,
         phone: form.phone,
         email: form.email,
         resp_firstname: form.resp_firstname,
@@ -421,6 +439,7 @@ async function submit() {
       .from('company')
       .insert({
         name: form.name,
+        short_name: form.short_name,
         siret: form.siret,
         domain: form.departments.join(','),
         address: form.address,

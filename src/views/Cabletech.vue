@@ -41,6 +41,10 @@
         <span class="affair-open-name">{{ listName }}</span>
         <button class="affair-del-btn" @click="deleteSelectedAffair" title="Supprimer l'affaire">🗑</button>
       </div>
+      <div v-if="affairTeam.length" class="ov-team">
+        👥 Équipe :
+        <span v-for="(p, i) in affairTeam" :key="i" class="ov-team-p" :class="{ asst: p.role === 'Assistant' }">{{ p.role }} <b>{{ p.name }}</b></span>
+      </div>
       <div v-for="g in needsByRole" :key="g.role" class="ov-role">
         <div class="ov-role-head" :style="{ borderColor: g.color, color: g.color }">
           {{ g.label }}
@@ -58,13 +62,14 @@
       </div>
       <div v-else class="ov-actions">
         <button class="ov-edit-all" @click="overviewMode = false">✏️ Modifier la distribution</button>
+        <button class="ov-validate" @click="validateCabling">✅ Valider mon câblage</button>
       </div>
     </div>
 
     <div class="content-liste" v-if="selectedAffair && !allCasesMode && !overviewMode">
-      <!-- Barre d'affaire ouverte : nom + suppression -->
-      <div class="affair-open-bar">
-        <span class="affair-open-name">{{ listName }}</span>
+      <!-- Barre compacte : valider + suppression (la fiche complète est au-dessus, panneau HOME) -->
+      <div class="affair-open-bar slim">
+        <button v-if="!isMaster" class="ov-validate small" @click="validateCabling" title="Valider mon câblage">✅ Valider mon câblage</button>
         <button class="affair-del-btn" @click="deleteSelectedAffair" title="Supprimer l'affaire">🗑</button>
       </div>
       <!-- Mode toggle : Select / flight-case / Micro (restent visibles même en Cablekit) -->
@@ -84,7 +89,7 @@
           class="mode-btn"
           :class="{ active: microMode && !ctMode }"
           @click="ctMode = false; onHelpClick('micro', toggleMicroMode)"
-        >Micro</button>
+        ><q-icon name="mic" size="16px" /> Micro</button>
       </div>
       <div class="content-button2">
         <span class="sync-dot" :class="{ saving: saving, synced: !saving }" :title="saving ? 'Synchronisation...' : 'Synchronisé'"></span>
@@ -517,15 +522,36 @@ function saveLabelsToRole(role) {
   a.role_labels = rl
 }
 
+// Convertit le matériel décrit par le master (texte libre, une ligne par poste : « PA : 12 K2* »)
+// en en-têtes de zones pour la grille du technicien. Garde l'astérisque (= stéréo / par côté).
+function parseMaterielZones(text) {
+  if (!text) return []
+  return String(text).split(/\r?\n/)
+    .map(l => l.trim())
+    // on saute les commentaires et les lignes qui ne sont pas des positions à câbler
+    .filter(l => l && !l.startsWith('(') && !/amplis?|rack|base micro|plan de sc[eè]ne/i.test(l))
+    .map(l => {
+      const ci = l.indexOf(':')
+      let v = (ci >= 0 ? l.slice(ci + 1) : l).trim()           // « 12 K2* »
+      if (!v || v === '…' || v === '...') v = (ci >= 0 ? l.slice(0, ci) : l).trim()
+      return v.slice(0, 20)
+    })
+    .filter(v => v && v !== '…' && v !== '...')
+    .slice(0, 6)
+}
+
 // Charger les libellés du métier actif, repli créneau par créneau :
-// nom du métier → sinon nom de création de l'affaire (lz/lfc) → sinon vide (placeholder Zone1…/FC1…)
+// nom du métier → sinon matériel pré-rempli par le master → sinon vide (placeholder Zone1…/FC1…)
 function loadLabelsForRole() {
   const a = selectedAffair.value
   if (!a) return
   const rl = (a.role_labels && a.role_labels[activeRole.value]) || {}
-  // Zones : uniquement le renommage par métier, sinon Zone1… (pas de défaut global ni de colonne affaire)
+  // Si le tech n'a pas encore nommé ses zones, on pré-remplit depuis le matériel du master
+  const hasZoneLabels = [1, 2, 3, 4, 5, 6].some(i => rl[`lz${i}`])
+  const masterZones = hasZoneLabels ? [] : parseMaterielZones(a[`materiel_${activeRole.value}`])
+  // Zones : renommage métier → matériel master → sinon Zone1…
   for (let i = 1; i <= 6; i++) {
-    zoneLabels[`lz${i}`] = rl[`lz${i}`] || ''
+    zoneLabels[`lz${i}`] = rl[`lz${i}`] || masterZones[i - 1] || ''
   }
   // Flight-cases : renommage métier → sinon noms de création de l'affaire → sinon FC1…
   for (let i = 1; i <= 7; i++) {
@@ -590,6 +616,43 @@ function toggleAllCases() {
     directMode.value = false
     overviewMode.value = false
   }
+}
+
+// Équipe de l'affaire (postes + assistants) — affichée au technicien
+function personNameC(fn, nm) {
+  fn = (fn || '').trim(); nm = (nm || '').trim()
+  if (!fn) return nm || '?'
+  if (!nm) return fn
+  return nm.toLowerCase().startsWith(fn.toLowerCase()) ? nm : fn + ' ' + nm
+}
+const affairTeam = computed(() => {
+  const a = selectedAffair.value
+  if (!a) return []
+  const t = []
+  if (a.front) t.push({ role: 'FOH', name: personNameC(a.tech_firstname, a.tech_name) })
+  if (a.monitor) t.push({ role: 'Monitor', name: personNameC(a.tech_firstname_monitor, a.tech_name_monitor) })
+  if (a.system) t.push({ role: 'Système', name: personNameC(a.tech_firstname_system, a.tech_name_system) })
+  if (a.stage) t.push({ role: 'Stage', name: personNameC(a.tech_firstname_stage, a.tech_name_stage) })
+  ;(Array.isArray(a.assistants) ? a.assistants : []).forEach(as => {
+    if (as.email || as.name || as.firstname) t.push({ role: 'Assistant', name: personNameC(as.firstname, as.name) })
+  })
+  return t
+})
+
+// Le technicien valide son câblage → message « câblage validé » à l'entreprise (master)
+async function validateCabling() {
+  const a = selectedAffair.value
+  if (!a) return
+  if (!confirm('Confirmer : ton câblage est prêt ?\nUn message « câblage validé » sera envoyé à l\'entreprise.')) return
+  const email = (localStorage.getItem('cablemaster-email') || '').trim() || null
+  try {
+    await supabase.from('message').insert({
+      affairid: a.affairid, sender_role: 'tech',
+      text: '✅ Câblage validé — ma caisse est prête.',
+      peer_email: email, read_by_tech: true, read_by_master: false,
+    })
+    alert('Câblage validé — message envoyé à l\'entreprise. ✅')
+  } catch (e) { alert('Erreur lors de la validation.') }
 }
 
 // Quitter la vue d'ensemble pour éditer la distribution
@@ -1484,7 +1547,7 @@ async function onAffairSelected(affair) {
   editingCable.value = null
   showAddInput.value = false
   // Technicien : afficher d'abord la vue d'ensemble par poste ; master : grille d'édition directe
-  overviewMode.value = !isMaster.value
+  overviewMode.value = false
   allCasesMode.value = false
 }
 
@@ -1859,6 +1922,15 @@ function colorForType(type) {
   background: #6b46c1; color: #fff; border: none; border-radius: 8px;
   padding: 8px 16px; font-size: 14px; font-weight: 700; cursor: pointer; margin-top: 10px;
 }
+.ov-validate {
+  background: #22c55e; color: #fff; border: none; border-radius: 8px;
+  padding: 8px 16px; font-size: 14px; font-weight: 800; cursor: pointer; margin-top: 10px; margin-left: 8px;
+}
+.ov-validate.small { padding: 5px 10px; font-size: 13px; margin: 0 6px 0 auto; }
+.grid-team { margin: 4px 0 8px; padding: 0 4px; }
+.ov-team { font-size: 13px; color: var(--text, #333); margin: 6px 0 10px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.ov-team-p { background: var(--bg-section, #eef); border-radius: 8px; padding: 2px 8px; }
+.ov-team-p.asst { background: #cffafe; color: #155e75; }
 .mode-bar {
   display: flex;
   flex-wrap: wrap;

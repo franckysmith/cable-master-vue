@@ -3,7 +3,7 @@
     <!-- Quand un projet est sélectionné : juste le titre -->
     <div v-if="affairStore.selectedAffair" class="selected-panel">
       <div class="selected-bar" @click="deselectAffair">
-        <span class="sel-dot">●</span>
+        <span class="sel-back" title="Retour à la liste">←</span>
         <span class="sel-name">{{ affairStore.selectedAffair.name }}</span>
         <span class="sel-date">{{ formatDate(affairStore.selectedAffair.receipt_date) }}</span>
         <span class="sel-change">▼</span>
@@ -11,25 +11,35 @@
       <div class="sel-details" @click.stop>
         <div class="sel-tags">
           <span v-if="hasUnreadMessage" class="unread-dot">★</span>
-          <span class="tag tag-front role-tag" :class="{ 'role-active': activeRole === 'front' }" @click.stop="$emit('select-role', 'front')">FOH</span>
-          <span class="tag tag-monitor role-tag" :class="{ 'role-active': activeRole === 'monitor' }" @click.stop="$emit('select-role', 'monitor')">Monitor</span>
-          <span class="tag tag-system role-tag" :class="{ 'role-active': activeRole === 'system' }" @click.stop="$emit('select-role', 'system')">System</span>
-          <span class="tag tag-stage role-tag" :class="{ 'role-active': activeRole === 'stage' }" @click.stop="$emit('select-role', 'stage')">Stage</span>
+          <span v-if="isMyRole(affairStore.selectedAffair, 'front')" class="tag tag-front role-tag" :class="{ 'role-active': activeRole === 'front' }" @click.stop="$emit('select-role', 'front')">FOH</span>
+          <span v-if="isMyRole(affairStore.selectedAffair, 'monitor')" class="tag tag-monitor role-tag" :class="{ 'role-active': activeRole === 'monitor' }" @click.stop="$emit('select-role', 'monitor')">Monitor</span>
+          <span v-if="isMyRole(affairStore.selectedAffair, 'system')" class="tag tag-system role-tag" :class="{ 'role-active': activeRole === 'system' }" @click.stop="$emit('select-role', 'system')">System</span>
+          <span v-if="isMyRole(affairStore.selectedAffair, 'stage')" class="tag tag-stage role-tag" :class="{ 'role-active': activeRole === 'stage' }" @click.stop="$emit('select-role', 'stage')">Stage</span>
+          <span v-if="amIAssistant(affairStore.selectedAffair)" class="tag tag-assistant">Assistant</span>
         </div>
         <MiniCal :affair="affairStore.selectedAffair" />
-        <span class="sel-catalog">{{ affairStore.selectedAffair.catalog_id > 1 ? '🏢 ' + getCatalogName(affairStore.selectedAffair) : '👤 Personnel' }}</span>
-        <button v-if="isLinkedToCompany" class="btn-action-sel btn-chat" :class="{ 'has-unread': hasUnreadMessage }" @click.stop="toggleChat" title="Question">❓</button>
-        <button class="btn-action-sel" @click.stop="showNote = !showNote" title="Note">📝</button>
-        <button class="btn-action-sel" :class="{ active: allCasesActive }" @click.stop="$emit('toggle-all-cases')" title="Vue flight-cases">📦</button>
-        <button class="btn-action-sel" @click.stop="openCalendar" title="Calendrier de tournée">📅</button>
-        <button class="btn-action-sel" @click.stop="$emit('share')" title="Partager">📤</button>
+        <div class="sel-contact">
+          <template v-if="affairStore.selectedAffair.catalog_id > 1">👤 <b>{{ affairStore.selectedAffair.manager || '—' }}</b> ({{ companyOf(affairStore.selectedAffair) }})</template>
+          <template v-else>👤 Personnel</template>
+        </div>
+        <div v-if="affairTeamA(affairStore.selectedAffair).length" class="sel-team">
+          👥 <span v-for="(p, i) in affairTeamA(affairStore.selectedAffair)" :key="i" class="sel-team-p" :class="{ asst: p.role === 'Assistant' }">{{ p.role }} <b>{{ p.name }}</b></span>
+        </div>
+        <div class="sel-buttons">
+          <button v-if="isLinkedToCompany" class="btn-action-sel btn-chat" :class="{ 'has-unread': hasUnreadMessage }" @click.stop="toggleChat" title="Chat">💬</button>
+          <button v-if="affairDocs.length" class="btn-action-sel btn-docs" @click.stop="openDocs" title="Bon de sortie / documents">📄<span v-if="affairDocs.length > 1" class="docs-count">{{ affairDocs.length }}</span></button>
+          <button class="btn-action-sel" :class="{ active: allCasesActive }" @click.stop="$emit('toggle-all-cases')" title="Vue flight-cases">📦</button>
+          <button class="btn-action-sel" @click.stop="openCalendar" title="Calendrier">📅</button>
+          <button class="btn-action-sel" @click.stop="$emit('share')" title="Partager">📤</button>
+        </div>
       </div>
 
       <!-- Calendrier de tournée -->
       <div v-if="showCalendar" class="cal-overlay" @click.self="showCalendar = false">
         <div class="cal-modal">
           <div class="cal-modal-head">
-            <span>📅 {{ affairStore.selectedAffair.name }} — {{ tourDates.length }} date(s)</span>
+            <span>📅 {{ affairStore.selectedAffair.name }}</span>
+            <button class="cal-close" @click="showCalendar = false" title="Fermer">✕</button>
             <button class="cal-valider" @click="showCalendar = false">Valider</button>
           </div>
           <TourCalendar
@@ -40,6 +50,7 @@
             :back-periods="backPeriods"
             :prep-days="prepDays"
             :prep-date="affairStore.selectedAffair.prep_date"
+            :prep-only="isTechRole"
             @toggle="toggleTourDate"
             @toggle-out="toggleOutDate"
             @toggle-back="toggleBackDate"
@@ -48,8 +59,28 @@
         </div>
       </div>
 
+      <!-- Bon de sortie / documents joints par l'entreprise -->
+      <div v-if="showDocs" class="docs-ov" @click.self="showDocs = false">
+        <div class="docs-ov-box">
+          <div class="docs-ov-head">
+            <span>📄 Bon de sortie / documents</span>
+            <button class="docs-ov-close" @click="showDocs = false" title="Fermer">✕</button>
+          </div>
+          <div class="docs-ov-body">
+            <div v-for="(d, i) in affairDocs" :key="i" class="docs-item" @click="openDoc(d)">
+              <span class="docs-ico">{{ isImgUrl(d.url) ? '🖼️' : '📄' }}</span>
+              <span class="docs-name">{{ d.name }}</span>
+              <span class="docs-go">↗</span>
+            </div>
+            <img v-if="affairDocs.length === 1 && isImgUrl(affairDocs[0].url)" :src="affairDocs[0].url" class="docs-preview" alt="" />
+          </div>
+          <p class="docs-hint">Vérifie ce qui te concerne, puis remplis tes zones de câblage.</p>
+        </div>
+      </div>
+
       <!-- Chat avec l'entreprise -->
       <div v-if="showChat" class="chat-panel" @click.stop>
+        <div class="chat-with">💬 Avec : <strong>{{ affairStore.selectedAffair.manager || 'Entreprise' }}</strong> ({{ companyOf(affairStore.selectedAffair) }})</div>
         <div class="chat-messages">
           <div v-for="msg in chatMessages" :key="msg.messageid" class="chat-msg" :class="msg.sender_role">
             <span class="msg-role">{{ msg.sender_role === 'tech' ? '🧑‍🔧' : '🏢' }}</span>
@@ -80,6 +111,9 @@
     <template v-else>
       <div class="top-bar">
         <button class="btn-new" @click="$emit('openNew', true)">New</button>
+        <button v-if="unreadCount" class="home-env" @click="openFirstUnread" title="Messages reçus">
+          <q-icon name="mail" size="20px" /><span class="he-badge">{{ unreadCount }}</span>
+        </button>
       </div>
 
       <div class="affair-list">
@@ -89,6 +123,7 @@
             v-for="affair in group.affairs"
             :key="affair.affairid"
             class="affair-card"
+            :class="{ 'from-company': affair.catalog_id > 1 }"
             @click="onAffairClick(affair)"
           >
             <div class="card-line1">
@@ -97,8 +132,14 @@
               <span class="card-date-main">{{ formatDate(affair.receipt_date) }}</span>
             </div>
             <div class="card-line2">
-              <span class="card-catalog">{{ affair.catalog_id > 1 ? '🏢 ' + getCatalogName(affair) : '👤 Personnel' }}</span>
-              <span class="card-updated">MAJ {{ formatDate(affair.updated_at || affair.created_at) }}</span>
+              <span v-if="affair.catalog_id > 1" class="card-mgr">👤 {{ affair.manager || '—' }} <span class="card-co">({{ companyOf(affair) }})</span></span>
+              <span v-else class="card-mgr">👤 Personnel</span>
+              <div class="card-right-col">
+                <span class="card-updated">MAJ {{ formatDate(affair.updated_at || affair.created_at) }}</span>
+                <button v-if="affair.catalog_id > 1" class="card-chat-big" :class="{ unread: cardUnread[affair.affairid] }" @click.stop="openCardChat(affair)" title="Ouvrir le chat">
+                  💬<span v-if="cardUnread[affair.affairid]" class="chat-dot">●</span>
+                </button>
+              </div>
             </div>
             <MiniCal :affair="affair" :upcoming-only="true" :max="5" />
             <div class="card-line3">
@@ -109,9 +150,7 @@
                 <span v-if="affair.stage" class="tag tag-stage">Stage</span>
                 <span v-if="!affair.front && !affair.monitor && !affair.system && !affair.stage" class="tag tag-none">—</span>
               </div>
-              <button class="btn-materiel" @click.stop="toggleCardMateriel(affair.affairid)">
-                {{ openMaterielId === affair.affairid ? '▲ Matériel' : '▼ Matériel' }}
-              </button>
+              <button class="btn-materiel" @click.stop="onAffairClick(affair)">🔌 Câblage</button>
             </div>
             <!-- Matériel dépliable dans la liste -->
             <div v-if="openMaterielId === affair.affairid" class="card-materiel" @click.stop>
@@ -143,6 +182,31 @@
         <div v-if="groupedAffairs.length === 0" class="empty">Aucune affaire trouvée</div>
       </div>
     </template>
+
+    <!-- Chat autonome (depuis le 💬 d'une carte) -->
+    <div v-if="chatModalOpen && chatModalAffair" class="chat-ov" @click.self="chatModalOpen = false">
+      <div class="chat-ov-box">
+        <div class="chat-ov-head">
+          <span class="chat-ov-title">💬 {{ chatModalAffair.manager || 'Entreprise' }} ({{ companyOf(chatModalAffair) }})</span>
+          <button class="chat-ov-close" @click="chatModalOpen = false">✕</button>
+        </div>
+        <div class="chat-ov-msgs">
+          <div v-for="msg in chatModalMessages" :key="msg.messageid" class="chat-msg" :class="msg.sender_role">
+            <span class="msg-role">{{ msg.sender_role === 'tech' ? '🧑‍🔧' : '🏢' }}</span>
+            <div class="msg-bubble"><p>{{ msg.text }}</p><span class="msg-time">{{ formatTime(msg.created_at) }}</span></div>
+          </div>
+          <div v-if="chatModalMessages.length === 0" class="chat-empty">Pas encore de messages</div>
+        </div>
+        <label class="chat-incl" :class="{ off: !chatIncludeCompany }">
+          <input type="checkbox" v-model="chatIncludeCompany" />
+          {{ chatIncludeCompany ? '☑ Entreprise incluse' : '⬜ Entre nous (sans l\'entreprise)' }}
+        </label>
+        <div class="chat-ov-input">
+          <input v-model="chatModalText" placeholder="Écrire un message…" @keydown.enter="sendChatModal" />
+          <button @click="sendChatModal" :disabled="!chatModalText.trim()">Envoyer</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -160,6 +224,21 @@ const currentUser = inject('currentUser', ref('T'))
 
 // --- Calendrier de tournée ---
 const showCalendar = ref(false)
+const showDocs = ref(false)
+// Documents joints par l'entreprise (bon de sortie, plan de scène, patch…)
+const affairDocs = computed(() => {
+  const a = affairStore.selectedAffair
+  if (!a) return []
+  const names = a.attachment_name ? a.attachment_name.split(',').filter(Boolean) : []
+  const urls = a.attachment_url ? a.attachment_url.split(',') : []
+  return names.map((n, i) => ({ name: n, url: urls[i] || '' })).filter(d => d.url)
+})
+function isImgUrl(u) { return /\.(png|jpe?g|gif|webp|svg|avif)(\?|$)/i.test(u || '') }
+function openDoc(d) { if (d?.url) window.open(d.url, '_blank') }
+function openDocs() {
+  if (affairDocs.value.length === 1) { openDoc(affairDocs.value[0]); return }
+  showDocs.value = true
+}
 const tourDates = ref([])
 const outDates = ref([])
 const backDates = ref([])
@@ -242,6 +321,8 @@ const isLinkedToCompany = computed(() => {
   const a = affairStore.selectedAffair
   return a?.catalog_id && a.catalog_id > 1
 })
+// Technicien (pas master) → calendrier restreint à la prépa
+const isTechRole = computed(() => (localStorage.getItem('cablemaster-role') || 'technician') !== 'master')
 
 async function toggleChat() {
   showChat.value = !showChat.value
@@ -250,6 +331,47 @@ async function toggleChat() {
     // Marquer comme lu par le technicien
     await markReadByTech()
   }
+}
+
+// Chat autonome (modal) — ouvert depuis une carte, SANS aller dans la distribution
+const chatModalOpen = ref(false)
+const chatModalAffair = ref(null)
+const chatModalMessages = ref([])
+const chatModalText = ref('')
+// Coché = l'entreprise (master) est incluse ; décoché = message entre l'équipe seulement
+const chatIncludeCompany = ref(true)
+async function openCardChat(affair) {
+  chatModalAffair.value = affair
+  chatModalText.value = ''
+  chatModalOpen.value = true
+  await loadChatModal()
+}
+async function loadChatModal() {
+  const a = chatModalAffair.value
+  if (!a) return
+  const { supabase } = await import('../lib/supabase')
+  const { data } = await supabase.from('message').select('*').eq('affairid', a.affairid).order('created_at', { ascending: true })
+  chatModalMessages.value = data || []
+  await supabase.from('message').update({ read_by_tech: true }).eq('affairid', a.affairid).eq('sender_role', 'master').eq('read_by_tech', false)
+  if (cardUnread.value[a.affairid]) { delete cardUnread.value[a.affairid]; cardUnread.value = { ...cardUnread.value } }
+}
+// Enveloppe HOME : nb d'affaires avec message non lu + ouvrir la 1ʳᵉ
+const unreadCount = computed(() => Object.keys(cardUnread.value || {}).length)
+function openFirstUnread() {
+  const id = Object.keys(cardUnread.value)[0]
+  if (!id) return
+  const a = affairStore.affairs.find(x => String(x.affairid) === String(id))
+  if (a) openCardChat(a)
+}
+
+async function sendChatModal() {
+  const t = chatModalText.value.trim()
+  const a = chatModalAffair.value
+  if (!t || !a) return
+  const { supabase } = await import('../lib/supabase')
+  await supabase.from('message').insert({ affairid: a.affairid, sender_role: 'tech', text: t, peer_email: myPeerEmail(a), read_by_tech: true, read_by_master: false, team_only: !chatIncludeCompany.value })
+  chatModalText.value = ''
+  await loadChatModal()
 }
 
 async function loadChatMessages() {
@@ -422,34 +544,94 @@ Cordialement`)
   }
 }
 const catalogs = ref({})
+const companiesByCat = ref({}) // catalog_id → nom d'entreprise (Moon, Tarpo…)
+const cardUnread = ref({})     // affairid → true si message master non lu pour ce technicien
 
 onMounted(async () => {
   affairStore.fetchAffairs()
-  // Charger les noms des catalogues
   const { supabase } = await import('../lib/supabase')
+  // Noms des catalogues
   const { data } = await supabase.from('catalog').select('catalogid, name, owner_name')
-  if (data) {
-    for (const c of data) {
-      catalogs.value[c.catalogid] = c.owner_name || c.name
-    }
-  }
+  if (data) for (const c of data) catalogs.value[c.catalogid] = c.owner_name || c.name
+  // Vraies entreprises (par catalogue)
+  const { data: comps } = await supabase.from('company').select('catalog_id, name, short_name')
+  if (comps) for (const c of comps) if (c.catalog_id) companiesByCat.value[c.catalog_id] = c.short_name || c.name
+  await loadCardUnread()
 })
+
+// Affaires avec message master non lu (pour la pastille du 💬)
+async function loadCardUnread() {
+  const myEmail = (localStorage.getItem('cablemaster-email') || '').trim().toLowerCase()
+  if (!myEmail) { cardUnread.value = {}; return }
+  const { supabase } = await import('../lib/supabase')
+  const { data } = await supabase.from('message')
+    .select('affairid')
+    .eq('sender_role', 'master')
+    .eq('read_by_tech', false)
+    .ilike('peer_email', myEmail)
+  const m = {}
+  for (const x of (data || [])) m[x.affairid] = true
+  cardUnread.value = m
+}
 
 function getCatalogName(affair) {
   if (!affair.catalog_id) return 'Ma liste'
   return catalogs.value[affair.catalog_id] || 'Ma liste'
 }
+// Nom de l'entreprise de l'affaire (Moon…) ; repli sur le catalogue
+function companyOf(affair) {
+  return companiesByCat.value[affair.catalog_id] || getCatalogName(affair)
+}
+
+// Postes du technicien sur cette affaire (par email) — admin (techid 0) voit tous les postes actifs
+function myEmailLc() { return (localStorage.getItem('cablemaster-email') || '').trim().toLowerCase() }
+function isMyRole(a, role) {
+  if (!a) return false
+  const techId = parseInt(localStorage.getItem('cablemaster-techid')) || 0
+  if (techId === 0) return !!a[role]
+  const em = myEmailLc()
+  const map = { front: a.tech_email, monitor: a.tech_email_monitor, system: a.tech_email_system, stage: a.tech_email_stage }
+  return !!em && (map[role] || '').trim().toLowerCase() === em
+}
+function amIAssistant(a) {
+  if (!a || !Array.isArray(a.assistants)) return false
+  const em = myEmailLc()
+  return !!em && a.assistants.some(x => (x.email || '').trim().toLowerCase() === em)
+}
+// Équipe de l'affaire (postes + assistants) — pour la fiche
+function pName(fn, nm) {
+  fn = (fn || '').trim(); nm = (nm || '').trim()
+  if (!fn) return nm || '?'
+  if (!nm) return fn
+  return nm.toLowerCase().startsWith(fn.toLowerCase()) ? nm : fn + ' ' + nm
+}
+function affairTeamA(a) {
+  if (!a) return []
+  const t = []
+  if (a.front) t.push({ role: 'FOH', name: pName(a.tech_firstname, a.tech_name) })
+  if (a.monitor) t.push({ role: 'Monitor', name: pName(a.tech_firstname_monitor, a.tech_name_monitor) })
+  if (a.system) t.push({ role: 'Système', name: pName(a.tech_firstname_system, a.tech_name_system) })
+  if (a.stage) t.push({ role: 'Stage', name: pName(a.tech_firstname_stage, a.tech_name_stage) })
+  ;(Array.isArray(a.assistants) ? a.assistants : []).forEach(as => { if (as.email || as.name || as.firstname) t.push({ role: 'Assistant', name: pName(as.firstname, as.name) }) })
+  return t
+}
 
 
 const userAffairs = computed(() => {
-  const uid = currentUser.value
   const techId = parseInt(localStorage.getItem('cablemaster-techid')) || 0
 
   // Admin (T, M) voit tout
   if (techId === 0) return affairStore.affairs
 
-  // Technicien voit seulement ses affaires (filtre par tech_id)
-  return affairStore.affairs.filter(a => a.tech_id === techId)
+  // Technicien : ses propres affaires (tech_id) OU celles où il est assigné à un poste (par email)
+  const myEmail = (localStorage.getItem('cablemaster-email') || '').trim().toLowerCase()
+  const matchEmail = (e) => !!e && !!myEmail && e.trim().toLowerCase() === myEmail
+  return affairStore.affairs.filter(a => {
+    if (a.tech_id === techId) return true
+    if (matchEmail(a.tech_email) || matchEmail(a.tech_email_monitor) || matchEmail(a.tech_email_system) || matchEmail(a.tech_email_stage)) return true
+    if (Array.isArray(a.assistants) && a.assistants.some(x => matchEmail(x.email))) return true
+    return false
+  })
 })
 
 const filteredAffairs = computed(() => {
@@ -552,6 +734,23 @@ function deselectAffair() {
   color: var(--color1);
   font-size: 16px;
 }
+.sel-back {
+  font-size: 22px; font-weight: 900; color: var(--color1); line-height: 1; flex-shrink: 0;
+}
+/* Chat autonome (modal) */
+.chat-ov { position: fixed; inset: 0; z-index: 2200; background: rgba(0,0,0,0.55); display: flex; align-items: flex-start; justify-content: center; padding: 56px 6px 8px; }
+.chat-ov-box { width: 100%; max-width: 720px; height: calc(100dvh - 72px); display: flex; flex-direction: column; background: var(--bg-card, #1a1a2e); border: 1px solid var(--border, #3a3a55); border-radius: 14px; overflow: hidden; }
+.chat-ov-head { display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: var(--color1); }
+.chat-ov-title { flex: 1; font-size: 14px; font-weight: 800; color: #fff; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chat-ov-close { background: transparent; border: none; color: #fff; font-size: 18px; cursor: pointer; box-shadow: none; min-width: auto; }
+.chat-ov-msgs { flex: 1; min-height: 0; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+.chat-incl { display: flex; align-items: center; gap: 6px; padding: 6px 12px 0; font-size: 12px; font-weight: 700; color: var(--text, #ddd); cursor: pointer; }
+.chat-incl.off { color: #f59e0b; }
+.chat-incl input { width: 16px; height: 16px; }
+.chat-ov-input { display: flex; gap: 8px; padding: 10px 12px; border-top: 1px solid var(--border, #3a3a55); }
+.chat-ov-input input { flex: 1; min-width: 0; padding: 10px 12px; border: 1px solid var(--border-light, #444); border-radius: 10px; background: var(--bg-input, #2a2a45); color: var(--text, #e0e0e0); font-size: 15px; }
+.chat-ov-input button { padding: 10px 16px; background: var(--color1); color: #fff; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; box-shadow: none; min-width: auto; }
+.chat-ov-input button:disabled { opacity: 0.4; }
 .sel-name {
   font-size: 16px;
   font-weight: 700;
@@ -596,6 +795,12 @@ function deselectAffair() {
   color: var(--color1);
   font-weight: 600;
 }
+.sel-contact { width: 100%; font-size: 13px; color: var(--text, #333); }
+.sel-contact b { color: var(--color1); }
+.sel-team { width: 100%; display: flex; flex-wrap: wrap; gap: 6px; font-size: 12px; color: var(--text, #333); align-items: center; }
+.sel-team-p { background: var(--bg-section, #eef); border-radius: 8px; padding: 2px 8px; }
+.sel-team-p.asst { background: #cffafe; color: #155e75; }
+.sel-buttons { width: 100%; display: flex; gap: 8px; }
 .cal-overlay {
   position: fixed;
   inset: 0;
@@ -624,6 +829,11 @@ function deselectAffair() {
   font-weight: 800;
   font-size: 14px;
   margin-bottom: 4px;
+}
+.cal-close {
+  padding: 7px 12px; background: transparent; border: 1px solid var(--border-light, #ccc);
+  border-radius: 8px; font-size: 14px; font-weight: 800; color: var(--text-muted, #888);
+  cursor: pointer; box-shadow: none; min-width: auto;
 }
 .cal-valider {
   padding: 7px 16px;
@@ -666,6 +876,21 @@ function deselectAffair() {
   background: var(--color1);
   border-color: var(--color1);
 }
+.btn-docs { position: relative; }
+.docs-count { position: absolute; top: -6px; right: -6px; background: #2563eb; color: #fff; font-size: 10px; font-weight: 800; min-width: 15px; height: 15px; line-height: 15px; border-radius: 8px; padding: 0 3px; }
+/* Modale bon de sortie / documents */
+.docs-ov { position: fixed; inset: 0; z-index: 2200; background: rgba(0,0,0,0.55); display: flex; align-items: flex-start; justify-content: center; padding: 56px 10px 10px; }
+.docs-ov-box { width: 100%; max-width: 560px; max-height: calc(100dvh - 80px); display: flex; flex-direction: column; background: var(--bg-card, #fff); border-radius: 12px; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.4); }
+.docs-ov-head { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; font-weight: 800; font-size: 15px; color: var(--text, #222); border-bottom: 1px solid var(--border, #e0e0e0); }
+.docs-ov-close { background: none; border: none; font-size: 18px; cursor: pointer; color: var(--text-muted, #888); }
+.docs-ov-body { flex: 1; min-height: 0; overflow-y: auto; padding: 10px 12px; }
+.docs-item { display: flex; align-items: center; gap: 10px; padding: 12px 10px; border: 1px solid var(--border-light, #ddd); border-radius: 10px; margin-bottom: 8px; cursor: pointer; }
+.docs-item:active { background: rgba(37,99,235,0.08); }
+.docs-ico { font-size: 20px; }
+.docs-name { flex: 1; min-width: 0; font-size: 14px; font-weight: 600; color: var(--text, #222); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.docs-go { color: var(--color1); font-size: 18px; font-weight: 800; }
+.docs-preview { width: 100%; border-radius: 10px; margin-top: 4px; }
+.docs-hint { font-size: 12px; color: var(--text-muted, #888); padding: 4px 14px 12px; margin: 0; font-style: italic; }
 .btn-chat.has-unread {
   animation: pulse-red 1.5s infinite;
 }
@@ -687,6 +912,8 @@ function deselectAffair() {
   padding: 8px 12px;
   border-top: 1px solid var(--border-light, #eee);
 }
+.chat-with { font-size: 13px; color: var(--text, #333); margin-bottom: 6px; }
+.chat-with strong { color: var(--color1); }
 .chat-messages {
   max-height: 200px;
   overflow-y: auto;
@@ -709,19 +936,22 @@ function deselectAffair() {
   flex-shrink: 0;
 }
 .msg-bubble {
-  background: var(--bg-card, #f0f0f0);
+  background: #e5e7eb;
   padding: 6px 10px;
   border-radius: 10px;
   max-width: 80%;
 }
 .chat-msg.master .msg-bubble {
-  background: var(--color1-light);
+  background: #c7d2fe;
 }
 .msg-bubble p {
   margin: 0;
-  font-size: 13px;
-  color: var(--text, #333);
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.35;
+  color: #000 !important;
 }
+.msg-time { color: #444 !important; font-size: 11px; }
 .msg-time {
   font-size: 10px;
   color: var(--text-muted, #999);
@@ -922,6 +1152,8 @@ function deselectAffair() {
   cursor: pointer;
   transition: background 0.1s, border-color 0.1s;
 }
+/* Affaire sollicitée par une entreprise → barre rouge à gauche (perso = rien) */
+.affair-card.from-company { border-left: 4px solid #ef4444; }
 .affair-card:hover {
   border-color: var(--color1);
 }
@@ -958,7 +1190,7 @@ function deselectAffair() {
 .card-line2 {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 8px;
   margin-top: 2px;
   padding-left: 26px;
 }
@@ -967,11 +1199,25 @@ function deselectAffair() {
   font-weight: 600;
   color: var(--color1);
 }
+.card-mgr { font-size: 12px; font-weight: 700; color: var(--text, #333); }
+.card-co { color: var(--color1); font-weight: 700; }
+.card-right-col { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; margin-left: auto; flex-shrink: 0; }
+.card-chat-big {
+  position: relative;
+  background: transparent; border: none; cursor: pointer; box-shadow: none;
+  min-width: auto; padding: 0; font-size: 30px; line-height: 1;
+}
+.card-chat-big .chat-dot {
+  position: absolute; top: -2px; right: -4px; color: #ef4444; font-size: 15px; line-height: 1;
+}
+.card-chat-big.unread { animation: chat-blink 1.3s infinite; }
+@keyframes chat-blink { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
 .card-updated {
   font-size: 13px;
   color: #888;
   white-space: nowrap;
   flex-shrink: 0;
+  margin-left: auto;
 }
 .card-line3 {
   display: flex;
@@ -1007,6 +1253,10 @@ function deselectAffair() {
   background: #8b5cf6;
   color: #fff;
 }
+.tag-assistant {
+  background: #06b6d4;
+  color: #fff;
+}
 /* Sélecteur de métier : le métier choisi ressort, les autres sont atténués */
 .role-tag {
   cursor: pointer;
@@ -1038,6 +1288,17 @@ function deselectAffair() {
   text-align: center;
   color: #999;
   font-size: 13px;
+}
+.home-env {
+  position: relative; display: inline-flex; align-items: center; justify-content: center;
+  width: 36px; height: 32px; border: 1px solid #ef4444; border-radius: 8px;
+  background: transparent; color: #ef4444; cursor: pointer; box-shadow: none; min-width: auto;
+  animation: chat-blink 1.4s infinite;
+}
+.home-env .he-badge {
+  position: absolute; top: -7px; right: -7px; background: #ef4444; color: #fff;
+  font-size: 10px; font-weight: 800; min-width: 16px; height: 16px; line-height: 16px;
+  border-radius: 8px; padding: 0 3px; text-align: center;
 }
 .btn-new {
   cursor: pointer;

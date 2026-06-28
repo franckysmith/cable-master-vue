@@ -11,16 +11,12 @@
           <template v-else>● En ligne</template>
         </span>
         <q-space />
+        <span v-if="(userRole === 'master' || userRole === 'gerant') && companyName" class="company-chip" :title="'Entreprise connectée : ' + companyName">🏢 {{ companyName }}</span>
         <span class="help-btn" :class="{ active: helpMode }" @click="helpMode = !helpMode" title="Aide">?</span>
         <span class="user-selector" @click="showUserMenu = !showUserMenu">
           {{ currentUserLabel }}
         </span>
       </q-toolbar>
-
-      <!-- Bandeaux d'état -->
-      <div v-if="userRole === 'master' && companyName" class="company-bar">
-        🏢 {{ companyName }}
-      </div>
     </q-header>
 
     <!-- Bouton menu flottant — visible quand le header est caché -->
@@ -165,7 +161,7 @@ const affairStore = useAffairStore()
 const router = useRouter()
 const currentRoute = useRoute()
 const PAGE_TITLES = {
-  '/': 'Cabletech',
+  '/': 'Cinod-Prep',
   '/CableList': 'CableList',
   '/FlightType': 'Cablekit',
   '/MasterAffaire': 'Master Affaire',
@@ -234,7 +230,7 @@ provide('helpMode', helpMode)
 
 const users = [
   { id: 'T', label: 'T', role: 'technician', name: 'Franck (Admin)', superadmin: true, techId: 0 },
-  { id: 'T1', label: 'T1FR', role: 'technician', name: 'Franck (Entreprise M)', techId: 1, catalogId: 6, companyId: 1 },
+  { id: 'T1', label: 'T1FR', role: 'technician', name: 'Franck Richard', techId: 8, email: 'fr.cinod@gmail.com', catalogId: 6, companyId: 1 },
   { id: 'T2', label: 'T2N', role: 'technician', name: 'Naïm Richard', techId: 2, catalogId: 6, companyId: 1 },
   { id: 'T3', label: 'T3', role: 'technician', name: 'Michel', techId: 3 },
   { id: 'F', label: 'F', role: 'technician', name: 'Freelance (Franck)', techId: 20, catalogId: 3, freelance: true },
@@ -276,6 +272,8 @@ function switchUser(u) {
   localStorage.setItem('cablemaster-userid', u.id)
   localStorage.setItem('cablemaster-role', u.role)
   localStorage.setItem('cablemaster-techid', u.techId)
+  if (u.email) localStorage.setItem('cablemaster-email', u.email)
+  else localStorage.removeItem('cablemaster-email')
   if (u.catalogId) {
     localStorage.setItem('cablemaster-catalogid', u.catalogId)
   } else {
@@ -292,9 +290,9 @@ function switchUser(u) {
     localStorage.removeItem('cablemaster-superadmin')
   }
   showUserMenu.value = false
-  if ((u.role === 'master' || u.role === 'gerant') && !companyName.value) {
-    loadCompany()
-  }
+  // Rafraîchir le nom d'entreprise selon le companyid de l'utilisateur (sinon reste sur l'ancienne, ex. Tarpo)
+  if (u.companyId) loadCompany()
+  else { companyName.value = ''; localStorage.removeItem('cablemaster-company') }
 }
 
 provide('userRole', userRole)
@@ -304,10 +302,20 @@ provide('drawerOpen', drawer)
 provide('currentUser', currentUser)
 
 async function loadCompany() {
-  const { data } = await supabase.from('company').select('name').limit(1)
-  if (data?.[0]) {
-    companyName.value = data[0].name
-    localStorage.setItem('cablemaster-company', data[0].name)
+  // Charger l'entreprise correspondant au companyid courant (pas la 1ʳᵉ venue)
+  const cid = parseInt(localStorage.getItem('cablemaster-companyid')) || null
+  let name = ''
+  if (cid) {
+    const { data } = await supabase.from('company').select('name').eq('companyid', cid).maybeSingle()
+    name = data?.name || ''
+  }
+  if (!name) {
+    const { data } = await supabase.from('company').select('name').order('companyid').limit(1)
+    name = data?.[0]?.name || ''
+  }
+  if (name) {
+    companyName.value = name
+    localStorage.setItem('cablemaster-company', name)
   }
 }
 
@@ -547,14 +555,20 @@ select {
 }
 
 /* ===== Sélecteur utilisateur ===== */
-.company-bar {
-  background: var(--color3);
-  color: #fff;
-  text-align: center;
-  padding: 6px;
-  font-size: 14px;
+/* Étiquette discrète de l'entreprise connectée (à droite de l'en-tête) */
+.company-chip {
+  font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.5px;
+  color: #fff;
+  opacity: 0.85;
+  background: rgba(255, 255, 255, 0.14);
+  border-radius: 10px;
+  padding: 2px 8px;
+  margin-right: 6px;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .status-bar {
   text-align: center;

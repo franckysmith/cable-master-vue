@@ -4,6 +4,7 @@
     <DocViewer :affair="selected" />
     <div class="page-title-row">
       <button class="page-switch" :class="{ active: showGantt }" @click="showGantt = !showGantt">📊 Timeline</button>
+      <span class="today-label">{{ todayLabel }}</span>
       <button v-if="showGantt" class="page-switch tl-masquer" :class="{ active: showHiddenTl }" @click="showHiddenTl = !showHiddenTl">{{ showHiddenTl ? '👁 Masqués' : 'Masquer' }}</button>
     </div>
 
@@ -289,17 +290,17 @@
         <div class="card-head" :class="{ 'has-actions': selected?.affairid === affair.affairid && detailOpen }">
           <span v-if="isNew(affair)" class="new-badge">NEW</span>
           <button v-if="isNew(affair)" class="send-badge-btn" @click.stop="sendAffair(affair)" title="Envoyer l'affaire">Envoyer</button>
-          <span v-if="isSent(affair)" class="sent-badge" title="Affaire envoyée">Envoyé</span>
+          <button v-if="isSent(affair)" class="sent-badge" @click.stop="openSentInfo(affair)" title="Voir la date d'envoi / relancer">Envoyé</button>
           <button class="follow-btn" :class="{ on: affair.followed }" @click.stop="toggleFollow(affair)" :title="affair.followed ? 'Suivi' : 'À suivre'">{{ affair.followed ? '★' : '☆' }}</button>
           <span v-if="unreadAffairs[affair.affairid]" class="unread-star" @click.stop="openChatOnly(affair)">★</span>
           <span class="card-name" :class="{ 'is-today': isTodayFor(affair), 'is-tomorrow': !isTodayFor(affair) && isTomorrowFor(affair) }">{{ affair.name || '(Sans nom)' }}</span>
           <!-- Carte sélectionnée → menu éditable ; sinon → filtre par gérant -->
           <select v-if="selected?.affairid === affair.affairid" class="manager-select" :value="affair.manager || ''" @click.stop @change="onManagerChange(affair, $event)" title="Qui gère cette affaire">
-            <option value="">— gérant</option>
+            <option value="">— Aucun</option>
             <option v-for="m in managerOptions" :key="m.value" :value="m.value">{{ m.label }}</option>
           </select>
-          <button v-else class="manager-chip" :class="{ none: !affair.manager, active: managerFilter && managerFilter === affair.manager, 'mgr-gerant': managerRole(affair.manager) === 'gerant', 'mgr-principal': managerRole(affair.manager) === 'principal' }" @click.stop="clickManager(affair)" :title="affair.manager ? 'Voir les affaires gérées par ' + affair.manager : 'Aucun gérant'">
-            {{ affair.manager || '— gérant' }}
+          <button v-else class="manager-chip" :class="{ none: !affair.manager, active: managerFilter && managerFilter === affair.manager, 'mgr-gerant': managerRole(affair.manager) === 'gerant', 'mgr-principal': managerRole(affair.manager) === 'principal' }" @click.stop="clickManager(affair)" :title="affair.manager ? 'Voir les affaires gérées par ' + affair.manager : 'Aucun responsable'">
+            {{ affair.manager || '— Aucun' }}
           </button>
         </div>
 
@@ -371,8 +372,8 @@
 
         <!-- Panneau Fiche (détails) — au 2e clic -->
         <div v-if="selected?.affairid === affair.affairid && detailOpen" class="card-expanded" @click.stop>
-          <!-- Contacter tous -->
-          <a v-if="getAllEmails(affair).length > 0" :href="'mailto:' + getAllEmails(affair).join(',')" class="fiche-contact-all">📩 Contacter tous</a>
+          <!-- Contacter tous : push aux connectés, email aux non-connectés -->
+          <button v-if="getAllEmails(affair).length > 0" class="fiche-contact-all" @click="contactAll(affair)">🔔 Contacter tous</button>
 
           <!-- Personnes par zone -->
           <div v-for="zone in getAffairZones(affair)" :key="zone.key" class="fiche-person">
@@ -543,6 +544,20 @@
         <div class="zone-modal-foot">
           <button class="ze-skip" @click="confirmSendAffair(false)">Enregistrer</button>
           <button class="ze-send" @click="confirmSendAffair(true)">Enregistrer &amp; Envoyer</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Popup « Envoyé » : date d'envoi + relancer -->
+    <div v-if="sentInfo.open && sentInfo.affair" class="sent-pop-overlay" @click.self="sentInfo.open = false">
+      <div class="sent-pop">
+        <div class="sent-pop-title">📨 {{ sentInfo.affair.name || 'Affaire' }}</div>
+        <div class="sent-pop-date">
+          Envoyé le <b>{{ sentInfo.affair.sent_at ? formatSentAt(sentInfo.affair.sent_at) : '(date inconnue)' }}</b>
+        </div>
+        <div class="sent-pop-actions">
+          <button class="sp-cancel" @click="sentInfo.open = false">Fermer</button>
+          <button class="sp-resend" @click="resendAffair">🔔 Relancer</button>
         </div>
       </div>
     </div>
@@ -879,6 +894,7 @@ async function toggleTab(affair, tab) {
       .from('message')
       .select('*')
       .eq('affairid', affair.affairid)
+      .eq('team_only', false)
       .order('created_at', { ascending: true })
     affairMessages.value = data || []
   }
@@ -961,6 +977,7 @@ async function loadAffairs() {
       .eq('affairid', a.affairid)
       .eq('sender_role', 'tech')
       .eq('read_by_master', false)
+      .eq('team_only', false)
       .order('created_at', { ascending: false })
       .limit(1)
     if (msgs?.length > 0) {
@@ -979,6 +996,7 @@ async function refreshUnread() {
     .select('affairid, text, created_at')
     .eq('sender_role', 'tech')
     .eq('read_by_master', false)
+    .eq('team_only', false)
     .in('affairid', ids)
     .order('created_at', { ascending: false })
   const unread = {}
@@ -1228,6 +1246,9 @@ function allTechs(a) {
   if (a.monitor) all.push({ cls: 'retour', name: a.tech_firstname_monitor || a.tech_name_monitor || '?', full: personName(a.tech_firstname_monitor, a.tech_name_monitor), email: a.tech_email_monitor || '', installed: isReachable(a.tech_email_monitor) })
   if (a.system) all.push({ cls: 'systeme', name: a.tech_firstname_system || a.tech_name_system || '?', full: personName(a.tech_firstname_system, a.tech_name_system), email: a.tech_email_system || '', installed: isReachable(a.tech_email_system) })
   if (a.stage) all.push({ cls: 'scene', name: a.tech_firstname_stage || a.tech_name_stage || '?', full: personName(a.tech_firstname_stage, a.tech_name_stage), email: a.tech_email_stage || '', installed: isReachable(a.tech_email_stage) })
+  ;(Array.isArray(a.assistants) ? a.assistants : []).forEach(as => {
+    if (as.email || as.name || as.firstname) all.push({ cls: 'assistant', name: as.firstname || as.name || 'Assistant', full: personName(as.firstname, as.name), email: as.email || '', installed: isReachable(as.email) })
+  })
   return all
 }
 function topTechs(a) { return allTechs(a).slice(0, 2) }
@@ -1337,6 +1358,37 @@ const ZONE_TPL = {
 }
 const zoneEditor = reactive({ open: false, affair: null, front: '', monitor: '', system: '', stage: '', docNames: [], docUrls: [], newFiles: [], notify: true, notifyMsg: '' })
 
+// Popup date d'envoi / relancer (clic sur le badge « Envoyé »)
+const sentInfo = reactive({ open: false, affair: null })
+// Date du jour affichée dans la barre (ex. « Lundi 9 juin »)
+const todayLabel = computed(() => {
+  const s = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
+  return s.charAt(0).toUpperCase() + s.slice(1)
+})
+function openSentInfo(a) { sentInfo.affair = a; sentInfo.open = true }
+function formatSentAt(iso) {
+  const d = new Date(iso)
+  if (isNaN(d)) return iso
+  return d.toLocaleString('fr-FR', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })
+}
+async function resendAffair() {
+  const a = sentInfo.affair
+  if (!a) return
+  const peers = chatPeers(a)
+  if (!peers.length) { showMessage('Aucun technicien assigné', 'error'); return }
+  const msg = prompt('Message de relance :', `Rappel — ${a.name || 'affaire'} : peux-tu finaliser ta liste ? Merci.`)
+  if (!msg) return
+  const now = new Date().toISOString()
+  a.sent_at = now
+  try {
+    await supabase.from('message').insert(peers.map(p => ({ affairid: a.affairid, sender_role: 'master', text: msg, peer_email: p.email, read_by_master: true, read_by_tech: false })))
+    await supabase.from('affair').update({ sent_at: now }).eq('affairid', a.affairid)
+    const { data } = await supabase.functions.invoke('send-push', { body: { emails: peers.map(p => p.email), title: a.name || 'Cinod-Prep', body: msg, url: '/?affair=' + a.affairid } })
+    showMessage(`Relancé (${data?.sent || 0} notif·s)`, 'success')
+  } catch (e) { showMessage('Erreur relance', 'error') }
+  sentInfo.open = false
+}
+
 // Clic « Envoyer » → ouvre l'éditeur de zones (le master renseigne chaque poste avant d'envoyer)
 function sendAffair(a) {
   zoneEditor.affair = a
@@ -1403,7 +1455,7 @@ async function confirmSendAffair(send = false) {
   zoneEditor.docNames = names
   zoneEditor.docUrls = urls
   zoneEditor.newFiles = []
-  if (send) { patch.status = 'sent'; patch.followed = true }
+  if (send) { patch.status = 'sent'; patch.followed = true; patch.sent_at = new Date().toISOString() }
   Object.assign(a, patch)
   const { error } = await supabase.from('affair').update(patch).eq('affairid', a.affairid)
   if (error) { showMessage('Erreur: ' + error.message, 'error'); return }
@@ -1868,13 +1920,39 @@ async function notifyPerson(affair, zone) {
   const who = zone.firstname || zone.name || ''
   const msg = prompt(`Notification à ${who} pour « ${affair.name || 'l\'affaire'} » :`, '')
   if (!msg) return
+  // Trace dans le chat (visible même si le push n'arrive pas) + push
   try {
+    await supabase.from('message').insert({ affairid: affair.affairid, sender_role: 'master', text: msg, peer_email: zone.email, read_by_master: true, read_by_tech: false })
     const { data, error } = await supabase.functions.invoke('send-push', {
       body: { emails: [zone.email], title: affair.name || 'Cinod-Prep', body: msg, url: '/?affair=' + affair.affairid },
     })
-    if (error) showMessage('Erreur : ' + error.message, 'error')
-    else showMessage(`Notification envoyée (${data?.sent || 0} appareil·s)`, 'success')
+    if (error) showMessage('Message envoyé (push KO : ' + error.message + ')', 'error')
+    else showMessage(`Message envoyé (${data?.sent || 0} notif·s)`, 'success')
   } catch (e) { showMessage('Erreur envoi', 'error') }
+}
+
+// « Contacter tous » : push aux connectés, email aux non-connectés (+ trace chat)
+async function contactAll(affair) {
+  const people = allTechs(affair).filter(p => p.email)
+  if (!people.length) { showMessage('Aucun contact', 'error'); return }
+  const msg = prompt(`Message à l'équipe de « ${affair.name || 'l\'affaire'} » :`, '')
+  if (!msg) return
+  const connected = people.filter(p => p.installed)
+  const offline = people.filter(p => !p.installed)
+  // Connectés → notification push + trace chat
+  if (connected.length) {
+    const emails = connected.map(p => p.email)
+    try {
+      await supabase.from('message').insert(emails.map(e => ({ affairid: affair.affairid, sender_role: 'master', text: msg, peer_email: e, read_by_master: true, read_by_tech: false })))
+      const { data } = await supabase.functions.invoke('send-push', { body: { emails, title: affair.name || 'Cinod-Prep', body: msg, url: '/?affair=' + affair.affairid } })
+      showMessage(`Notifié ${data?.sent || 0} appareil·s` + (offline.length ? ' — mail pour les non-connectés' : ''), 'success')
+    } catch (e) { showMessage('Erreur notif', 'error') }
+  }
+  // Non-connectés → email
+  if (offline.length) {
+    const to = offline.map(p => p.email).join(',')
+    window.location.href = `mailto:${to}?subject=${encodeURIComponent(affair.name || 'Cinod-Prep')}&body=${encodeURIComponent(msg)}`
+  }
 }
 
 // Demander au(x) technicien(s) assigné(s) de remplir leur liste (micros/câbles)
@@ -2160,7 +2238,7 @@ function techOptions(poste) {
     .sort((a, b) => a.r - b.r || (a.t.name || '').localeCompare(b.t.name || ''))
     .map(({ t, r }) => ({
       email: t.email,
-      label: (r === 0 ? '● ' : r === 1 ? '○ ' : '') + ((t.firstname ? t.firstname + ' ' : '') + (t.name || '')),
+      label: (r === 0 ? '● ' : r === 1 ? '○ ' : '') + personName(t.firstname, t.name),
     }))
 }
 
@@ -2242,6 +2320,7 @@ function showMessage(msg, type) {
 
 <style scoped>
 .page-title-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+.today-label { flex: 1; text-align: center; font-size: 16px; font-weight: 800; color: var(--text, #333); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .page-switch {
   padding: 6px 12px; border: 1px solid var(--color1); border-radius: 8px;
   background: var(--color1-light, #e8f5e9); color: var(--color1-dark, #2e7d32);
@@ -2727,11 +2806,12 @@ h3 { font-size: 16px; margin: 0; }
 /* Chat plein écran */
 .chat-modal-overlay {
   position: fixed; inset: 0; background: rgba(0,0,0,0.55);
-  display: flex; align-items: center; justify-content: center; z-index: 300; padding: 10px;
+  display: flex; align-items: flex-start; justify-content: center; z-index: 300;
+  padding: 60px 10px 10px; /* descend le modal sous l'en-tête */
 }
 .chat-modal {
   display: flex; flex-direction: column;
-  width: 100%; max-width: 560px; height: 92vh;
+  width: 100%; max-width: 560px; height: calc(100dvh - 72px);
   background: var(--bg-card, #252540); border-radius: 14px; overflow: hidden;
   border: 1px solid var(--border, #3a3a55); color: var(--text, #e0e0e0);
 }
@@ -2744,14 +2824,25 @@ h3 { font-size: 16px; margin: 0; }
 .chat-modal-close { background: transparent; border: none; font-size: 18px; cursor: pointer; color: #fff; box-shadow: none; min-width: auto; }
 .chat-modal .chat-peers { padding: 10px 12px 4px; margin: 0; background: var(--bg, #1a1a2e); }
 .chat-modal-messages { flex: 1; min-height: 0; overflow-y: auto; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; background: var(--bg, #1a1a2e); }
-.chat-modal .chat-msg-m.tech .msg-content { background: var(--bg-card, #252540); }
-.chat-modal .chat-msg-m.master .msg-content { background: var(--color1) !important; }
+.chat-modal .chat-msg-m.tech .msg-content { background: #2563eb !important; }
+.chat-modal .chat-msg-m.tech .msg-content p { color: #fff !important; }
+.chat-modal .chat-msg-m.master .msg-content { background: #6b46c1 !important; }
 .chat-modal .chat-msg-m.master .msg-content p { color: #fff !important; }
+.chat-modal .msg-content p { font-size: 15px !important; line-height: 1.35; }
+.chat-modal .msg-content .msg-time-m, .chat-modal .msg-time-m { color: #555 !important; }
 .chat-modal-input { display: flex; gap: 8px; padding: 10px 12px; border-top: 1px solid var(--border, #3a3a55); background: var(--bg-card, #252540); }
 .chat-modal-input input { flex: 1; min-width: 0; padding: 10px 12px; border: 1px solid var(--border-light, #444); border-radius: 10px; background: var(--bg-input, #2a2a45); color: var(--text, #e0e0e0); font-size: 15px; }
 .chat-modal-input button { padding: 10px 16px; background: var(--color1); color: #fff; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; box-shadow: none; min-width: auto; }
 .chat-modal-input button:disabled { opacity: 0.4; }
 /* Éditeur de zones (à l'envoi) */
+.sent-badge { cursor: pointer; }
+.sent-pop-overlay { position: fixed; inset: 0; z-index: 1100; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; padding: 16px; }
+.sent-pop { width: 100%; max-width: 320px; background: var(--bg-card, #1a1a2e); border: 1px solid var(--border, #3a3a55); border-radius: 14px; padding: 16px; }
+.sent-pop-title { font-size: 15px; font-weight: 800; color: var(--text, #fff); margin-bottom: 8px; }
+.sent-pop-date { font-size: 14px; color: var(--text, #ddd); margin-bottom: 14px; }
+.sent-pop-actions { display: flex; gap: 8px; }
+.sp-cancel { flex: 1; padding: 10px; background: transparent; border: 1px solid var(--border-light, #555); border-radius: 10px; color: var(--text, #ccc); font-weight: 700; cursor: pointer; box-shadow: none; }
+.sp-resend { flex: 2; padding: 10px; background: var(--color1); border: none; border-radius: 10px; color: #fff; font-weight: 800; cursor: pointer; box-shadow: none; }
 .zone-modal-overlay { position: fixed; inset: 0; z-index: 1000; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; padding: 12px; }
 .zone-modal { width: 100%; max-width: 560px; max-height: 92vh; display: flex; flex-direction: column; background: var(--bg-card, #1a1a2e); border-radius: 14px; overflow: hidden; }
 .zone-modal-head { display: flex; align-items: center; gap: 8px; padding: 12px 14px; background: var(--color1); }
