@@ -11,10 +11,10 @@
       <div class="sel-details" @click.stop>
         <div class="sel-tags">
           <span v-if="hasUnreadMessage" class="unread-dot">★</span>
-          <span v-if="isMyRole(affairStore.selectedAffair, 'front')" class="tag tag-front role-tag" :class="{ 'role-active': activeRole === 'front' }" @click.stop="$emit('select-role', 'front')">FOH</span>
-          <span v-if="isMyRole(affairStore.selectedAffair, 'monitor')" class="tag tag-monitor role-tag" :class="{ 'role-active': activeRole === 'monitor' }" @click.stop="$emit('select-role', 'monitor')">Monitor</span>
-          <span v-if="isMyRole(affairStore.selectedAffair, 'system')" class="tag tag-system role-tag" :class="{ 'role-active': activeRole === 'system' }" @click.stop="$emit('select-role', 'system')">System</span>
-          <span v-if="isMyRole(affairStore.selectedAffair, 'stage')" class="tag tag-stage role-tag" :class="{ 'role-active': activeRole === 'stage' }" @click.stop="$emit('select-role', 'stage')">Stage</span>
+          <span v-if="canOpenRole(affairStore.selectedAffair, 'front')" class="tag tag-front role-tag" :class="{ 'role-active': activeRole === 'front', 'via-asst': assistantCanEdit(affairStore.selectedAffair, 'front') }" @click.stop="$emit('select-role', 'front')">FOH<small v-if="assistantCanEdit(affairStore.selectedAffair, 'front')"> ✏️</small></span>
+          <span v-if="canOpenRole(affairStore.selectedAffair, 'monitor')" class="tag tag-monitor role-tag" :class="{ 'role-active': activeRole === 'monitor', 'via-asst': assistantCanEdit(affairStore.selectedAffair, 'monitor') }" @click.stop="$emit('select-role', 'monitor')">Monitor<small v-if="assistantCanEdit(affairStore.selectedAffair, 'monitor')"> ✏️</small></span>
+          <span v-if="canOpenRole(affairStore.selectedAffair, 'system')" class="tag tag-system role-tag" :class="{ 'role-active': activeRole === 'system', 'via-asst': assistantCanEdit(affairStore.selectedAffair, 'system') }" @click.stop="$emit('select-role', 'system')">System<small v-if="assistantCanEdit(affairStore.selectedAffair, 'system')"> ✏️</small></span>
+          <span v-if="canOpenRole(affairStore.selectedAffair, 'stage')" class="tag tag-stage role-tag" :class="{ 'role-active': activeRole === 'stage', 'via-asst': assistantCanEdit(affairStore.selectedAffair, 'stage') }" @click.stop="$emit('select-role', 'stage')">Stage<small v-if="assistantCanEdit(affairStore.selectedAffair, 'stage')"> ✏️</small></span>
           <span v-if="amIAssistant(affairStore.selectedAffair)" class="tag tag-assistant">Assistant</span>
         </div>
         <MiniCal :affair="affairStore.selectedAffair" />
@@ -29,33 +29,7 @@
           <button v-if="isLinkedToCompany" class="btn-action-sel btn-chat" :class="{ 'has-unread': hasUnreadMessage }" @click.stop="toggleChat" title="Chat">💬</button>
           <button v-if="affairDocs.length" class="btn-action-sel btn-docs" @click.stop="openDocs" title="Bon de sortie / documents">📄<span v-if="affairDocs.length > 1" class="docs-count">{{ affairDocs.length }}</span></button>
           <button class="btn-action-sel" :class="{ active: allCasesActive }" @click.stop="$emit('toggle-all-cases')" title="Vue flight-cases">📦</button>
-          <button class="btn-action-sel" @click.stop="openCalendar" title="Calendrier">📅</button>
           <button class="btn-action-sel" @click.stop="$emit('share')" title="Partager">📤</button>
-        </div>
-      </div>
-
-      <!-- Calendrier de tournée -->
-      <div v-if="showCalendar" class="cal-overlay" @click.self="showCalendar = false">
-        <div class="cal-modal">
-          <div class="cal-modal-head">
-            <span>📅 {{ affairStore.selectedAffair.name }}</span>
-            <button class="cal-close" @click="showCalendar = false" title="Fermer">✕</button>
-            <button class="cal-valider" @click="showCalendar = false">Valider</button>
-          </div>
-          <TourCalendar
-            :tour-dates="tourDates"
-            :out-dates="outDates"
-            :back-dates="backDates"
-            :out-periods="outPeriods"
-            :back-periods="backPeriods"
-            :prep-days="prepDays"
-            :prep-date="affairStore.selectedAffair.prep_date"
-            :prep-only="isTechRole"
-            @toggle="toggleTourDate"
-            @toggle-out="toggleOutDate"
-            @toggle-back="toggleBackDate"
-            @cycle-prep="cyclePrepDay"
-          />
         </div>
       </div>
 
@@ -597,6 +571,17 @@ function amIAssistant(a) {
   if (!a || !Array.isArray(a.assistants)) return false
   const em = myEmailLc()
   return !!em && a.assistants.some(x => (x.email || '').trim().toLowerCase() === em)
+}
+// Assistant AUTORISÉ à éditer le poste donné (case ✏️ cochée par le master)
+function assistantCanEdit(a, role) {
+  if (!a || !Array.isArray(a.assistants)) return false
+  const em = myEmailLc()
+  if (!em) return false
+  return a.assistants.some(x => (x.email || '').trim().toLowerCase() === em && (x.area || 'front') === role && x.can_edit)
+}
+// Onglet de poste ouvrable : titulaire du poste OU assistant autorisé
+function canOpenRole(a, role) {
+  return isMyRole(a, role) || assistantCanEdit(a, role)
 }
 // Équipe de l'affaire (postes + assistants) — pour la fiche
 function pName(fn, nm) {
@@ -1267,6 +1252,12 @@ function deselectAffair() {
   opacity: 1;
   box-shadow: 0 0 0 2px var(--bg, #fff), 0 0 0 4px currentColor;
 }
+/* Poste ouvert via autorisation assistant (✏️) : liseré pointillé */
+.role-tag.via-asst {
+  outline: 2px dashed currentColor;
+  outline-offset: 1px;
+}
+.role-tag small { font-size: 9px; }
 .tag-none {
   color: #999;
   font-size: 12px;

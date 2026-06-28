@@ -173,6 +173,7 @@
           <button @click="addTechForZone('front')">Ajouter</button>
         </div>
         <div v-if="form.tech_name" class="zone-tech-info">{{ personName(form.tech_firstname, form.tech_name) }} <span v-if="form.tech_phone">· {{ form.tech_phone }}</span></div>
+        <textarea v-model="form.materiel_front" rows="4" class="zone-mat-input" :placeholder="ZONE_TPL.front"></textarea>
       </div>
 
       <div v-if="form.monitor" class="zone-tech-block retour">
@@ -192,6 +193,7 @@
           <button @click="addTechForZone('monitor')">Ajouter</button>
         </div>
         <div v-if="form.tech_name_monitor" class="zone-tech-info">{{ personName(form.tech_firstname_monitor, form.tech_name_monitor) }} <span v-if="form.tech_phone_monitor">· {{ form.tech_phone_monitor }}</span></div>
+        <textarea v-model="form.materiel_monitor" rows="4" class="zone-mat-input" :placeholder="ZONE_TPL.monitor"></textarea>
       </div>
 
       <div v-if="form.system" class="zone-tech-block systeme">
@@ -211,6 +213,7 @@
           <button @click="addTechForZone('system')">Ajouter</button>
         </div>
         <div v-if="form.tech_name_system" class="zone-tech-info">{{ personName(form.tech_firstname_system, form.tech_name_system) }} <span v-if="form.tech_phone_system">· {{ form.tech_phone_system }}</span></div>
+        <textarea v-model="form.materiel_system" rows="4" class="zone-mat-input" :placeholder="ZONE_TPL.system"></textarea>
       </div>
 
       <div v-if="form.stage" class="zone-tech-block scene">
@@ -230,6 +233,7 @@
           <button @click="addTechForZone('stage')">Ajouter</button>
         </div>
         <div v-if="form.tech_name_stage" class="zone-tech-info">{{ personName(form.tech_firstname_stage, form.tech_name_stage) }} <span v-if="form.tech_phone_stage">· {{ form.tech_phone_stage }}</span></div>
+        <textarea v-model="form.materiel_stage" rows="4" class="zone-mat-input" :placeholder="ZONE_TPL.stage"></textarea>
       </div>
 
       <!-- Assistants (illimités, chacun avec son poste) -->
@@ -246,6 +250,10 @@
             <option value="">-- Choisir --</option>
             <option v-for="o in techOptions('assistant')" :key="o.email" :value="o.email">{{ o.label }}</option>
           </select>
+          <label class="assistant-edit" :class="{ on: a.can_edit }" title="Autoriser l'assistant à remplir le câblage (sinon lecture seule)">
+            <input type="checkbox" v-model="a.can_edit" />
+            <span>✏️</span>
+          </label>
           <button class="assistant-del" @click="form.assistants.splice(i, 1)" title="Retirer">✕</button>
         </div>
         <button class="btn-add-assistant" @click="addAssistant">+ Ajouter un assistant</button>
@@ -279,18 +287,25 @@
         v-for="affair in filteredAffairs"
         :key="affair.affairid"
         class="affair-card"
-        :class="{ selected: selected?.affairid === affair.affairid, trashed: tab === 'trash' }"
+        :class="{ selected: selected?.affairid === affair.affairid, trashed: tab === 'trash', fresh: isFreshAffair(affair) }"
         @click="onCardClick(affair)"
       >
         <!-- Actions fixes en haut à droite (fiche ouverte) -->
         <div v-if="selected?.affairid === affair.affairid && detailOpen" class="card-tr">
+          <button class="card-zones-btn" @click.stop="sendAffair(affair)" title="Renseigner les zones / le matériel par poste">🎛 Zones</button>
           <button class="card-edit-btn" @click.stop="editCurrentAffair" title="Modifier l'affaire">✏️</button>
           <button class="card-edit-btn" @click.stop="closeCard" title="Fermer la fiche">✕</button>
         </div>
         <div class="card-head" :class="{ 'has-actions': selected?.affairid === affair.affairid && detailOpen }">
           <span v-if="isNew(affair)" class="new-badge">NEW</span>
-          <button v-if="isNew(affair)" class="send-badge-btn" @click.stop="sendAffair(affair)" title="Envoyer l'affaire">Envoyer</button>
+          <button v-if="isNew(affair)" class="send-badge-btn"
+            @click.stop="onEnvoyerClick(affair)"
+            @touchstart.passive="startLongPress(affair)" @touchend="endLongPress" @touchmove="endLongPress"
+            @mousedown="startLongPress(affair)" @mouseup="endLongPress" @mouseleave="endLongPress"
+            @contextmenu.prevent="openLocation(affair)"
+            title="Envoyer l'affaire — appui long : Location / enlèvement simple">Envoyer</button>
           <button v-if="isSent(affair)" class="sent-badge" @click.stop="openSentInfo(affair)" title="Voir la date d'envoi / relancer">Envoyé</button>
+          <button v-if="isLocation(affair)" class="loc-badge" @click.stop="openLocation(affair)" title="Affaire sans technicien — sortie de matériel">📦 Location</button>
           <button class="follow-btn" :class="{ on: affair.followed }" @click.stop="toggleFollow(affair)" :title="affair.followed ? 'Suivi' : 'À suivre'">{{ affair.followed ? '★' : '☆' }}</button>
           <span v-if="unreadAffairs[affair.affairid]" class="unread-star" @click.stop="openChatOnly(affair)">★</span>
           <span class="card-name" :class="{ 'is-today': isTodayFor(affair), 'is-tomorrow': !isTodayFor(affair) && isTomorrowFor(affair) }">{{ affair.name || '(Sans nom)' }}</span>
@@ -548,6 +563,44 @@
       </div>
     </div>
 
+    <!-- Popup « Location / enlèvement simple » : affaire sans technicien -->
+    <div v-if="locPop.open && locPop.affair" class="loc-pop-overlay" @click.self="locPop.open = false">
+      <div class="loc-pop">
+        <div class="loc-pop-title">📦 {{ locPop.affair.name || 'Affaire' }}</div>
+        <p class="loc-pop-hint">Pas de technicien à prévenir — simple sortie / location de matériel.</p>
+        <div class="loc-pop-actions">
+          <button class="lp-cancel" @click="locPop.open = false">Annuler</button>
+          <button v-if="isLocation(locPop.affair)" class="lp-undo" @click="unmarkLocation">↩︎ Repasser en affaire</button>
+          <button v-else class="lp-ok" @click="markLocation">📦 Marquer « Location »</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Popup suppression : prévenir les techniciens -->
+    <div v-if="delPop.open && delPop.affair" class="del-pop-overlay" @click.self="delPop.open = false">
+      <div class="del-pop">
+        <div class="del-pop-title">🗑 Supprimer « {{ delPop.affair.name || 'Affaire' }} »</div>
+        <template v-if="delTechs.length">
+          <label class="del-notify-toggle">
+            <input type="checkbox" v-model="delPop.notify" />
+            🔔 Prévenir les techniciens
+          </label>
+          <div class="del-peers">
+            <div v-for="(p, i) in delTechs" :key="i" class="del-peer">
+              <span class="del-peer-name">{{ p.full }}</span>
+              <span class="del-peer-how" :class="p.installed ? 'push' : 'mail'">{{ p.installed ? '📱 notification' : '✉️ email' }}</span>
+            </div>
+          </div>
+          <textarea v-if="delPop.notify" v-model="delPop.msg" rows="3" class="del-msg" placeholder="Message aux techniciens…"></textarea>
+        </template>
+        <p v-else class="del-nopeers">Aucun technicien assigné — rien à prévenir.</p>
+        <div class="del-pop-actions">
+          <button class="dp-cancel" @click="delPop.open = false">Annuler</button>
+          <button class="dp-confirm" @click="confirmDelete">🗑 Supprimer</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Popup « Envoyé » : date d'envoi + relancer -->
     <div v-if="sentInfo.open && sentInfo.affair" class="sent-pop-overlay" @click.self="sentInfo.open = false">
       <div class="sent-pop">
@@ -710,6 +763,7 @@ const form = reactive({
   monitor: false,
   system: false,
   stage: false,
+  materiel_front: '', materiel_monitor: '', materiel_system: '', materiel_stage: '',
   description: '',
   attachment_name: '',
   attachment_url: '',
@@ -727,6 +781,7 @@ function resetForm() {
     assistants: [],
     prep_date: '', receipt_date: '', return_date: '',
     front: false, monitor: false, system: false, stage: false,
+    materiel_front: '', materiel_monitor: '', materiel_system: '', materiel_stage: '',
     description: '', attachment_name: '', attachment_url: '',
   })
   existingAttachments.value = []
@@ -1338,10 +1393,53 @@ function isNew(a) {
   if (isFinished(a)) return false
   return (a.status || 'draft') === 'draft'
 }
+// Affaire créée il y a moins d'une demi-journée (12 h) → surlignée en bleu clair
+function isFreshAffair(a) {
+  if (!a?.created_at) return false
+  const t = new Date(a.created_at).getTime()
+  return !isNaN(t) && (Date.now() - t) < 12 * 3600 * 1000
+}
 // Affaire déjà envoyée (et pas terminée) → badge « Envoyé »
 function isSent(a) {
   if (isFinished(a)) return false
   return (a.status || 'draft') === 'sent'
+}
+// Affaire sans technicien (sortie / location de matériel) → badge « Location »
+function isLocation(a) {
+  if (isFinished(a)) return false
+  return (a.status || 'draft') === 'location'
+}
+
+// Appui long sur « Envoyer » → proposer le statut « Location »
+const locPop = reactive({ open: false, affair: null })
+let lpTimer = null
+const lpFired = ref(false)
+function startLongPress(a) {
+  lpFired.value = false
+  clearTimeout(lpTimer)
+  lpTimer = setTimeout(() => { lpFired.value = true; openLocation(a) }, 500)
+}
+function endLongPress() { clearTimeout(lpTimer) }
+function onEnvoyerClick(a) {
+  if (lpFired.value) { lpFired.value = false; return } // l'appui long a déjà agi
+  sendAffair(a)
+}
+function openLocation(a) { locPop.affair = a; locPop.open = true }
+async function markLocation() {
+  const a = locPop.affair
+  if (!a) return
+  a.status = 'location'
+  const { error } = await supabase.from('affair').update({ status: 'location' }).eq('affairid', a.affairid)
+  locPop.open = false
+  showMessage(error ? 'Erreur' : 'Marqué « Location »', error ? 'error' : 'success')
+}
+async function unmarkLocation() {
+  const a = locPop.affair
+  if (!a) return
+  a.status = 'draft'
+  const { error } = await supabase.from('affair').update({ status: 'draft' }).eq('affairid', a.affairid)
+  locPop.open = false
+  showMessage(error ? 'Erreur' : 'Repassée en affaire', error ? 'error' : 'success')
 }
 async function toggleFollow(a) {
   const v = !a.followed
@@ -2029,6 +2127,8 @@ async function selectAffair(affair) {
     monitor: affair.monitor || false,
     system: affair.system || false,
     stage: affair.stage || false,
+    materiel_front: affair.materiel_front || '', materiel_monitor: affair.materiel_monitor || '',
+    materiel_system: affair.materiel_system || '', materiel_stage: affair.materiel_stage || '',
     description: affair.description || '',
     attachment_name: affair.attachment_name || '',
     attachment_url: affair.attachment_url || '',
@@ -2102,6 +2202,10 @@ async function saveAffair() {
     monitor: form.monitor,
     system: form.system,
     stage: form.stage,
+    materiel_front: form.materiel_front || null,
+    materiel_monitor: form.materiel_monitor || null,
+    materiel_system: form.materiel_system || null,
+    materiel_stage: form.materiel_stage || null,
     description: form.description || '',
     catalog_id: catalogId,
     // Tech façade
@@ -2210,13 +2314,45 @@ async function deleteAffairCard(affair) {
   showMessage('Affaire mise à la corbeille', 'success')
 }
 
-async function deleteAffair() {
-  if (!editing.value || !confirm('Mettre cette affaire à la corbeille ?')) return
-  await supabase.from('affair').update({ deleted_at: new Date().toISOString() }).eq('affairid', editing.value.affairid)
-  showMessage('Affaire supprimée', 'success')
-  await loadAffairs()
+// Suppression en mode édition → popup « Prévenir les techniciens »
+const delPop = reactive({ open: false, affair: null, notify: true, msg: '' })
+const delTechs = computed(() => delPop.affair ? allTechs(delPop.affair).filter(p => p.email) : [])
+function deleteAffair() {
+  const a = editing.value
+  if (!a) return
+  delPop.affair = a
+  delPop.notify = chatPeers(a).length > 0
+  delPop.msg = `Bonjour, l'affaire « ${a.name || '' } » est annulée — inutile de préparer ton câblage. Merci !`
+  delPop.open = true
+}
+async function confirmDelete() {
+  const a = delPop.affair
+  if (!a) return
+  // Prévenir les techniciens : push aux connectés (+ trace chat), email aux non-connectés
+  if (delPop.notify) {
+    const people = delTechs.value
+    const msg = (delPop.msg || '').trim()
+    if (people.length && msg) {
+      const connected = people.filter(p => p.installed)
+      if (connected.length) {
+        const emails = connected.map(p => p.email)
+        try {
+          await supabase.from('message').insert(emails.map(e => ({ affairid: a.affairid, sender_role: 'master', text: msg, peer_email: e, read_by_master: true, read_by_tech: false })))
+          await supabase.functions.invoke('send-push', { body: { emails, title: a.name || 'Cinod-Prep', body: msg, url: '/?affair=' + a.affairid } })
+        } catch (e) { /* push best-effort */ }
+      }
+      await mailNonInstalled(people.map(p => p.email), a.name || 'Cinod-Prep', msg, '/?affair=' + a.affairid)
+    }
+  }
+  // Mettre à la corbeille
+  const { error } = await supabase.from('affair').update({ deleted_at: new Date().toISOString() }).eq('affairid', a.affairid)
+  if (error) { showMessage('Erreur: ' + error.message, 'error'); return }
+  delPop.open = false
   showForm.value = false
   editing.value = null
+  if (selected.value?.affairid === a.affairid) selected.value = null
+  await loadAffairs()
+  showMessage(delPop.notify ? 'Supprimée — techniciens prévenus' : 'Affaire supprimée', 'success')
 }
 
 function openNewTech(zone) {
@@ -2243,7 +2379,7 @@ function techOptions(poste) {
 }
 
 function addAssistant() {
-  form.assistants.push({ area: 'front', email: '', name: '', firstname: '', phone: '' })
+  form.assistants.push({ area: 'front', email: '', name: '', firstname: '', phone: '', can_edit: false })
 }
 function onAssistantSelect(a) {
   const tech = technicians.value.find(t => t.email === a.email)
@@ -2267,7 +2403,13 @@ function onTechSelect(zone) {
   const s = zoneSuffix(zone)
   const email = form[`tech_email${s}`]
   const tech = technicians.value.find(t => t.email === email)
-  if (!tech) return
+  // Select remis sur « -- Choisir -- » (ou email inconnu) → on retire le technicien du poste
+  if (!tech) {
+    form[`tech_name${s}`] = ''
+    form[`tech_firstname${s}`] = ''
+    form[`tech_phone${s}`] = ''
+    return
+  }
   form[`tech_name${s}`] = tech.name || ''
   form[`tech_firstname${s}`] = tech.firstname || ''
   form[`tech_phone${s}`] = tech.phone || ''
@@ -2390,6 +2532,8 @@ h3 { font-size: 16px; margin: 0; }
 /* Croix + crayon : position fixe en haut à droite de la fiche */
 .card-tr { position: absolute; top: 8px; right: 8px; display: flex; gap: 4px; z-index: 3; }
 .affair-card.selected { border-color: var(--color1); }
+/* Affaire créée il y a moins d'une demi-journée → barre blanche épaisse à gauche */
+.affair-card.fresh { border-left: 6px solid #ffffff; }
 .card-top { display: flex; align-items: center; gap: 6px; }
 .card-status { font-size: 14px; }
 .card-head { display: flex; align-items: center; gap: 8px; flex-wrap: nowrap; min-width: 0; }
@@ -2463,6 +2607,11 @@ h3 { font-size: 16px; margin: 0; }
 .card-cal-btn, .card-edit-btn {
   background: transparent; border: none; border-radius: 6px;
   font-size: 18px; line-height: 1; padding: 2px 4px; cursor: pointer; box-shadow: none; min-width: auto; flex-shrink: 0;
+}
+.card-zones-btn {
+  background: var(--color1, #2563eb); color: #fff; border: none; border-radius: 6px;
+  font-size: 12px; font-weight: 800; line-height: 1; padding: 5px 8px; cursor: pointer;
+  box-shadow: none; min-width: auto; flex-shrink: 0; white-space: nowrap;
 }
 .cdl-badge {
   display: inline-flex;
@@ -2707,6 +2856,7 @@ h3 { font-size: 16px; margin: 0; }
 .form-grid.three { display: flex; gap: 6px; flex-wrap: wrap; }
 .form-grid.three .form-row { flex: 1 1 150px; min-width: 150px; }
 .form-section-title { font-size: 13px; font-weight: 700; color: var(--text-light, #888); text-transform: uppercase; margin: 10px 0 6px; }
+.zone-mat-input { width: 100%; margin-top: 6px; padding: 6px 8px; border: 1px solid var(--border-light, #ddd); border-radius: 6px; background: var(--bg-input, #fff); color: var(--text, #222); font-size: 13px; font-family: inherit; resize: vertical; box-sizing: border-box; }
 .zone-tech-block { margin: 6px 0; padding: 8px; border-radius: 8px; border: 1px solid var(--border-light, #eee); }
 .zone-tech-block.facade { border-left: 3px solid #3b82f6; }
 .zone-tech-block.retour { border-left: 3px solid #f59e0b; }
@@ -2715,6 +2865,9 @@ h3 { font-size: 16px; margin: 0; }
 .assistant-row { display: flex; gap: 6px; align-items: center; margin-bottom: 6px; }
 .assistant-area { flex: 0 0 90px; }
 .assistant-tech { flex: 1; min-width: 0; }
+.assistant-edit { flex-shrink: 0; display: flex; align-items: center; gap: 3px; padding: 4px 6px; border: 1px solid var(--border-light, #ccc); border-radius: 6px; cursor: pointer; opacity: 0.5; font-size: 13px; }
+.assistant-edit.on { opacity: 1; border-color: #16a34a; background: rgba(22,163,74,0.12); }
+.assistant-edit input { width: 14px; height: 14px; }
 .assistant-del { flex-shrink: 0; background: transparent; border: 1px solid var(--border-light, #ccc); border-radius: 6px; padding: 4px 8px; cursor: pointer; box-shadow: none; min-width: auto; }
 .btn-add-assistant { width: 100%; padding: 8px; background: var(--color1-light, #e8f5e9); color: var(--color1-dark, #2e7d32); border: 1px dashed var(--color1); border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; box-shadow: none; }
 .zone-tech-block.scene { border-left: 3px solid #10b981; }
@@ -2843,6 +2996,33 @@ h3 { font-size: 16px; margin: 0; }
 .sent-pop-actions { display: flex; gap: 8px; }
 .sp-cancel { flex: 1; padding: 10px; background: transparent; border: 1px solid var(--border-light, #555); border-radius: 10px; color: var(--text, #ccc); font-weight: 700; cursor: pointer; box-shadow: none; }
 .sp-resend { flex: 2; padding: 10px; background: var(--color1); border: none; border-radius: 10px; color: #fff; font-weight: 800; cursor: pointer; box-shadow: none; }
+/* Badge + popup « Location / enlèvement simple » */
+.loc-badge { flex: none; background: #0d9488; color: #fff; border: none; font-size: 10px; font-weight: 800; padding: 1px 6px; border-radius: 6px; letter-spacing: 0.3px; cursor: pointer; box-shadow: none; }
+.loc-pop-overlay { position: fixed; inset: 0; z-index: 1100; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; padding: 16px; }
+.loc-pop { width: 100%; max-width: 340px; background: var(--bg-card, #1a1a2e); border: 1px solid var(--border, #3a3a55); border-radius: 14px; padding: 16px; }
+.loc-pop-title { font-size: 15px; font-weight: 800; color: var(--text, #fff); margin-bottom: 6px; }
+.loc-pop-hint { font-size: 13px; color: var(--text, #ccc); margin: 0 0 14px; }
+.loc-pop-actions { display: flex; gap: 8px; }
+.lp-cancel { flex: 1; padding: 10px; background: transparent; border: 1px solid var(--border-light, #555); border-radius: 10px; color: var(--text, #ccc); font-weight: 700; cursor: pointer; box-shadow: none; }
+.lp-ok { flex: 2; padding: 10px; background: #0d9488; border: none; border-radius: 10px; color: #fff; font-weight: 800; cursor: pointer; box-shadow: none; }
+.lp-undo { flex: 2; padding: 10px; background: #6b7280; border: none; border-radius: 10px; color: #fff; font-weight: 800; cursor: pointer; box-shadow: none; }
+/* Popup suppression : prévenir les techniciens */
+.del-pop-overlay { position: fixed; inset: 0; z-index: 1100; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; padding: 16px; }
+.del-pop { width: 100%; max-width: 360px; background: var(--bg-card, #1a1a2e); border: 1px solid var(--border, #3a3a55); border-radius: 14px; padding: 16px; }
+.del-pop-title { font-size: 15px; font-weight: 800; color: var(--text, #fff); margin-bottom: 12px; }
+.del-notify-toggle { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; color: var(--text, #eee); cursor: pointer; margin-bottom: 8px; }
+.del-notify-toggle input { width: 16px; height: 16px; }
+.del-peers { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
+.del-peer { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 5px 8px; background: var(--bg-input, #2a2a45); border-radius: 8px; }
+.del-peer-name { font-size: 13px; font-weight: 600; color: var(--text, #eee); }
+.del-peer-how { font-size: 11px; font-weight: 700; }
+.del-peer-how.push { color: #22c55e; }
+.del-peer-how.mail { color: #f59e0b; }
+.del-msg { width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid var(--border-light, #555); border-radius: 8px; background: var(--bg-input, #2a2a45); color: var(--text, #eee); font-size: 13px; font-family: inherit; resize: vertical; margin-bottom: 12px; }
+.del-nopeers { font-size: 13px; color: var(--text, #ccc); margin: 0 0 12px; }
+.del-pop-actions { display: flex; gap: 8px; }
+.dp-cancel { flex: 1; padding: 10px; background: transparent; border: 1px solid var(--border-light, #555); border-radius: 10px; color: var(--text, #ccc); font-weight: 700; cursor: pointer; box-shadow: none; }
+.dp-confirm { flex: 2; padding: 10px; background: #dc2626; border: none; border-radius: 10px; color: #fff; font-weight: 800; cursor: pointer; box-shadow: none; }
 .zone-modal-overlay { position: fixed; inset: 0; z-index: 1000; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; padding: 12px; }
 .zone-modal { width: 100%; max-width: 560px; max-height: 92vh; display: flex; flex-direction: column; background: var(--bg-card, #1a1a2e); border-radius: 14px; overflow: hidden; }
 .zone-modal-head { display: flex; align-items: center; gap: 8px; padding: 12px 14px; background: var(--color1); }
