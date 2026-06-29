@@ -62,8 +62,9 @@ export const ENCLOSURE_DATA = enceintesDoc.enceintes.map((e) => {
     name: e.name,
     cat,
     LA4X: num(e.LA4X),
-    LA12X: num(e.LA12X),
+    LA7: num(e.LA7),
     LA8: num(e.LA8),
+    LA12X: num(e.LA12X),
     ways: num(e.voies),
     cable,
   }

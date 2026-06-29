@@ -182,7 +182,7 @@
         </div>
         <div v-if="form.tech_name" class="zone-tech-info">{{ personName(form.tech_firstname, form.tech_name) }} <span v-if="form.tech_phone">· {{ form.tech_phone }}</span></div>
         <p v-if="form.system" class="ze-foh-note">💡 Système présent : mets la diffusion (K2, subs, fills…) dans 🟣 Système ; garde ici la Régie (console).</p>
-        <ZoneRoleEditor :labels="form.zlabels.front" v-model:amplis="form.materiel_front" :zone-placeholders="ZONE_PH.front" />
+        <ZoneRoleEditor :labels="form.zlabels.front" :configs="form.zconfigs.front" v-model:amplis="form.materiel_front" :zone-placeholders="ZONE_PH.front" />
       </div>
 
       <div v-if="form.monitor" class="zone-tech-block retour">
@@ -202,7 +202,7 @@
           <button @click="addTechForZone('monitor')">Ajouter</button>
         </div>
         <div v-if="form.tech_name_monitor" class="zone-tech-info">{{ personName(form.tech_firstname_monitor, form.tech_name_monitor) }} <span v-if="form.tech_phone_monitor">· {{ form.tech_phone_monitor }}</span></div>
-        <ZoneRoleEditor :labels="form.zlabels.monitor" v-model:amplis="form.materiel_monitor" :zone-placeholders="ZONE_PH.monitor" />
+        <ZoneRoleEditor :labels="form.zlabels.monitor" :configs="form.zconfigs.monitor" v-model:amplis="form.materiel_monitor" :zone-placeholders="ZONE_PH.monitor" />
       </div>
 
       <div v-if="form.system" class="zone-tech-block systeme">
@@ -222,7 +222,7 @@
           <button @click="addTechForZone('system')">Ajouter</button>
         </div>
         <div v-if="form.tech_name_system" class="zone-tech-info">{{ personName(form.tech_firstname_system, form.tech_name_system) }} <span v-if="form.tech_phone_system">· {{ form.tech_phone_system }}</span></div>
-        <ZoneRoleEditor :labels="form.zlabels.system" v-model:amplis="form.materiel_system" :zone-placeholders="ZONE_PH.system" />
+        <ZoneRoleEditor :labels="form.zlabels.system" :configs="form.zconfigs.system" v-model:amplis="form.materiel_system" :zone-placeholders="ZONE_PH.system" />
       </div>
 
       <div v-if="form.stage" class="zone-tech-block scene">
@@ -242,7 +242,7 @@
           <button @click="addTechForZone('stage')">Ajouter</button>
         </div>
         <div v-if="form.tech_name_stage" class="zone-tech-info">{{ personName(form.tech_firstname_stage, form.tech_name_stage) }} <span v-if="form.tech_phone_stage">· {{ form.tech_phone_stage }}</span></div>
-        <ZoneRoleEditor :labels="form.zlabels.stage" v-model:amplis="form.materiel_stage" :zone-placeholders="ZONE_PH.stage" />
+        <ZoneRoleEditor :labels="form.zlabels.stage" :configs="form.zconfigs.stage" v-model:amplis="form.materiel_stage" :zone-placeholders="ZONE_PH.stage" />
       </div>
 
       <!-- Assistants (illimités, chacun avec son poste) -->
@@ -553,19 +553,19 @@
           <div v-if="zoneEditor.affair.front" class="ze-block">
             <div class="ze-banner facade">🔵 FOH — {{ zoneEditor.affair.tech_name || '?' }}</div>
             <p v-if="zoneEditor.affair.system" class="ze-foh-note">💡 Système présent : mets la diffusion (K2, subs, fills…) dans 🟣 Système ; garde ici la Régie (console).</p>
-            <ZoneRoleEditor :labels="zoneEditor.labels.front" v-model:amplis="zoneEditor.front" :zone-placeholders="ZONE_PH.front" />
+            <ZoneRoleEditor :labels="zoneEditor.labels.front" :configs="zoneEditor.configs.front" v-model:amplis="zoneEditor.front" :zone-placeholders="ZONE_PH.front" />
           </div>
           <div v-if="zoneEditor.affair.system" class="ze-block">
             <div class="ze-banner systeme">🟣 Système — {{ zoneEditor.affair.tech_name_system || '?' }}</div>
-            <ZoneRoleEditor :labels="zoneEditor.labels.system" v-model:amplis="zoneEditor.system" :zone-placeholders="ZONE_PH.system" />
+            <ZoneRoleEditor :labels="zoneEditor.labels.system" :configs="zoneEditor.configs.system" v-model:amplis="zoneEditor.system" :zone-placeholders="ZONE_PH.system" />
           </div>
           <div v-if="zoneEditor.affair.monitor" class="ze-block">
             <div class="ze-banner retour">🟠 Retours — {{ zoneEditor.affair.tech_name_monitor || '?' }}</div>
-            <ZoneRoleEditor :labels="zoneEditor.labels.monitor" v-model:amplis="zoneEditor.monitor" :zone-placeholders="ZONE_PH.monitor" />
+            <ZoneRoleEditor :labels="zoneEditor.labels.monitor" :configs="zoneEditor.configs.monitor" v-model:amplis="zoneEditor.monitor" :zone-placeholders="ZONE_PH.monitor" />
           </div>
           <div v-if="zoneEditor.affair.stage" class="ze-block">
             <div class="ze-banner scene">🟢 Scène — {{ zoneEditor.affair.tech_name_stage || '?' }}</div>
-            <ZoneRoleEditor :labels="zoneEditor.labels.stage" v-model:amplis="zoneEditor.stage" :zone-placeholders="ZONE_PH.stage" />
+            <ZoneRoleEditor :labels="zoneEditor.labels.stage" :configs="zoneEditor.configs.stage" v-model:amplis="zoneEditor.stage" :zone-placeholders="ZONE_PH.stage" />
           </div>
           <div v-if="!zoneEditor.affair.front && !zoneEditor.affair.monitor && !zoneEditor.affair.system && !zoneEditor.affair.stage" class="zone-empty">
             Aucun poste défini sur cette affaire.
@@ -835,6 +835,7 @@ const form = reactive({
   stage: false,
   materiel_front: '', materiel_monitor: '', materiel_system: '', materiel_stage: '',
   zlabels: { front: {}, monitor: {}, system: {}, stage: {} },
+  zconfigs: { front: {}, monitor: {}, system: {}, stage: {} },
   description: '',
   attachment_name: '',
   attachment_url: '',
@@ -854,6 +855,7 @@ function resetForm() {
     front: false, monitor: false, system: false, stage: false,
     materiel_front: '', materiel_monitor: '', materiel_system: '', materiel_stage: '',
     zlabels: { front: {}, monitor: {}, system: {}, stage: {} },
+  zconfigs: { front: {}, monitor: {}, system: {}, stage: {} },
     description: '', attachment_name: '', attachment_url: '',
   })
   existingAttachments.value = []
@@ -1609,7 +1611,7 @@ const ZONE_PH = {
   monitor: ['8 wedges', 'side L', 'side R', 'drumfill', 'ears', 'sub batt.'],
   stage: ['multipaire', 'patch 24', 'sub-snake', 'DI', 'pieds micro', 'HP scène'],
 }
-const zoneEditor = reactive({ open: false, affair: null, front: '', monitor: '', system: '', stage: '', labels: { front: {}, monitor: {}, system: {}, stage: {} }, docNames: [], docUrls: [], newFiles: [], notify: true, notifyMsg: '' })
+const zoneEditor = reactive({ open: false, affair: null, front: '', monitor: '', system: '', stage: '', labels: { front: {}, monitor: {}, system: {}, stage: {} }, configs: { front: {}, monitor: {}, system: {}, stage: {} }, docNames: [], docUrls: [], newFiles: [], notify: true, notifyMsg: '' })
 
 // Popup date d'envoi / relancer (clic sur le badge « Envoyé »)
 const sentInfo = reactive({ open: false, affair: null })
@@ -1663,16 +1665,27 @@ function mkZoneLabels(src) {
   for (let i = 1; i <= 6; i++) o['lz' + i] = (src && src['lz' + i]) || ''
   return o
 }
-// Fusionne les noms de zones du formulaire (form.zlabels) dans role_labels en préservant les libellés FC (lfc…)
+// Reconstruit les configs L-Acoustics par zone depuis role_labels (clés lz{i}cfg)
+function mkConfigs(src) {
+  const o = {}
+  for (let i = 1; i <= 6; i++) { const c = src && src['lz' + i + 'cfg']; if (c) o['lz' + i] = { ...c } }
+  return o
+}
+// Écrit les noms + configs d'un poste dans son objet role_labels (préserve les libellés FC)
+function applyRoleLabels(cur, labelsObj, configsObj) {
+  for (let i = 1; i <= 6; i++) {
+    const v = ((labelsObj && labelsObj['lz' + i]) || '').trim()
+    if (v) cur['lz' + i] = v; else delete cur['lz' + i]
+    const c = configsObj && configsObj['lz' + i]
+    if (c && c.lac && c.model) cur['lz' + i + 'cfg'] = { ...c }; else delete cur['lz' + i + 'cfg']
+  }
+  return cur
+}
+// Fusionne les noms+configs du formulaire (form.zlabels / form.zconfigs) dans role_labels
 function buildRoleLabels(base) {
   const rl = { ...(base || {}) }
   for (const role of ['front', 'monitor', 'system', 'stage']) {
-    const cur = { ...(rl[role] || {}) }
-    for (let i = 1; i <= 6; i++) {
-      const v = (form.zlabels[role]['lz' + i] || '').trim()
-      if (v) cur['lz' + i] = v; else delete cur['lz' + i]
-    }
-    rl[role] = cur
+    rl[role] = applyRoleLabels({ ...(rl[role] || {}) }, form.zlabels[role], form.zconfigs[role])
   }
   return rl
 }
@@ -1689,6 +1702,10 @@ function sendAffair(a) {
   zoneEditor.labels = {
     front: mkZoneLabels(rl.front), monitor: mkZoneLabels(rl.monitor),
     system: mkZoneLabels(rl.system), stage: mkZoneLabels(rl.stage),
+  }
+  zoneEditor.configs = {
+    front: mkConfigs(rl.front), monitor: mkConfigs(rl.monitor),
+    system: mkConfigs(rl.system), stage: mkConfigs(rl.stage),
   }
   zoneEditor.docNames = a.attachment_name ? a.attachment_name.split(',').filter(Boolean) : []
   zoneEditor.docUrls = a.attachment_url ? a.attachment_url.split(',') : []
@@ -1748,15 +1765,10 @@ async function confirmSendAffair(send = false) {
     materiel_system: zoneEditor.system || null,
     materiel_stage: zoneEditor.stage || null,
   }
-  // Noms de zones (colonnes) → role_labels par poste (on préserve les libellés FC existants)
+  // Noms de zones + configs L-Acoustics → role_labels par poste (préserve les libellés FC existants)
   const rl = { ...(a.role_labels || {}) }
   for (const role of ['front', 'monitor', 'system', 'stage']) {
-    const cur = { ...(rl[role] || {}) }
-    for (let i = 1; i <= 6; i++) {
-      const v = (zoneEditor.labels[role]['lz' + i] || '').trim()
-      if (v) cur['lz' + i] = v; else delete cur['lz' + i]
-    }
-    rl[role] = cur
+    rl[role] = applyRoleLabels({ ...(rl[role] || {}) }, zoneEditor.labels[role], zoneEditor.configs[role])
   }
   patch.role_labels = rl
   a.role_labels = rl
@@ -2357,6 +2369,10 @@ async function selectAffair(affair) {
     zlabels: {
       front: mkZoneLabels((affair.role_labels || {}).front), monitor: mkZoneLabels((affair.role_labels || {}).monitor),
       system: mkZoneLabels((affair.role_labels || {}).system), stage: mkZoneLabels((affair.role_labels || {}).stage),
+    },
+    zconfigs: {
+      front: mkConfigs((affair.role_labels || {}).front), monitor: mkConfigs((affair.role_labels || {}).monitor),
+      system: mkConfigs((affair.role_labels || {}).system), stage: mkConfigs((affair.role_labels || {}).stage),
     },
     description: affair.description || '',
     attachment_name: affair.attachment_name || '',
