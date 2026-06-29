@@ -259,7 +259,7 @@ const users = [
   { id: 'F1', label: 'F1', role: 'technician', name: 'Léa (freelance)', techId: 21, catalogId: 4, freelance: true },
   { id: 'F2', label: 'F2', role: 'technician', name: 'Marc (freelance)', techId: 22, catalogId: 5, freelance: true },
   { id: 'M', label: 'M', role: 'master', name: 'Jean-Paul Rima (master)', superadmin: true, techId: 25, catalogId: 6, companyId: 1 },
-  { id: 'M1', label: 'M1', role: 'master', name: 'Kevin « Kev »', techId: 22, catalogId: 6, companyId: 1 },
+  { id: 'M1', label: 'M1', role: 'master', name: 'Kevin « Kev »', techId: 26, catalogId: 6, companyId: 1 },
   { id: 'M2', label: 'M2', role: 'master', name: 'Pierre Durand', techId: 1, catalogId: 6, companyId: 1 },
   { id: 'M3', label: 'M3', role: 'master', name: 'Sophie', techId: 2, catalogId: 6, companyId: 1 },
   { id: 'G', label: 'G', role: 'gerant', name: 'Edouard (gérant Moon)', techId: 30, catalogId: 6, companyId: 1 },

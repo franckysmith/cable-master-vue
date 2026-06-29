@@ -8,7 +8,7 @@
       <button v-if="showGantt" class="page-switch tl-masquer" :class="{ active: showHiddenTl }" @click="showHiddenTl = !showHiddenTl">{{ showHiddenTl ? '👁 Masqués' : 'Masquer' }}</button>
     </div>
 
-    <TimelineGantt v-if="showGantt" :selected-id="selected ? selected.affairid : null" :show-hidden="showHiddenTl" @select="onGanttSelect" />
+    <TimelineGantt v-if="showGantt" :selected-id="selected ? selected.affairid : null" :show-hidden="showHiddenTl" :affairs="filteredAffairs" @select="onGanttSelect" />
 
     <!-- Liste des affaires avec statut -->
     <div v-if="!showForm" class="top-actions">
@@ -31,9 +31,17 @@
       </div>
       <label class="affair-search-past"><input type="checkbox" v-model="searchPast" /> passé</label>
     </div>
-    <div v-if="!showForm && managerFilter" class="manager-filter-chip">
-      👤 Gérant : <strong>{{ managerFilter }}</strong>
-      <button class="mfc-clear" @click="managerFilter = ''" title="Tout afficher">✕</button>
+    <!-- Commutateur de masters/gérants : visible seulement quand un responsable est sélectionné.
+         On voit le responsable choisi + ses collègues pour basculer ; re-cliquer l'actif désélectionne (tout disparaît). -->
+    <div v-if="!showForm && managerFilter" class="manager-switch">
+      <button
+        v-for="m in managerOptions"
+        :key="m.value"
+        class="ms-chip"
+        :class="{ active: managerFilter === m.value, 'ms-gerant': m.role === 'gerant', 'ms-principal': m.role === 'principal' }"
+        @click="managerFilter = managerFilter === m.value ? '' : m.value"
+        :title="'Affaires de ' + m.value"
+      >{{ m.value }}</button>
     </div>
     <div v-if="!showForm" class="affair-tabs">
       <button class="btn-mine" :class="{ active: mineOnly }" @click="mineOnly = !mineOnly" title="Afficher seulement mes affaires (gérant)">
@@ -1188,7 +1196,8 @@ const managerOptions = computed(() => {
   const out = []
   if (r && (r.resp_nickname || r.resp_firstname)) {
     const v = r.resp_nickname || r.resp_firstname
-    out.push({ value: v, label: `🧭 ${v} · gérant`, role: 'gerant' })
+    // Le gérant n'apparaît que s'il gère au moins une affaire
+    if ((affairs.value || []).some(a => a.manager === v)) out.push({ value: v, label: `🧭 ${v} · gérant`, role: 'gerant' })
   }
   const principalId = r?.master_techid
   for (const t of (technicians.value || [])) {
@@ -1199,7 +1208,11 @@ const managerOptions = computed(() => {
     else out.push({ value: v, label: v, role: 'secondary' })
   }
   const seen = new Set()
-  return out.filter(o => !seen.has(o.value) && seen.add(o.value))
+  // Ordre : gérant d'abord (s'il a une affaire), puis master principal, puis secondaires
+  const rank = { gerant: 0, principal: 1, secondary: 2 }
+  return out
+    .filter(o => !seen.has(o.value) && seen.add(o.value))
+    .sort((a, b) => (rank[a.role] ?? 9) - (rank[b.role] ?? 9))
 })
 // Rôle d'un nom de gérant (pour colorer la puce sur les cartes)
 function managerRole(name) {
@@ -2807,13 +2820,17 @@ h3 { font-size: 16px; margin: 0; }
 /* Gérant : couleur dédiée (cyan) ; master principal : surligné jaune */
 .manager-chip.mgr-gerant { border-color: #06b6d4; color: #06b6d4; font-weight: 800; }
 .manager-chip.mgr-principal { background: #facc15; border-color: #eab308; color: #000; font-weight: 800; }
-.manager-filter-chip {
-  display: flex; align-items: center; gap: 6px; margin: 2px 0 8px;
-  font-size: 13px; color: var(--text);
-  background: var(--bg-section, rgba(0,0,0,0.05)); border: 1px solid var(--color1);
-  border-radius: 16px; padding: 4px 10px; width: fit-content;
+/* Commutateur de masters/gérants */
+.manager-switch { display: flex; flex-wrap: wrap; gap: 5px; margin: 2px 0 8px; }
+.ms-chip {
+  padding: 5px 11px; font-size: 12px; font-weight: 700;
+  border: 1px solid var(--border-light, #ccc); border-radius: 14px;
+  background: var(--bg-card, #f5f5f5); color: var(--text, #333);
+  cursor: pointer; box-shadow: none; min-width: auto;
 }
-.mfc-clear { background: transparent; border: none; cursor: pointer; color: var(--text-muted, #999); font-size: 14px; padding: 0 2px; min-width: auto; box-shadow: none; }
+.ms-chip.active { background: var(--color1); border-color: var(--color1); color: #fff; }
+.ms-chip.ms-gerant:not(.active) { border-color: #06b6d4; color: #0891b2; }
+.ms-chip.ms-principal:not(.active) { border-color: #eab308; color: #a16207; }
 .card-name.is-today {
   background: transparent;
   color: var(--text, #333);

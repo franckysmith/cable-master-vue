@@ -44,11 +44,14 @@ import { supabase } from '../lib/supabase'
 const props = defineProps({
   selectedId: { type: Number, default: null },
   showHidden: { type: Boolean, default: false }, // contrôlé par le parent (bouton Masquer)
+  affairs: { type: Array, default: null }, // si fourni : liste DÉJÀ filtrée par le parent (mêmes filtres que la liste)
 })
 defineEmits(['select'])
 
 const catalogId = parseInt(localStorage.getItem('cablemaster-catalogid')) || null
-const affairs = ref([])
+const fetched = ref([])
+// Source : la liste filtrée du parent si fournie, sinon notre propre chargement (repli)
+const srcAffairs = computed(() => props.affairs || fetched.value)
 const dayPx = ref(26)
 const laneH = 30
 const scroller = ref(null)
@@ -59,7 +62,8 @@ function iso(d) { return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.ge
 const todayIso = iso(new Date())
 function parse(s) { return s ? new Date(s + 'T00:00:00') : null }
 
-const shown = computed(() => props.showHidden ? affairs.value : affairs.value.filter(a => !a.hidden))
+// Affaires affichées = liste filtrée, moins les masqués (sauf en mode « Masqués »)
+const shown = computed(() => props.showHidden ? srcAffairs.value : srcAffairs.value.filter(a => !a.hidden))
 
 async function toggleHidden(a) {
   const nv = !a.hidden
@@ -68,10 +72,13 @@ async function toggleHidden(a) {
 }
 
 onMounted(async () => {
-  let q = supabase.from('affair').select('*').is('deleted_at', null)
-  if (catalogId) q = q.eq('catalog_id', catalogId)
-  const { data } = await q
-  affairs.value = data || []
+  // Repli : on ne charge nous-mêmes que si le parent ne fournit pas la liste filtrée
+  if (!props.affairs) {
+    let q = supabase.from('affair').select('*').is('deleted_at', null)
+    if (catalogId) q = q.eq('catalog_id', catalogId)
+    const { data } = await q
+    fetched.value = data || []
+  }
   await nextTick()
   scrollToToday()
   const el = scroller.value
