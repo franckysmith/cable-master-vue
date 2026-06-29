@@ -13,10 +13,23 @@
         <button v-if="microsValidated" class="mic-act-btn modify" @click="$emit('unlock')">Modifier</button>
         <button v-else class="mic-act-btn validate" @click="$emit('validate')">Valider</button>
       </div>
+      <div class="mic-head-col subloc"><span class="mic-head-angled subloc">Sous-loc</span></div>
     </div>
 
     <template v-for="sec in orderedSections" :key="sec.key">
-      <div class="mic-cat-header" :id="'micsec-' + sec.key">{{ sec.label }}</div>
+      <!-- Total (hors pieds) : juste au-dessus de la section Pieds de micro -->
+      <!-- Vert quand demandé = fourni entreprise + sous-loué -->
+      <div v-if="sec.key === 'pied' && shownMics.length" class="mic-totals" :class="{ balanced: totalNeed === totalProposed + totalSublease }">
+        <div class="mic-totals-name">Total</div>
+        <div class="mic-totals-cell">{{ totalNeed }}</div>
+        <div class="mic-totals-cell">{{ totalProposed }}</div>
+        <div class="mic-totals-detail"></div>
+        <div class="mic-totals-cell subloc">{{ totalSublease }}</div>
+      </div>
+      <div v-if="sec.brandGroups.length" class="mic-cat-header" :class="{ supp: sec.key === 'supplementaire' }" :id="'micsec-' + sec.key">
+        <span>{{ sec.label }}</span>
+        <span class="mic-cat-sl">SL</span>
+      </div>
       <template v-for="([brand, cables]) in sec.brandGroups" :key="sec.key + '_' + brand">
       <div class="brand-header" @click="toggleGroup(sec.key + '_' + brand)">
         <span class="brand-arrow">{{ closedGroups[sec.key + '_' + brand] ? '▶' : '▼' }}</span>
@@ -38,44 +51,39 @@
             :title="cable.link ? 'Appui long : ouvrir la fiche PDF' : ''"
           >{{ displayName(cable) }}<span v-if="cable.link" class="mic-pdf-badge" title="Fiche PDF disponible (appui long)">📄</span></div>
           <div class="cable-cols">
-            <!-- Pieds : saisie directe au clavier numérique (chiffres possibles élevés) -->
-            <template v-if="catOf(cable) === 'pied'">
-              <div class="mic-cell">
-                <input class="mic-num" type="number" inputmode="numeric" min="0" placeholder="--"
-                  :value="cable.need || ''" :readonly="!canEditNeed" @change="setNum(cable, 'need', $event)" @click.stop />
-              </div>
-              <div class="mic-cell" :class="propClass(cable)">
-                <input class="mic-num" type="number" inputmode="numeric" min="0" placeholder="--"
-                  :value="cable.proposed || ''" :readonly="!canEditProposed" @change="setNum(cable, 'proposed', $event)" @click.stop />
-              </div>
-            </template>
-            <!-- Micros / DI / HF : tap = +, maintien = − -->
-            <template v-else>
-              <div class="mic-cell" :class="{ disabled: cable.cableid !== activeCableId || !canEditNeed }"
-                @mousedown="startPress(cable, 'need', $event)" @mouseup="endPress(cable, 'need', $event)" @mouseleave="cancelPress"
-                @touchstart="startPress(cable, 'need', $event)" @touchend="endPress(cable, 'need', $event)" @touchcancel="cancelPress">
-                <span class="mic-value" :class="{ active: cable.need > 0 }">{{ cable.need > 0 ? cable.need : '--' }}</span>
-              </div>
-              <div class="mic-cell" :class="[propClass(cable), { disabled: cable.cableid !== activeCableId || !canEditProposed }]"
-                @mousedown="startPress(cable, 'proposed', $event)" @mouseup="endPress(cable, 'proposed', $event)" @mouseleave="cancelPress"
-                @touchstart="startPress(cable, 'proposed', $event)" @touchend="endPress(cable, 'proposed', $event)" @touchcancel="cancelPress">
-                <span class="mic-value" :class="{ active: cable.proposed > 0 }">{{ cable.proposed > 0 ? cable.proposed : '--' }}</span>
-              </div>
-            </template>
+            <!-- Tap = +, maintien = − (micros, DI, HF ET pieds) -->
+            <div class="mic-cell" :class="{ disabled: cable.cableid !== activeCableId || !canEditNeed }"
+              @mousedown="startPress(cable, 'need', $event)" @mouseup="endPress(cable, 'need', $event)" @mouseleave="cancelPress"
+              @touchstart="startPress(cable, 'need', $event)" @touchend="endPress(cable, 'need', $event)" @touchcancel="cancelPress">
+              <span class="mic-value" :class="{ active: cable.need > 0 }">{{ cable.need > 0 ? cable.need : '--' }}</span>
+            </div>
+            <div class="mic-cell" :class="[propClass(cable), { disabled: cable.cableid !== activeCableId || !canEditProposed }]"
+              @mousedown="startPress(cable, 'proposed', $event)" @mouseup="endPress(cable, 'proposed', $event)" @mouseleave="cancelPress"
+              @touchstart="startPress(cable, 'proposed', $event)" @touchend="endPress(cable, 'proposed', $event)" @touchcancel="cancelPress">
+              <span class="mic-value" :class="{ active: cable.proposed > 0 }">{{ cable.proposed > 0 ? cable.proposed : '--' }}</span>
+            </div>
             <textarea class="mic-detail" v-model="cable.detail" placeholder="…" rows="1"
               @input="onDetailInput($event, cable)" @click.stop @mousedown.stop @touchstart.stop></textarea>
+            <div class="mic-cell subloc-cell" :class="[subClass(cable), { disabled: cable.cableid !== activeCableId || !canEditProposed }]"
+              @mousedown="startPress(cable, 'sublease', $event)" @mouseup="endPress(cable, 'sublease', $event)" @mouseleave="cancelPress"
+              @touchstart="startPress(cable, 'sublease', $event)" @touchend="endPress(cable, 'sublease', $event)" @touchcancel="cancelPress">
+              <span class="mic-value">{{ cable.sublease > 0 ? cable.sublease : '--' }}</span>
+            </div>
           </div>
         </div>
       </template>
       </template>
     </template>
 
-    <!-- Totaux : Ma liste vs Propositions -->
-    <div v-if="shownMics.length" class="mic-totals">
-      <div class="mic-totals-name">Total</div>
-      <div class="mic-totals-cell">{{ totalNeed }}</div>
-      <div class="mic-totals-cell" :class="totalNeed === totalProposed ? 'tot-ok' : 'tot-bad'">{{ totalProposed }}</div>
-      <div class="mic-totals-detail"></div>
+    <!-- Bilan : micros à sous-louer (besoin > proposé) -->
+    <div v-if="subRentList.length" class="sublease">
+      <div class="sublease-head">📦 Micros à sous-louer</div>
+      <div v-for="s in subRentList" :key="s.cableid" class="sublease-row" :class="{ done: subDone[s.cableid] }">
+        <input type="checkbox" :checked="!!subDone[s.cableid]" @change="toggleSubDone(s.cableid)" class="sublease-check" />
+        <span class="sublease-qty">{{ s.missing }}</span>
+        <span class="sublease-name">{{ s.name }}</span>
+      </div>
+      <div class="sublease-foot">Total à sous-louer : <b>{{ subRentTotal }}</b></div>
     </div>
 
     <div v-if="shownMics.length === 0" class="empty">Aucun micro</div>
@@ -105,14 +113,16 @@ const isMaster = computed(() => {
 // Droits d'édition :
 // - « Ma liste » (besoin) : éditable tant que pas validée par le technicien
 // - « Proposition » : master uniquement (il remplit une fois la liste validée)
-const canEditNeed = computed(() => !props.microsValidated)
+// « Ma liste » (besoin) : le technicien seul, tant que pas validée. Le master ne la modifie jamais.
+const canEditNeed = computed(() => !isMaster.value && !props.microsValidated)
 const canEditProposed = computed(() => isMaster.value)
 
 // Sections de la page Micro
 const MIC_SECTIONS = [
+  { key: 'supplementaire', label: '➕ Micro supplémentaire' }, // micros ajoutés par le technicien, tout en haut
   { key: 'micro', label: 'Micro' },
   { key: 'di', label: 'DI' },
-  { key: 'hf_micro', label: 'HF micro' },
+  { key: 'hf_micro', label: 'Micro HF' },
   { key: 'pied', label: 'Pied de micro' }, // en bas de la liste, pas dans la barre de raccourcis
 ]
 const allMicsRaw = computed(() => props.cables.filter(c => c.type === 'microphone'))
@@ -160,12 +170,33 @@ function scrollToSection(key) {
 // Couleur de la colonne « Propositions » : vert = proposé CORRESPOND au besoin
 // (proposé = besoin) ; rouge dès que ça ne correspond plus (manque ou écart).
 function propClass(cable) {
-  if (!cable.need) return ''
-  return (cable.proposed || 0) === cable.need ? 'prop-green' : 'prop-red'
+  const need = cable.need || 0
+  const prop = cable.proposed || 0
+  if (prop > need) return 'prop-blue'        // plus que demandé → micro en plus / substitut
+  if (!need) return ''                        // rien demandé (et rien en trop)
+  if (prop === need) return 'prop-green'      // pile la demande
+  return 'prop-red'                           // moins que demandé → il manque
+}
+// Cellule Sous-loc : verte quand la demande est couverte (fourni + sous-loué = demandé)
+function subClass(cable) {
+  const need = cable.need || 0
+  if (need > 0 && (cable.proposed || 0) + (cable.sublease || 0) === need) return 'prop-green'
+  return ''
 }
 // Totaux bas de tableau (sur la liste affichée)
-const totalNeed = computed(() => shownMics.value.reduce((s, c) => s + (c.need || 0), 0))
-const totalProposed = computed(() => shownMics.value.reduce((s, c) => s + (c.proposed || 0), 0))
+// Total HORS pieds de micro (on ne somme pas les pieds)
+const sumMics = computed(() => shownMics.value.filter(c => catOf(c) !== 'pied'))
+const totalNeed = computed(() => sumMics.value.reduce((s, c) => s + (c.need || 0), 0))
+const totalProposed = computed(() => sumMics.value.reduce((s, c) => s + (c.proposed || 0), 0))
+const totalSublease = computed(() => sumMics.value.reduce((s, c) => s + (c.sublease || 0), 0))
+
+// Bilan sous-location : micros explicitement marqués (colonne Sous-loc)
+const subRentList = computed(() => shownMics.value
+  .filter(c => (c.sublease || 0) > 0)
+  .map(c => ({ cableid: c.cableid, name: c.name, missing: c.sublease })))
+const subRentTotal = computed(() => subRentList.value.reduce((s, x) => s + x.missing, 0))
+const subDone = ref({})
+function toggleSubDone(id) { subDone.value = { ...subDone.value, [id]: !subDone.value[id] } }
 
 const closedGroups = ref({})
 function toggleGroup(brand) {
@@ -221,7 +252,8 @@ let repeatTimer = null
 let didLongPress = false
 
 function canEditField(field) {
-  return field === 'proposed' ? canEditProposed.value : canEditNeed.value
+  if (field === 'proposed' || field === 'sublease') return canEditProposed.value
+  return canEditNeed.value
 }
 
 // Saisie directe (pieds) : on tape le nombre au clavier numérique
@@ -352,6 +384,24 @@ function cancelPress() {
   cursor: pointer;
 }
 .mic-pdf-badge { margin-left: 5px; font-size: 12px; opacity: 0.95; }
+/* Colonne Sous-location (à droite) */
+.mic-head-col.subloc { flex: 0 0 auto; }
+.mic-head-angled.subloc { color: #eb910a; }
+.subloc-cell { flex: 0 0 40px; width: 40px; margin-left: 4px; border: 1px solid #eb910a; border-radius: 4px; display: flex; align-items: center; justify-content: center; }
+.subloc-cell .mic-value { color: var(--text, #222) !important; font-weight: 800; }
+.subloc-cell.prop-green .mic-value { color: #111 !important; }
+.subloc-cell.disabled { opacity: 0.5; }
+/* Bilan micros à sous-louer */
+.sublease { margin: 12px 0 6px; border: 2px solid #eb910a; border-radius: 10px; overflow: hidden; }
+.sublease-head { background: #eb910a; color: #fff; font-size: 13px; font-weight: 800; padding: 6px 10px; }
+.sublease-row { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-bottom: 1px solid var(--border-light, #eee); }
+.sublease-row.done { opacity: 0.5; }
+.sublease-row.done .sublease-name { text-decoration: line-through; }
+.sublease-check { width: 18px; height: 18px; flex: none; }
+.sublease-qty { flex: none; min-width: 26px; text-align: center; font-weight: 900; color: #eb910a; }
+.sublease-name { flex: 1; font-size: 14px; font-weight: 600; }
+.sublease-foot { padding: 6px 10px; font-size: 13px; text-align: right; color: var(--text, #333); }
+.sublease-foot b { color: #eb910a; }
 .cable-cols {
   display: flex;
   gap: 0;
@@ -412,8 +462,10 @@ function cancelPress() {
 :global(.dark) .cable-row .cable-cols .mic-cell.prop-green { background: #86efac !important; }
 .cable-row .cable-cols .mic-cell.prop-red,
 :global(.dark) .cable-row .cable-cols .mic-cell.prop-red { background: #fca5a5 !important; }
-.mic-cell.prop-green .mic-value, .mic-cell.prop-red .mic-value,
-.mic-cell.prop-green .mic-num, .mic-cell.prop-red .mic-num { color: #111 !important; font-weight: 800; }
+.cable-row .cable-cols .mic-cell.prop-blue,
+:global(.dark) .cable-row .cable-cols .mic-cell.prop-blue { background: #93c5fd !important; }
+.mic-cell.prop-green .mic-value, .mic-cell.prop-red .mic-value, .mic-cell.prop-blue .mic-value,
+.mic-cell.prop-green .mic-num, .mic-cell.prop-red .mic-num, .mic-cell.prop-blue .mic-num { color: #111 !important; font-weight: 800; }
 /* Saisie numérique des pieds */
 .mic-cell .mic-num {
   width: 100%; height: 100%; border: none; background: transparent; text-align: center;
@@ -457,13 +509,19 @@ function cancelPress() {
 }
 .mic-mini-btn.active { background: var(--color1); border-color: var(--color1); color: #fff; }
 /* Totaux */
-.mic-totals { display: flex; align-items: center; gap: 4px; margin-top: 10px; padding: 8px 0; border-top: 2px solid var(--border, #444); }
-.mic-totals-name { flex: 0 0 100px; font-size: 13px; font-weight: 800; color: var(--text, #333); }
-.mic-totals-cell { flex: 0 0 40px; text-align: center; font-size: 16px; font-weight: 800; color: var(--text, #333); }
-.mic-totals-cell.tot-ok { color: #16a34a; }
-.mic-totals-cell.tot-bad { color: #dc2626; }
+.mic-totals { display: flex; align-items: center; gap: 4px; margin: 8px 0; padding: 8px 6px; border-top: 2px solid var(--border, #444); border-bottom: 2px solid var(--border, #444); border-radius: 8px; }
+.mic-totals-name { flex: 0 0 100px; font-size: 15px; font-weight: 800; color: var(--text, #333); }
+.mic-totals-cell { flex: 0 0 40px; text-align: center; font-size: 26px; font-weight: 900; color: var(--text, #333); line-height: 1; }
+.mic-totals-cell.subloc { flex: 0 0 40px; color: #eb910a; }
 .mic-totals-detail { flex: 1; }
+/* Équilibré : demandé = fourni + sous-loué → toute la ligne en vert clair */
+.mic-totals.balanced { background: #bbf7d0; border-color: #16a34a; }
+.mic-totals.balanced .mic-totals-name,
+.mic-totals.balanced .mic-totals-cell { color: #14532d; }
 .mic-cat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   margin: 12px 2px 4px;
   padding: 6px 10px;
   background: var(--color3);
@@ -475,6 +533,9 @@ function cancelPress() {
   border-radius: 8px;
   scroll-margin-top: 8px;
 }
+.mic-cat-header.supp { background: #eb910a; color: #fff; }
+.mic-cat-sl { font-size: 11px; font-weight: 900; color: #eb910a; background: #fff; border-radius: 6px; padding: 1px 7px; }
+.mic-cat-header.supp .mic-cat-sl { color: #eb910a; }
 .brand-header {
   display: flex;
   align-items: center;

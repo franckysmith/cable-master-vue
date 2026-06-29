@@ -2791,11 +2791,17 @@ h3 { font-size: 16px; margin: 0; }
   position: relative;
   padding: 10px;
   border: 2px solid #ffffff;
-  border-radius: 8px;
-  margin-bottom: 10px;
+  border-radius: 14px;
+  margin-bottom: 12px;
   cursor: pointer;
-  background: var(--bg-card, #fafafa);
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.12);
+  /* léger voile mauve sur le fond de carte */
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.14), rgba(139, 92, 246, 0.05) 55%, rgba(139, 92, 246, 0.02)), var(--bg-card, #fafafa);
+  box-shadow:
+    0 6px 16px rgba(0, 0, 0, 0.45),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.10),
+    inset 10px 0 16px -10px rgba(255, 255, 255, 0.40),
+    inset -10px 0 16px -10px rgba(255, 255, 255, 0.40),
+    inset 0 9px 14px -10px rgba(255, 255, 255, 0.28);
 }
 /* Croix + crayon : position fixe en haut à droite de la fiche */
 .card-tr { position: absolute; top: 8px; right: 8px; display: flex; gap: 4px; z-index: 3; }

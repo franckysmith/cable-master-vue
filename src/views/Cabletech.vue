@@ -110,11 +110,23 @@
           @touchend.prevent="endCtBtnPress"
           @touchcancel="cancelCtBtnPress"
           style="user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;"
-        >Cablekit</button>
+        >Câble Kit</button>
+      </div>
+
+      <!-- Mode Micro : ajouter un micro manquant → section « Micro supplémentaire » -->
+      <div v-if="showAddInput && microMode" class="quick-add">
+        <input
+          ref="addInput"
+          v-model="newMicName"
+          class="quick-add-input"
+          placeholder="Ajouter les micros manquants…"
+          @keydown.enter="quickAddMic"
+        />
+        <button class="quick-add-btn" @click="quickAddMic" :disabled="!newMicName.trim()">Ajouter</button>
       </div>
 
       <!-- Ajout rapide de câble (édition autorisée) -->
-      <div v-if="showAddInput && canEditCables" class="quick-add">
+      <div v-if="showAddInput && canEditCables && !microMode" class="quick-add">
         <input
           ref="addInput"
           v-model="newCableName"
@@ -126,7 +138,7 @@
       </div>
 
       <!-- Technicien : câble absent de la liste → demande au master -->
-      <div v-if="showAddInput && !canEditCables" class="quick-add quick-request">
+      <div v-if="showAddInput && !canEditCables && !microMode" class="quick-add quick-request">
         <input
           ref="addInput"
           v-model="requestText"
@@ -261,23 +273,24 @@
       </div>
 
       <!-- Micro layout -->
-      <div v-if="!ctMode && microMode">
-        <div class="micro-view-bar">
-          <button class="mode-btn" :class="{ active: !microGalleryView }" @click="microGalleryView = false">📋 Liste</button>
-          <button class="mode-btn" :class="{ active: microGalleryView }" @click="microGalleryView = true">🖼 Photos</button>
-        </div>
-        <!-- Galerie photos des micros de la liste -->
-        <div v-if="microGalleryView" class="micro-gallery">
-          <div v-for="m in micGalleryItems" :key="m.cableid" class="micg-card" @click="openMicPhoto(m)">
-            <img v-if="m.image_url" :src="m.image_url" class="micg-img" :alt="m.name" />
-            <div v-else class="micg-noimg">🎤</div>
-            <div class="micg-name">{{ m.name }}</div>
-            <div v-if="m.brand" class="micg-brand">{{ m.brand }}</div>
+      <div v-if="!ctMode && microMode" class="micro-area" style="width:100%">
+        <!-- Pop-up photo + PDF d'un micro (appui long) -->
+        <div v-if="micPopup.open && micPopup.mic" class="mic-pop-ov" @click.self="micPopup.open = false">
+          <div class="mic-pop">
+            <div class="mic-pop-head">
+              <span class="mic-pop-name">{{ micPopup.mic.name }} <small v-if="micPopup.mic.brand">· {{ micPopup.mic.brand }}</small></span>
+              <button class="mic-pop-close" @click="micPopup.open = false">✕</button>
+            </div>
+            <img v-if="micPopup.mic.image_url" :src="micPopup.mic.image_url" class="mic-pop-img" :alt="micPopup.mic.name" />
+            <div v-else class="mic-pop-noimg">🎤 Pas de photo</div>
+            <div class="mic-pop-actions">
+              <a v-if="micPopup.mic.link" :href="micPopup.mic.link" target="_blank" class="mic-pop-pdf">📄 Voir le PDF</a>
+              <span v-else class="mic-pop-nopdf">Pas de fiche PDF</span>
+            </div>
           </div>
-          <div v-if="!micGalleryItems.length" class="micg-empty">Aucun micro dans la liste.</div>
         </div>
-        <div v-else class="table-scroll">
-          <MicroList :cables="filteredJoinedData" :active-cable-id="activeCableId" :subtract-mode="subtractMode" :solo-mode="microSolo" :increment-step="incrementStep" :micros-validated="!!selectedAffair?.micros_validated" @updated="onCableUpdated" @select="onCableSelect" @longpress="onCableLongPress" @toggle-subtract="subtractMode = !subtractMode" @toggle-solo="microSolo = !microSolo" @validate="setMicrosValidated(true)" @unlock="setMicrosValidated(false)" />
+        <div class="table-scroll">
+          <MicroList :cables="filteredJoinedData" :active-cable-id="activeCableId" :subtract-mode="subtractMode" :solo-mode="microSolo" :increment-step="incrementStep" :micros-validated="!!selectedAffair?.micros_validated" @updated="onCableUpdated" @select="onCableSelect" @longpress="onMicLongPress" @toggle-subtract="subtractMode = !subtractMode" @toggle-solo="microSolo = !microSolo" @validate="setMicrosValidated(true)" @unlock="setMicrosValidated(false)" />
         </div>
       </div>
 
@@ -618,6 +631,9 @@ const microSolo = ref(false)
 const microGalleryView = ref(false)
 const micGalleryItems = computed(() => (filteredJoinedData.value || []).filter(c => c.type === 'microphone'))
 function openMicPhoto(m) { if (m?.image_url) openDocSmart(m.image_url) }
+// Appui long sur un micro → pop-up photo (+ bouton PDF), au lieu d'ouvrir l'édition
+const micPopup = reactive({ open: false, mic: null })
+function onMicLongPress(cable) { micPopup.mic = cable; micPopup.open = true }
 const soloMode = ref(false)
 const incrementStep = ref(1)
 const ctMode = ref(false)
@@ -1097,6 +1113,24 @@ function typeLabel(type) {
   return found ? found.label : type
 }
 
+// Ajouter un micro manquant → catégorie « supplementaire » (apparaît en haut de la liste micro)
+const newMicName = ref('')
+async function quickAddMic() {
+  const name = newMicName.value.trim()
+  if (!name) return
+  const catalogId = selectedAffair.value?.catalog_id || parseInt(localStorage.getItem('cablemaster-catalogid')) || null
+  const { error } = await cableStore.addCable({ name, type: 'microphone', mic_category: 'supplementaire', weight: 0, total: 0, reserved: 0, catalog_id: catalogId })
+  if (!error) {
+    newMicName.value = ''
+    showAddInput.value = false
+    await cableStore.fetchCables(catalogId)
+    if (selectedAffair.value) {
+      const { data: orders } = await orderStore.fetchOrders({ affairid: selectedAffair.value.affairid })
+      buildJoinedData(orders || [], cableStore.cables)
+    }
+  }
+}
+
 async function quickAddCable() {
   const name = newCableName.value.trim()
   if (!name) return
@@ -1445,7 +1479,7 @@ async function autoSaveNow() {
   if (labelError) console.error('Erreur save labels:', labelError.message)
 
   // Sauvegarder orders
-  const hasMicData = (c) => c.type === 'microphone' && ((c.need || 0) > 0 || (c.proposed || 0) > 0 || (c.detail && c.detail.trim()))
+  const hasMicData = (c) => c.type === 'microphone' && ((c.need || 0) > 0 || (c.proposed || 0) > 0 || (c.sublease || 0) > 0 || (c.detail && c.detail.trim()))
   const toSave = joinedData.value
     .filter(c => getZoneTotal(c) > 0 || getTfcTotal(c) > 0 || hasMicData(c))
     .map(c => ({
@@ -1457,6 +1491,7 @@ async function autoSaveNow() {
       count: getZoneTotal(c) > 0 ? getZoneTotal(c) : getTfcTotal(c),
       need: c.need || 0,
       proposed: c.proposed || 0,
+      sublease: c.sublease || 0,
       detail: c.detail || null,
       spare_count: c.spare_count,
       z1: c.z1, z2: c.z2, z3: c.z3, z4: c.z4, z5: c.z5, z6: c.z6,
@@ -1621,6 +1656,7 @@ function rebuildJoinedData(cables = cableStore.cables) {
       count: parseInt(order?.count) || 0,
       need: parseInt(order?.need) || 0,
       proposed: parseInt(order?.proposed) || 0,
+      sublease: parseInt(order?.sublease) || 0,
       detail: order?.detail || '',
       spare_count: parseInt(order?.spare_count) || 0,
       tfc1: parseInt(order?.tfc1) || 0,
@@ -2308,7 +2344,20 @@ function colorForType(type) {
   z-index: 2;
   background: var(--bg);
 }
-.micro-view-bar { display: flex; gap: 6px; margin: 4px 0 8px; }
+.micro-view-bar { display: flex; align-items: center; gap: 6px; margin: 4px 0 8px; }
+.micro-lp-hint { font-size: 11px; color: var(--text-muted, #999); font-style: italic; }
+/* Pop-up photo + PDF d'un micro */
+.mic-pop-ov { position: fixed; inset: 0; z-index: 2400; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; padding: 16px; }
+.mic-pop { width: 100%; max-width: 420px; background: var(--bg-card, #1a1a2e); border: 1px solid var(--border, #3a3a55); border-radius: 14px; padding: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
+.mic-pop-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.mic-pop-name { font-size: 16px; font-weight: 800; color: var(--text, #fff); }
+.mic-pop-name small { font-size: 13px; font-weight: 600; color: var(--text-muted, #aaa); }
+.mic-pop-close { background: none; border: none; font-size: 20px; color: var(--text-muted, #888); cursor: pointer; box-shadow: none; min-width: auto; }
+.mic-pop-img { width: 100%; max-height: 60vh; object-fit: contain; border-radius: 10px; background: #fff; }
+.mic-pop-noimg { padding: 40px; text-align: center; font-size: 18px; color: var(--text-muted, #888); background: var(--bg-input, #2a2a45); border-radius: 10px; }
+.mic-pop-actions { display: flex; justify-content: center; margin-top: 10px; }
+.mic-pop-pdf { display: inline-block; padding: 9px 18px; background: #dc2626; color: #fff; text-decoration: none; border-radius: 10px; font-weight: 800; font-size: 14px; }
+.mic-pop-nopdf { font-size: 13px; color: var(--text-muted, #888); font-style: italic; }
 .micro-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; padding: 4px 0; }
 .micg-card { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 6px; border: 1px solid var(--border-light, #ddd); border-radius: 10px; background: var(--bg-card, #fff); cursor: pointer; }
 .micg-card:active { background: rgba(0,0,0,0.05); }

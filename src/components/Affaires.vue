@@ -758,11 +758,16 @@ function deselectAffair() {
   color: #888;
 }
 .selected-panel {
-  margin-bottom: 4px;
+  margin: 0 -2px 10px;
   background: var(--bg, #fff);
-  border-radius: 10px;
+  border-radius: 13px;
   border: 2px solid var(--color1);
   overflow: hidden;
+  /* halo mauve clair vers l'extérieur */
+  box-shadow:
+    0 0 20px rgba(167, 139, 250, 0.55),
+    0 6px 18px rgba(139, 92, 246, 0.35),
+    inset 0 0 14px rgba(167, 139, 250, 0.10);
 }
 .sel-details {
   display: flex;
@@ -1130,13 +1135,20 @@ function deselectAffair() {
 }
 .affair-card {
   position: relative;
-  padding: 8px 10px;
-  margin: 6px 4px;
-  border-radius: 6px;
+  padding: 10px 12px;
+  margin: 11px 4px;
+  border-radius: 14px;
   border: 1px solid var(--border, #e8e8e8);
-  background: var(--bg-card, #fafafa);
+  /* léger voile mauve sur le fond de carte */
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.14), rgba(139, 92, 246, 0.05) 55%, rgba(139, 92, 246, 0.02)), var(--bg-card, #fafafa);
   cursor: pointer;
-  transition: background 0.1s, border-color 0.1s;
+  box-shadow:
+    0 6px 16px rgba(0, 0, 0, 0.45),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.10),
+    inset 10px 0 16px -10px rgba(255, 255, 255, 0.40),
+    inset -10px 0 16px -10px rgba(255, 255, 255, 0.40),
+    inset 0 9px 14px -10px rgba(255, 255, 255, 0.28);
+  transition: background 0.1s, border-color 0.1s, box-shadow 0.1s;
 }
 /* Affaire sollicitée par une entreprise → barre rouge à gauche (perso = rien) */
 .affair-card.from-company { border-left: 4px solid #ef4444; }
