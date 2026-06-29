@@ -35,7 +35,8 @@
             :style="{ borderLeft: '4px solid #eb910a' }"
             @mousedown="startNamePress(cable, $event)" @mouseup="endNamePress(cable, $event)" @mouseleave="cancelNamePress"
             @touchstart="startNamePress(cable, $event)" @touchend="endNamePress(cable, $event)" @touchcancel="cancelNamePress"
-          >{{ displayName(cable) }}</div>
+            :title="cable.link ? 'Appui long : ouvrir la fiche PDF' : ''"
+          >{{ displayName(cable) }}<span v-if="cable.link" class="mic-pdf-badge" title="Fiche PDF disponible (appui long)">📄</span></div>
           <div class="cable-cols">
             <!-- Pieds : saisie directe au clavier numérique (chiffres possibles élevés) -->
             <template v-if="catOf(cable) === 'pied'">
@@ -350,6 +351,7 @@ function cancelPress() {
   white-space: nowrap;
   cursor: pointer;
 }
+.mic-pdf-badge { margin-left: 5px; font-size: 12px; opacity: 0.95; }
 .cable-cols {
   display: flex;
   gap: 0;

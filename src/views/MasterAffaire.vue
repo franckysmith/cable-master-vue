@@ -332,7 +332,12 @@
             @mousedown="startLongPress(affair)" @mouseup="endLongPress" @mouseleave="endLongPress"
             @contextmenu.prevent="openLocation(affair)"
             title="Envoyer l'affaire — appui long : Location / enlèvement simple">Envoyer</button>
-          <button v-if="isSent(affair)" class="sent-badge" @click.stop="openSentInfo(affair)" title="Voir la date d'envoi / relancer">Envoyé</button>
+          <button v-if="isSent(affair)" class="sent-badge"
+            @click.stop="onSentClick"
+            @touchstart.passive="startSentLP(affair)" @touchend="endSentLP" @touchmove="endSentLP"
+            @mousedown="startSentLP(affair)" @mouseup="endSentLP" @mouseleave="endSentLP"
+            @contextmenu.prevent="openSentInfo(affair)"
+            title="Appui long : date d'envoi / relancer / réinitialiser">Envoyé</button>
           <button v-if="isLocation(affair)" class="loc-badge" @click.stop="openLocation(affair)" title="Affaire sans technicien — sortie de matériel">📦 Location</button>
           <button class="follow-btn" :class="{ on: affair.followed }" @click.stop="toggleFollow(affair)" :title="affair.followed ? 'Suivi' : 'À suivre'">{{ affair.followed ? '★' : '☆' }}</button>
           <span v-if="unreadAffairs[affair.affairid]" class="unread-star" @click.stop="openChatOnly(affair)">★</span>
@@ -1570,6 +1575,16 @@ function startLongPress(a) {
   lpTimer = setTimeout(() => { lpFired.value = true; openLocation(a) }, 500)
 }
 function endLongPress() { clearTimeout(lpTimer) }
+// Appui long sur le badge « Envoyé » → popup (relancer / réinitialiser) ; clic court = rien (anti-accident)
+let lpTimerSent = null
+const lpFiredSent = ref(false)
+function startSentLP(a) {
+  lpFiredSent.value = false
+  clearTimeout(lpTimerSent)
+  lpTimerSent = setTimeout(() => { lpFiredSent.value = true; openSentInfo(a) }, 500)
+}
+function endSentLP() { clearTimeout(lpTimerSent) }
+function onSentClick() { lpFiredSent.value = false } // clic court : ne fait rien
 function onEnvoyerClick(a) {
   if (lpFired.value) { lpFired.value = false; return } // l'appui long a déjà agi
   sendAffair(a)

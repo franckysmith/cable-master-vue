@@ -174,6 +174,7 @@ const currentRoute = useRoute()
 const PAGE_TITLES = {
   '/': 'Cinod-Prep',
   '/CableList': 'CableList',
+  '/miclist': 'Micro List',
   '/FlightType': 'Cablekit',
   '/MasterAffaire': 'Master Affaire',
   '/techlist': 'TechList',
@@ -281,9 +282,10 @@ const employerItems = computed(() => {
   if (userRole.value !== 'master' && userRole.value !== 'gerant') return []
   return [
     { label: 'Entreprise', to: '/company', icon: 'apartment' },
-    { label: 'CableList', to: '/CableList', icon: 'settings_input_component' },
-    { label: 'Cablekit', to: '/FlightType', icon: 'inventory_2' },
-    { label: 'TechList', to: '/techlist', icon: 'groups' },
+    { label: 'Cable List', to: '/CableList', icon: 'settings_input_component' },
+    { label: 'Micro List', to: '/miclist', icon: 'mic' },
+    { label: 'Cable Kit', to: '/FlightType', icon: 'inventory_2' },
+    { label: 'Tech List', to: '/techlist', icon: 'groups' },
     { label: 'MasterAffaire', to: '/MasterAffaire', icon: 'event_note' },
   ]
 })

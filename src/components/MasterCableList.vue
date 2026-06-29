@@ -1,53 +1,87 @@
 <template>
   <div class="list_container">
-    <div v-for="cable in cables" :key="cable.cableid" class="cable-row" :class="{ inactive: cable.active === false }">
+    <template v-for="row in rows" :key="row.key">
+      <div v-if="row.type === 'header'" class="brand-group-head">{{ row.brand }}</div>
+      <div v-else-if="row.type === 'pieds-header'" class="pieds-head">🎚 {{ row.brand }}</div>
+      <div v-else class="cable-row" :class="{ inactive: row.cable.active === false }">
       <input
         type="checkbox"
-        :checked="cable.active !== false"
-        @change="toggleActive(cable)"
+        :checked="row.cable.active !== false"
+        @change="toggleActive(row.cable)"
         class="cable-active"
       />
-      <div class="cable-name">{{ cable.name }}</div>
+      <div class="cable-name">{{ row.cable.name }}</div>
       <div class="cable-fields">
         <input
           type="number"
-          :value="cable.reserved"
-          @change="update(cable, 'reserved', $event)"
+          :value="row.cable.reserved"
+          @change="update(row.cable, 'reserved', $event)"
           title="seuil"
         />
         <input
           type="number"
-          :value="cable.total"
-          :class="stockClass(cable)"
-          @change="update(cable, 'total', $event)"
+          :value="row.cable.total"
+          :class="stockClass(row.cable)"
+          @change="update(row.cable, 'total', $event)"
           title="total"
         />
         <input
           type="number"
-          :value="cable.weight"
-          @change="update(cable, 'weight', $event)"
+          :value="row.cable.weight"
+          @change="update(row.cable, 'weight', $event)"
           title="poids"
         />
         <input
           type="number"
-          :value="cable.sortno"
-          @change="update(cable, 'sortno', $event)"
+          :value="row.cable.sortno"
+          @change="update(row.cable, 'sortno', $event)"
           title="ordre"
         />
       </div>
-      <button class="btn-delete" @click="$emit('delete', cable)">x</button>
-    </div>
+      <button class="btn-delete" @click="$emit('delete', row.cable)">x</button>
+      </div>
+    </template>
   </div>
 </template>
 
 <script setup>
+import { computed } from 'vue'
 import { useCableStore } from '../stores/cables'
 
-defineProps({
+const props = defineProps({
   cables: { type: Array, default: () => [] },
+  groupByBrand: { type: Boolean, default: false }, // Micro List : en-têtes par marque
 })
 const emit = defineEmits(['delete'])
 const cableStore = useCableStore()
+
+// Un « pied de micro » (pas un micro) → regroupé tout à la fin
+function isPied(c) { return /pied/i.test(c.name || '') || /pied/i.test(c.brand || '') }
+
+// Lignes à afficher : plat, ou groupé par marque (en-tête + micros) si groupByBrand,
+// avec les pieds de micro tout à la fin sous un séparateur « Pieds ».
+const rows = computed(() => {
+  if (!props.groupByBrand) {
+    return props.cables.map(c => ({ type: 'cable', key: 'c' + c.cableid, cable: c }))
+  }
+  const pieds = props.cables.filter(isPied)
+  const mics = props.cables.filter(c => !isPied(c))
+  const groups = {}
+  for (const c of mics) {
+    const b = (c.brand || '').trim() || 'Autres'
+    ;(groups[b] = groups[b] || []).push(c)
+  }
+  const out = []
+  for (const b of Object.keys(groups).sort((a, z) => a.localeCompare(z))) {
+    out.push({ type: 'header', key: 'h' + b, brand: b })
+    for (const c of groups[b]) out.push({ type: 'cable', key: 'c' + c.cableid, cable: c })
+  }
+  if (pieds.length) {
+    out.push({ type: 'pieds-header', key: 'pieds', brand: 'Pieds' })
+    for (const c of pieds) out.push({ type: 'cable', key: 'c' + c.cableid, cable: c })
+  }
+  return out
+})
 
 function update(cable, field, event) {
   const value = parseInt(event.target.value) || 0
@@ -76,6 +110,17 @@ function toggleActive(cable) {
   width: 100%;
   padding: 0 8px;
 }
+.brand-group-head {
+  font-size: 13px; font-weight: 800; color: var(--color1);
+  padding: 8px 6px 3px; margin-top: 4px;
+  border-bottom: 2px solid var(--color1); text-transform: uppercase; letter-spacing: 0.3px;
+}
+.pieds-head {
+  font-size: 14px; font-weight: 800; color: #eb910a;
+  padding: 10px 6px 4px; margin-top: 14px;
+  border-top: 3px solid #eb910a; border-bottom: 2px solid #eb910a;
+  text-transform: uppercase; letter-spacing: 0.3px;
+}
 .cable-row {
   display: flex;
   align-items: center;
@@ -90,8 +135,8 @@ function toggleActive(cable) {
   text-decoration: line-through;
 }
 .cable-name {
-  width: 100px;
-  min-width: 100px;
+  flex: 1;
+  min-width: 70px;
   text-align: left;
   font-size: 13px;
   font-weight: 600;
@@ -103,7 +148,7 @@ function toggleActive(cable) {
 .cable-fields {
   display: flex;
   gap: 2px;
-  flex: 1;
+  flex: none;
 }
 .cable-fields input {
   width: 44px;

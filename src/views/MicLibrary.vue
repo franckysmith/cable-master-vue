@@ -7,11 +7,8 @@
         <input v-model="search" class="search-input" placeholder="Rechercher un micro..." />
         <button v-if="search" class="search-clear" @click="search = ''" title="Effacer">✕</button>
       </span>
-      <button class="view-toggle" @click="viewMode = viewMode === 'list' ? 'gallery' : 'list'">
-        {{ viewMode === 'list' ? '🖼' : '📋' }}
-      </button>
       <button
-        v-if="!isMasterWorker"
+        v-if="!isMasterWorker && editMode === null"
         class="upload-btn"
         :class="{ active: showUpload }"
         @click="showUpload = !showUpload; editListMode = showUpload"
@@ -30,13 +27,13 @@
         :key="b.name"
         class="brand-filter-btn"
         :class="{ active: selectedBrand === b.name }"
-        :style="{ borderColor: b.color, color: selectedBrand === b.name ? '#fff' : b.color, background: selectedBrand === b.name ? b.color : 'transparent' }"
+        :style="{ borderColor: b.color, color: selectedBrand === b.name ? '#fff' : 'var(--text)', background: selectedBrand === b.name ? b.color : 'transparent' }"
         @click="selectedBrand = selectedBrand === b.name ? '' : b.name"
       >{{ b.short }}</button>
     </div>
 
-    <!-- Filtres par instrument -->
-    <div class="instrument-filters">
+    <!-- Filtres par instrument — masqués temporairement (à remettre plus tard : v-if="false" → true) -->
+    <div v-if="false" class="instrument-filters">
       <button
         v-for="inst in instruments"
         :key="inst.key"
@@ -87,17 +84,18 @@
         :key="mic.cableid"
         class="gallery-card"
         :class="{ added: isInMyList(mic) }"
-        @click="isInMyList(mic) ? removeFromMyList(mic) : addToMyList(mic)"
+        @click="isEdit ? toggleMic(mic) : openMicInfo(mic)"
       >
         <button
-          v-if="editListMode"
+          v-if="isEdit"
           class="gallery-add-btn"
           :class="{ added: isInMyList(mic) }"
-          @click.stop="isInMyList(mic) ? removeFromMyList(mic) : addToMyList(mic)"
+          @click.stop="toggleMic(mic)"
           :disabled="adding[mic.name]"
         >{{ isInMyList(mic) ? '✓' : '+' }}</button>
         <span v-else-if="isInMyList(mic)" class="gallery-badge">✓</span>
         <div class="gallery-thumb">
+          <span v-if="mic.link" class="gallery-pdf-flag" @click.stop="openMicInfo(mic)" title="Voir la fiche PDF">📄 PDF</span>
           <img v-if="mic.image_url" :src="mic.image_url" class="mic-image" />
           <div v-else class="no-thumb">🎤</div>
           <label v-if="canEditImage(mic)" :for="'img-' + mic.cableid" class="change-image-btn" @click.stop>
@@ -114,8 +112,7 @@
         <div class="gallery-text">
           <div class="gallery-name">{{ mic.name }}</div>
           <div class="gallery-brand">{{ mic.brand }}</div>
-          <a v-if="mic.link" :href="mic.link" target="_blank" class="gallery-pdf-link" @click.stop>📄</a>
-          <button v-if="editListMode && canEditMic(mic)" class="gallery-edit-btn" @click.stop="openEditMic(mic)">✏️</button>
+          <button v-if="isEdit && canEditMic(mic)" class="gallery-edit-btn" @click.stop="openEditMic(mic)">✏️</button>
         </div>
 
         <!-- Panneau édition inline -->
@@ -145,44 +142,14 @@
       </div>
     </div>
 
-    <!-- Vue Liste par marque -->
-    <template v-if="viewMode === 'list'">
-    <div v-for="[brand, mics] in filteredGroups" :key="brand" class="brand-group">
-      <div class="brand-header" @click="toggleBrand(brand)">
-        <span class="brand-arrow">{{ closedBrands[brand] ? '▶' : '▼' }}</span>
-        <span class="brand-name">{{ brand }}</span>
-        <span class="brand-count">{{ mics.length }}</span>
-      </div>
-      <template v-if="!closedBrands[brand]">
-        <div v-for="mic in mics" :key="mic.cableid" class="mic-card">
-          <div class="mic-info">
-            <div class="mic-name">{{ mic.name }}</div>
-            <div class="mic-specs">{{ mic.info || 'Pas de spécifications' }}</div>
-          </div>
-          <div class="mic-actions">
-            <a v-if="mic.link" :href="mic.link" target="_blank" class="btn-pdf" title="Voir le PDF">📄</a>
-            <button
-              v-if="editListMode"
-              class="btn-add-list"
-              :class="{ added: isInMyList(mic), loading: adding[mic.name] }"
-              @click="isInMyList(mic) ? removeFromMyList(mic) : addToMyList(mic)"
-              :disabled="adding[mic.name]"
-            >{{ adding[mic.name] ? '...' : isInMyList(mic) ? '✓ Ajouté' : '+ Liste' }}</button>
-            <span v-else-if="isInMyList(mic)" class="added-badge">✓</span>
-          </div>
-        </div>
-      </template>
-    </div>
-    </template>
-
-    <div v-if="filteredGroups.length === 0 && filteredMics.length === 0" class="empty">
+    <div v-if="filteredMics.length === 0" class="empty">
       {{ search ? 'Aucun micro trouvé' : 'Bibliothèque vide' }}
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { supabase } from '../lib/supabase'
 import { useCableStore } from '../stores/cables'
 
@@ -198,6 +165,9 @@ const myMicIds = ref(new Set())
 const closedBrands = ref({})
 const viewMode = ref('gallery')
 const editListMode = ref(false)
+// Mode édition pilotable de l'extérieur (bouton « Modifier » de Micro List) ; null = autonome
+const props = defineProps({ editMode: { type: Boolean, default: null } })
+const isEdit = computed(() => props.editMode === null ? editListMode.value : props.editMode)
 const selectedBrand = ref('')
 const selectedInstrument = ref('')
 
@@ -302,6 +272,51 @@ async function loadMyList() {
 function isInMyList(mic) {
   return myMicIds.value.has(mic.name)
 }
+
+// --- Mode édition « staging » (Modifier → Enregistrer / Annuler) ---
+// En mode piloté (editMode prop), les clics modifient la liste EN LOCAL ; rien n'est écrit
+// en base avant « Enregistrer ». « Annuler » revient à l'état initial.
+const stagedOriginal = ref(new Set())
+function startStaging() { stagedOriginal.value = new Set(myMicIds.value) }
+watch(isEdit, (v, old) => { if (v && !old) startStaging() })
+
+function toggleMic(mic) {
+  if (!isEdit.value || adding.value[mic.name]) return
+  if (props.editMode === null) { // page autonome : écriture immédiate (comportement d'avant)
+    isInMyList(mic) ? removeFromMyList(mic) : addToMyList(mic)
+    return
+  }
+  const s = new Set(myMicIds.value)
+  if (s.has(mic.name)) s.delete(mic.name); else s.add(mic.name)
+  myMicIds.value = s
+}
+async function rawInsertMic(mic) {
+  const { data: existing } = await supabase.from('cable').select('cableid')
+    .eq('name', mic.name).eq('type', 'microphone').eq('catalog_id', activeCatalogId).limit(1)
+  if (existing?.length) return
+  await supabase.from('cable').insert({
+    name: mic.name, type: 'microphone', brand: mic.brand, info: mic.info,
+    link: mic.link, image_url: mic.image_url, weight: mic.weight || 0,
+    sortno: 0, total: 0, reserved: 0, catalog_id: activeCatalogId,
+  })
+}
+async function rawDeleteMic(name) {
+  await supabase.from('cable').delete().eq('name', name).eq('type', 'microphone').eq('catalog_id', activeCatalogId)
+}
+async function saveChanges() {
+  const added = [...myMicIds.value].filter(n => !stagedOriginal.value.has(n))
+  const removed = [...stagedOriginal.value].filter(n => !myMicIds.value.has(n))
+  for (const n of added) { const mic = allMics.value.find(m => m.name === n); if (mic) await rawInsertMic(mic) }
+  for (const n of removed) await rawDeleteMic(n)
+  stagedOriginal.value = new Set(myMicIds.value)
+}
+function cancelChanges() { myMicIds.value = new Set(stagedOriginal.value) }
+function toggleAdd() { showUpload.value = !showUpload.value }
+// Hors édition : clic sur un micro → ouvrir SA FICHE PDF uniquement (sinon rien)
+function openMicInfo(mic) {
+  if (mic.link) window.open(mic.link, '_blank')
+}
+defineExpose({ saveChanges, cancelChanges, startStaging, toggleAdd })
 
 const filteredMics = computed(() => {
   let list = allMics.value
@@ -596,6 +611,7 @@ async function addToMyList(mic) {
       brand: mic.brand,
       info: mic.info,
       link: mic.link,
+      image_url: mic.image_url,
       weight: mic.weight || 0,
       sortno: 0,
       total: 0,
@@ -678,7 +694,7 @@ function isWithinOneHour(dateStr) {
 }
 
 function canEditImage(mic) {
-  if (!editListMode.value) return false
+  if (!isEdit.value) return false
   // M1/M2/M3 : jamais
   if (isMasterWorker) return false
   // T (admin) : toujours
@@ -990,13 +1006,13 @@ h2 {
   margin-bottom: 8px;
 }
 .brand-filter-btn {
-  padding: 4px 10px;
-  font-size: 11px;
-  font-weight: 700;
+  padding: 5px 11px;
+  font-size: 12px;
+  font-weight: 800;
   border: 2px solid #888;
   border-radius: 14px;
   background: transparent;
-  color: #888;
+  color: var(--text, #333);
   cursor: pointer;
   min-width: auto;
   box-shadow: none;
@@ -1121,6 +1137,11 @@ h2 {
   max-height: 150px;
   object-fit: contain;
 }
+.gallery-pdf-flag {
+  position: absolute; bottom: 4px; left: 4px; z-index: 2; cursor: pointer;
+  font-size: 11px; font-weight: 800; padding: 2px 7px; border-radius: 8px;
+  background: #dc2626; color: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
 .no-thumb {
   display: flex;
   align-items: center;
@@ -1131,23 +1152,25 @@ h2 {
   background: var(--bg-card, #f0f0f0);
 }
 .gallery-text {
-  padding: 4px 8px 6px;
+  padding: 5px 8px 8px;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 1px;
 }
 .gallery-name {
-  font-size: 13px;
-  font-weight: 700;
+  font-size: 17px;
+  font-weight: 800;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: var(--text, #333);
-  flex: 1;
+  max-width: 100%;
+  color: var(--text, #222);
 }
 .gallery-brand {
-  font-size: 10px;
-  color: var(--text-light, #888);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text, #444);
 }
 .gallery-pdf-link {
   font-size: 14px;

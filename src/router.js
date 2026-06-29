@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import Cabletech from './views/Cabletech.vue'
 import CableList from './views/CableList.vue'
+import MicroListPage from './views/MicroListPage.vue'
 import MasterAffaire from './views/MasterAffaire.vue'
 import FlightType from './views/FlightType.vue'
 import About from './views/About.vue'
@@ -13,6 +14,7 @@ import ShareView from './views/ShareView.vue'
 const routes = [
   { path: '/', component: Cabletech },
   { path: '/CableList', component: CableList },
+  { path: '/miclist', component: MicroListPage },
   { path: '/MasterAffaire', component: MasterAffaire },
   { path: '/FlightType', component: FlightType },
   { path: '/micros', component: MicLibrary },
@@ -30,7 +32,7 @@ export const router = createRouter({
 
 // Seuls les masters peuvent modifier les câbles / cablekits / affaires.
 // L'entreprise n'est gérable que par le super-admin (master principal).
-const masterOnly = ['/CableList', '/FlightType', '/MasterAffaire', '/techlist']
+const masterOnly = ['/CableList', '/miclist', '/FlightType', '/MasterAffaire', '/techlist']
 const superOnly = ['/company']
 
 router.beforeEach((to) => {

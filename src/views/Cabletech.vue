@@ -261,8 +261,24 @@
       </div>
 
       <!-- Micro layout -->
-      <div v-if="!ctMode && microMode" class="table-scroll">
-        <MicroList :cables="filteredJoinedData" :active-cable-id="activeCableId" :subtract-mode="subtractMode" :solo-mode="microSolo" :increment-step="incrementStep" :micros-validated="!!selectedAffair?.micros_validated" @updated="onCableUpdated" @select="onCableSelect" @longpress="onCableLongPress" @toggle-subtract="subtractMode = !subtractMode" @toggle-solo="microSolo = !microSolo" @validate="setMicrosValidated(true)" @unlock="setMicrosValidated(false)" />
+      <div v-if="!ctMode && microMode">
+        <div class="micro-view-bar">
+          <button class="mode-btn" :class="{ active: !microGalleryView }" @click="microGalleryView = false">📋 Liste</button>
+          <button class="mode-btn" :class="{ active: microGalleryView }" @click="microGalleryView = true">🖼 Photos</button>
+        </div>
+        <!-- Galerie photos des micros de la liste -->
+        <div v-if="microGalleryView" class="micro-gallery">
+          <div v-for="m in micGalleryItems" :key="m.cableid" class="micg-card" @click="openMicPhoto(m)">
+            <img v-if="m.image_url" :src="m.image_url" class="micg-img" :alt="m.name" />
+            <div v-else class="micg-noimg">🎤</div>
+            <div class="micg-name">{{ m.name }}</div>
+            <div v-if="m.brand" class="micg-brand">{{ m.brand }}</div>
+          </div>
+          <div v-if="!micGalleryItems.length" class="micg-empty">Aucun micro dans la liste.</div>
+        </div>
+        <div v-else class="table-scroll">
+          <MicroList :cables="filteredJoinedData" :active-cable-id="activeCableId" :subtract-mode="subtractMode" :solo-mode="microSolo" :increment-step="incrementStep" :micros-validated="!!selectedAffair?.micros_validated" @updated="onCableUpdated" @select="onCableSelect" @longpress="onCableLongPress" @toggle-subtract="subtractMode = !subtractMode" @toggle-solo="microSolo = !microSolo" @validate="setMicrosValidated(true)" @unlock="setMicrosValidated(false)" />
+        </div>
       </div>
 
       <!-- Zones layout (body only, header in sticky) -->
@@ -421,6 +437,7 @@ import { useAffairStore } from '../stores/affairs'
 import { useOrderStore } from '../stores/orders'
 import Affaires from '../components/Affaires.vue'
 import AddAffair from '../components/AddAffair.vue'
+import { openDocSmart } from '../lib/openDoc'
 import CableList from '../components/CableList.vue'
 import FcaseManagement from '../components/FcaseManagement.vue'
 import FcaseDetail from '../components/FcaseDetail.vue'
@@ -597,6 +614,10 @@ function syncScroll(source, target) {
 const subtractMode = ref(false)
 const microMode = ref(false)
 const microSolo = ref(false)
+// Vue Micro : liste (saisie des besoins) ↔ photos (galerie des micros de la liste)
+const microGalleryView = ref(false)
+const micGalleryItems = computed(() => (filteredJoinedData.value || []).filter(c => c.type === 'microphone'))
+function openMicPhoto(m) { if (m?.image_url) openDocSmart(m.image_url) }
 const soloMode = ref(false)
 const incrementStep = ref(1)
 const ctMode = ref(false)
@@ -1113,6 +1134,8 @@ async function sendCableRequest() {
 }
 
 function onCableLongPress(cable) {
+  // Micro avec fiche PDF (cable.link) → appui long ouvre le PDF
+  if (cable.type === 'microphone' && cable.link) { openDocSmart(cable.link); return }
   editingCable.value = cable
   editForm.name = cable.name
   editForm.type = cable.type
@@ -1594,6 +1617,7 @@ function rebuildJoinedData(cables = cableStore.cables) {
       reserved: cable.reserved,
       info: cable.info,
       link: cable.link,
+      image_url: cable.image_url,
       count: parseInt(order?.count) || 0,
       need: parseInt(order?.need) || 0,
       proposed: parseInt(order?.proposed) || 0,
@@ -2284,6 +2308,15 @@ function colorForType(type) {
   z-index: 2;
   background: var(--bg);
 }
+.micro-view-bar { display: flex; gap: 6px; margin: 4px 0 8px; }
+.micro-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; padding: 4px 0; }
+.micg-card { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 6px; border: 1px solid var(--border-light, #ddd); border-radius: 10px; background: var(--bg-card, #fff); cursor: pointer; }
+.micg-card:active { background: rgba(0,0,0,0.05); }
+.micg-img { width: 100%; height: 80px; object-fit: contain; border-radius: 6px; background: #fff; }
+.micg-noimg { width: 100%; height: 80px; display: flex; align-items: center; justify-content: center; font-size: 30px; background: var(--bg-input, #f3f3f3); border-radius: 6px; }
+.micg-name { font-size: 12px; font-weight: 800; text-align: center; color: var(--text, #222); line-height: 1.1; }
+.micg-brand { font-size: 10px; color: var(--text-muted, #888); }
+.micg-empty { grid-column: 1 / -1; text-align: center; color: var(--text-muted, #999); padding: 20px; }
 .table-scroll {
   width: 100%;
   overflow-x: auto;

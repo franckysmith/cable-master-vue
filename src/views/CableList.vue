@@ -2,7 +2,7 @@
   <div>
     <ModalDelete v-if="cableToDelete" @close="cableToDelete = null">
       <template #main>
-        <p class="delete-question">Supprimer ce câble ?</p>
+        <p class="delete-question">{{ micsOnly ? 'Supprimer ce micro de la liste ?' : 'Supprimer ce câble ?' }}</p>
         <h2 class="delete-name">{{ cableToDelete.name }}</h2>
         <div class="delete-actions">
           <button class="btn-confirm-delete" @click="confirmDelete">Supprimer</button>
@@ -14,15 +14,15 @@
 
     <AddCable v-if="showAddCable" @close="showAddCable = false" />
 
-    <ButtonCableType :model-value="typeChoose" :show-all="true" @select="typeChoose = $event" />
+    <ButtonCableType v-if="!micsOnly" :model-value="typeChoose" :show-all="true" :exclude-micro="true" @select="typeChoose = $event" />
 
     <div class="ajouter">
-      <button class="button3" v-if="!showAddCable" @click="showAddCable = true">
+      <button class="button3" v-if="!showAddCable && !micsOnly" @click="showAddCable = true">
         Ajouter un élément
       </button>
-      <button v-if="showAddCable" @click="showAddCable = false">Fermer</button>
+      <button v-if="showAddCable && !micsOnly" @click="showAddCable = false">Fermer</button>
       <span class="search-wrap">
-        <input type="text" v-model="searchKey" placeholder="Rechercher un élément" />
+        <input type="text" v-model="searchKey" :placeholder="micsOnly ? 'Rechercher un micro' : 'Rechercher un élément'" />
         <button v-if="searchKey" class="search-clear" @click="searchKey = ''" title="Effacer">✕</button>
       </span>
     </div>
@@ -34,9 +34,11 @@
         <div>total</div>
         <div>poids</div>
         <div>ordre</div>
+        <span class="head-end"></span>
       </div>
       <MasterCableList
         :cables="filteredCables"
+        :group-by-brand="micsOnly"
         @delete="cableToDelete = $event"
       />
     </div>
@@ -51,8 +53,9 @@ import AddCable from '../components/AddCable.vue'
 import MasterCableList from '../components/MasterCableList.vue'
 import ButtonCableType from '../components/ButtonCableType.vue'
 
+const props = defineProps({ micsOnly: { type: Boolean, default: false } })
 const cableStore = useCableStore()
-const typeChoose = ref('speaker')
+const typeChoose = ref(props.micsOnly ? 'microphone' : 'speaker')
 const showAddCable = ref(false)
 const searchKey = ref('')
 const cableToDelete = ref(null)
@@ -70,8 +73,11 @@ const searchFiltered = computed(() =>
 )
 
 const filteredCables = computed(() => {
-  if (typeChoose.value === '') return searchFiltered.value
-  return searchFiltered.value.filter(c => c.type === typeChoose.value)
+  // Page Micro List : uniquement les micros. Page câbles : tout sauf les micros.
+  if (props.micsOnly) return searchFiltered.value.filter(c => c.type === 'microphone')
+  const base = searchFiltered.value.filter(c => c.type !== 'microphone')
+  if (typeChoose.value === '') return base
+  return base.filter(c => c.type === typeChoose.value)
 })
 
 async function confirmDelete() {
@@ -154,14 +160,20 @@ async function confirmDelete() {
   gap: 2px;
   width: 100%;
   box-sizing: border-box;
-  padding: 0 8px;
+  padding: 5px 8px;
   text-align: center;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-light, #888);
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--text, #f0f0f0);
+  /* en-tête figé en haut au défilement */
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--bg, #fff);
 }
-/* spacer = case à cocher (18 + 4) + nom (100) → titres en face des champs */
-.head-spacer { width: 122px; min-width: 122px; flex: none; }
+/* spacer = case à cocher + nom (grandit) → les titres se décalent à droite, en face des champs */
+.head-spacer { flex: 1; min-width: 70px; }
+.head-end { width: 22px; min-width: 22px; flex: none; } /* face au bouton supprimer */
 .head div {
   width: 44px;
   min-width: 44px;

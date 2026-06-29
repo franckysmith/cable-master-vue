@@ -37,6 +37,7 @@ const props = defineProps({
   showAll: { type: Boolean, default: false },
   alwaysColor: { type: Boolean, default: false }, // borde toujours les onglets de leur couleur (sans chiffres)
   showCalc: { type: Boolean, default: false }, // bouton « L.calc » (calculateur ampli → câblage) après All
+  excludeMicro: { type: Boolean, default: false }, // ne pas proposer le type « Micros » (déplacé dans Micro List)
 })
 defineEmits(['select', 'calc'])
 
@@ -61,7 +62,7 @@ const types = computed(() => {
     return { value, label }
   }).filter(t => t.label)
   if (props.showAll) {
-    list.push({ value: 'microphone', label: 'Micros' })
+    if (!props.excludeMicro) list.push({ value: 'microphone', label: 'Micros' })
     list.push({ value: 'c_type', label: 'Cablekit' })
   }
   return list
