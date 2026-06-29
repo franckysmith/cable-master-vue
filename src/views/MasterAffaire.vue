@@ -181,7 +181,8 @@
           <button @click="addTechForZone('front')">Ajouter</button>
         </div>
         <div v-if="form.tech_name" class="zone-tech-info">{{ personName(form.tech_firstname, form.tech_name) }} <span v-if="form.tech_phone">· {{ form.tech_phone }}</span></div>
-        <textarea v-model="form.materiel_front" rows="4" class="zone-mat-input" :placeholder="ZONE_TPL.front"></textarea>
+        <p v-if="form.system" class="ze-foh-note">💡 Système présent : mets la diffusion (K2, subs, fills…) dans 🟣 Système ; garde ici la Régie (console).</p>
+        <ZoneRoleEditor :labels="form.zlabels.front" v-model:amplis="form.materiel_front" :zone-placeholders="ZONE_PH.front" />
       </div>
 
       <div v-if="form.monitor" class="zone-tech-block retour">
@@ -201,7 +202,7 @@
           <button @click="addTechForZone('monitor')">Ajouter</button>
         </div>
         <div v-if="form.tech_name_monitor" class="zone-tech-info">{{ personName(form.tech_firstname_monitor, form.tech_name_monitor) }} <span v-if="form.tech_phone_monitor">· {{ form.tech_phone_monitor }}</span></div>
-        <textarea v-model="form.materiel_monitor" rows="4" class="zone-mat-input" :placeholder="ZONE_TPL.monitor"></textarea>
+        <ZoneRoleEditor :labels="form.zlabels.monitor" v-model:amplis="form.materiel_monitor" :zone-placeholders="ZONE_PH.monitor" />
       </div>
 
       <div v-if="form.system" class="zone-tech-block systeme">
@@ -221,7 +222,7 @@
           <button @click="addTechForZone('system')">Ajouter</button>
         </div>
         <div v-if="form.tech_name_system" class="zone-tech-info">{{ personName(form.tech_firstname_system, form.tech_name_system) }} <span v-if="form.tech_phone_system">· {{ form.tech_phone_system }}</span></div>
-        <textarea v-model="form.materiel_system" rows="4" class="zone-mat-input" :placeholder="ZONE_TPL.system"></textarea>
+        <ZoneRoleEditor :labels="form.zlabels.system" v-model:amplis="form.materiel_system" :zone-placeholders="ZONE_PH.system" />
       </div>
 
       <div v-if="form.stage" class="zone-tech-block scene">
@@ -241,7 +242,7 @@
           <button @click="addTechForZone('stage')">Ajouter</button>
         </div>
         <div v-if="form.tech_name_stage" class="zone-tech-info">{{ personName(form.tech_firstname_stage, form.tech_name_stage) }} <span v-if="form.tech_phone_stage">· {{ form.tech_phone_stage }}</span></div>
-        <textarea v-model="form.materiel_stage" rows="4" class="zone-mat-input" :placeholder="ZONE_TPL.stage"></textarea>
+        <ZoneRoleEditor :labels="form.zlabels.stage" v-model:amplis="form.materiel_stage" :zone-placeholders="ZONE_PH.stage" />
       </div>
 
       <!-- Assistants (illimités, chacun avec son poste) -->
@@ -548,54 +549,23 @@
           <button class="zone-modal-close" @click="zoneEditor.open = false">✕</button>
         </div>
         <div class="zone-modal-body">
-          <p class="zone-hint">Le technicien retrouvera ces infos pré-remplies en ouvrant son câblage. <b>*</b> = par côté (stéréo), sauf retours.</p>
+          <p class="zone-hint">Optionnel : tu peux nommer les colonnes du technicien (sinon il les nommera lui-même). <b>*</b> = par côté (stéréo).</p>
           <div v-if="zoneEditor.affair.front" class="ze-block">
             <div class="ze-banner facade">🔵 FOH — {{ zoneEditor.affair.tech_name || '?' }}</div>
-            <textarea v-model="zoneEditor.front" rows="4" :placeholder="ZONE_TPL.front"></textarea>
-            <div class="ze-zn">
-              <div class="ze-zn-title">📋 Noms des colonnes (zones) · <b>*</b> = par côté</div>
-              <label v-for="i in 6" :key="i" class="ze-zn-row">
-                <span class="ze-zn-tag">Z{{ i }}</span>
-                <input v-model="zoneEditor.labels.front['lz' + i]" maxlength="12" placeholder="—" />
-                <button type="button" class="ze-zn-star" :class="{ on: znStereo(zoneEditor.labels.front['lz' + i]) }" @click.prevent="znToggle(zoneEditor.labels.front, 'lz' + i)" title="Par côté (stéréo)">*</button>
-              </label>
-            </div>
+            <p v-if="zoneEditor.affair.system" class="ze-foh-note">💡 Système présent : mets la diffusion (K2, subs, fills…) dans 🟣 Système ; garde ici la Régie (console).</p>
+            <ZoneRoleEditor :labels="zoneEditor.labels.front" v-model:amplis="zoneEditor.front" :zone-placeholders="ZONE_PH.front" />
           </div>
           <div v-if="zoneEditor.affair.system" class="ze-block">
             <div class="ze-banner systeme">🟣 Système — {{ zoneEditor.affair.tech_name_system || '?' }}</div>
-            <textarea v-model="zoneEditor.system" rows="4" :placeholder="ZONE_TPL.system"></textarea>
-            <div class="ze-zn">
-              <div class="ze-zn-title">📋 Noms des colonnes (zones) · <b>*</b> = par côté</div>
-              <label v-for="i in 6" :key="i" class="ze-zn-row">
-                <span class="ze-zn-tag">Z{{ i }}</span>
-                <input v-model="zoneEditor.labels.system['lz' + i]" maxlength="12" placeholder="—" />
-                <button type="button" class="ze-zn-star" :class="{ on: znStereo(zoneEditor.labels.system['lz' + i]) }" @click.prevent="znToggle(zoneEditor.labels.system, 'lz' + i)" title="Par côté (stéréo)">*</button>
-              </label>
-            </div>
+            <ZoneRoleEditor :labels="zoneEditor.labels.system" v-model:amplis="zoneEditor.system" :zone-placeholders="ZONE_PH.system" />
           </div>
           <div v-if="zoneEditor.affair.monitor" class="ze-block">
             <div class="ze-banner retour">🟠 Retours — {{ zoneEditor.affair.tech_name_monitor || '?' }}</div>
-            <textarea v-model="zoneEditor.monitor" rows="4" :placeholder="ZONE_TPL.monitor"></textarea>
-            <div class="ze-zn">
-              <div class="ze-zn-title">📋 Noms des colonnes (zones)</div>
-              <label v-for="i in 6" :key="i" class="ze-zn-row">
-                <span class="ze-zn-tag">Z{{ i }}</span>
-                <input v-model="zoneEditor.labels.monitor['lz' + i]" maxlength="12" placeholder="—" />
-                <button type="button" class="ze-zn-star" :class="{ on: znStereo(zoneEditor.labels.monitor['lz' + i]) }" @click.prevent="znToggle(zoneEditor.labels.monitor, 'lz' + i)" title="Par côté (stéréo)">*</button>
-              </label>
-            </div>
+            <ZoneRoleEditor :labels="zoneEditor.labels.monitor" v-model:amplis="zoneEditor.monitor" :zone-placeholders="ZONE_PH.monitor" />
           </div>
           <div v-if="zoneEditor.affair.stage" class="ze-block">
             <div class="ze-banner scene">🟢 Scène — {{ zoneEditor.affair.tech_name_stage || '?' }}</div>
-            <textarea v-model="zoneEditor.stage" rows="4" :placeholder="ZONE_TPL.stage"></textarea>
-            <div class="ze-zn">
-              <div class="ze-zn-title">📋 Noms des colonnes (zones)</div>
-              <label v-for="i in 6" :key="i" class="ze-zn-row">
-                <span class="ze-zn-tag">Z{{ i }}</span>
-                <input v-model="zoneEditor.labels.stage['lz' + i]" maxlength="12" placeholder="—" />
-                <button type="button" class="ze-zn-star" :class="{ on: znStereo(zoneEditor.labels.stage['lz' + i]) }" @click.prevent="znToggle(zoneEditor.labels.stage, 'lz' + i)" title="Par côté (stéréo)">*</button>
-              </label>
-            </div>
+            <ZoneRoleEditor :labels="zoneEditor.labels.stage" v-model:amplis="zoneEditor.stage" :zone-placeholders="ZONE_PH.stage" />
           </div>
           <div v-if="!zoneEditor.affair.front && !zoneEditor.affair.monitor && !zoneEditor.affair.system && !zoneEditor.affair.stage" class="zone-empty">
             Aucun poste défini sur cette affaire.
@@ -738,6 +708,7 @@ import DocViewer from '../components/DocViewer.vue'
 import AmpCalculator from '../components/AmpCalculator.vue'
 import TourCalendar from '../components/TourCalendar.vue'
 import TimelineGantt from '../components/TimelineGantt.vue'
+import ZoneRoleEditor from '../components/ZoneRoleEditor.vue'
 
 const tab = ref('all')
 const affairs = ref([])
@@ -863,6 +834,7 @@ const form = reactive({
   system: false,
   stage: false,
   materiel_front: '', materiel_monitor: '', materiel_system: '', materiel_stage: '',
+  zlabels: { front: {}, monitor: {}, system: {}, stage: {} },
   description: '',
   attachment_name: '',
   attachment_url: '',
@@ -881,6 +853,7 @@ function resetForm() {
     prep_date: '', receipt_date: '', return_date: '',
     front: false, monitor: false, system: false, stage: false,
     materiel_front: '', materiel_monitor: '', materiel_system: '', materiel_stage: '',
+    zlabels: { front: {}, monitor: {}, system: {}, stage: {} },
     description: '', attachment_name: '', attachment_url: '',
   })
   existingAttachments.value = []
@@ -1629,6 +1602,13 @@ const ZONE_TPL = {
   monitor: 'Nb circuits : …\nRetours : 8 X12, 8 X15…\nSides : oui / non\nDrumfill : oui / non\nType d\'amplis : …\n(pas d\'astérisque ici)',
   stage: 'Nb groupes : …\nPatches / groupe : … → patch 24/32/48\nPlan de scène : (joint ?)\nPieds de micro : …\nBase micro : voir technicien façade',
 }
+// Exemples (placeholders) par poste — donnent une idée au master, jamais enregistrés ni vus du technicien
+const ZONE_PH = {
+  front: ['12 K2', 'in/out fill', 'subs KS28', 'frontfill', 'délais', 'Régie (console)'],
+  system: ['12 K2', 'in/out fill', 'subs KS28', 'frontfill', 'délais', 'extérieurs'],
+  monitor: ['8 wedges', 'side L', 'side R', 'drumfill', 'ears', 'sub batt.'],
+  stage: ['multipaire', 'patch 24', 'sub-snake', 'DI', 'pieds micro', 'HP scène'],
+}
 const zoneEditor = reactive({ open: false, affair: null, front: '', monitor: '', system: '', stage: '', labels: { front: {}, monitor: {}, system: {}, stage: {} }, docNames: [], docUrls: [], newFiles: [], notify: true, notifyMsg: '' })
 
 // Popup date d'envoi / relancer (clic sur le badge « Envoyé »)
@@ -1682,6 +1662,19 @@ function mkZoneLabels(src) {
   const o = {}
   for (let i = 1; i <= 6; i++) o['lz' + i] = (src && src['lz' + i]) || ''
   return o
+}
+// Fusionne les noms de zones du formulaire (form.zlabels) dans role_labels en préservant les libellés FC (lfc…)
+function buildRoleLabels(base) {
+  const rl = { ...(base || {}) }
+  for (const role of ['front', 'monitor', 'system', 'stage']) {
+    const cur = { ...(rl[role] || {}) }
+    for (let i = 1; i <= 6; i++) {
+      const v = (form.zlabels[role]['lz' + i] || '').trim()
+      if (v) cur['lz' + i] = v; else delete cur['lz' + i]
+    }
+    rl[role] = cur
+  }
+  return rl
 }
 
 // Clic « Envoyer » → ouvre l'éditeur de zones (le master renseigne chaque poste avant d'envoyer)
@@ -2361,6 +2354,10 @@ async function selectAffair(affair) {
     stage: affair.stage || false,
     materiel_front: affair.materiel_front || '', materiel_monitor: affair.materiel_monitor || '',
     materiel_system: affair.materiel_system || '', materiel_stage: affair.materiel_stage || '',
+    zlabels: {
+      front: mkZoneLabels((affair.role_labels || {}).front), monitor: mkZoneLabels((affair.role_labels || {}).monitor),
+      system: mkZoneLabels((affair.role_labels || {}).system), stage: mkZoneLabels((affair.role_labels || {}).stage),
+    },
     description: affair.description || '',
     attachment_name: affair.attachment_name || '',
     attachment_url: affair.attachment_url || '',
@@ -2438,6 +2435,7 @@ async function saveAffair() {
     materiel_monitor: form.materiel_monitor || null,
     materiel_system: form.materiel_system || null,
     materiel_stage: form.materiel_stage || null,
+    role_labels: buildRoleLabels(editing.value && editing.value.role_labels),
     description: form.description || '',
     catalog_id: catalogId,
     // Tech façade
@@ -3114,6 +3112,7 @@ h3 { font-size: 16px; margin: 0; }
 .form-grid.three { display: flex; gap: 6px; flex-wrap: wrap; }
 .form-grid.three .form-row { flex: 1 1 150px; min-width: 150px; }
 .form-section-title { font-size: 13px; font-weight: 700; color: var(--text-light, #888); text-transform: uppercase; margin: 10px 0 6px; }
+.ze-foh-note { font-size: 11px; color: #0891b2; background: rgba(8,145,178,0.1); border-radius: 6px; padding: 5px 8px; margin: 4px 0; line-height: 1.3; }
 .zone-mat-input { width: 100%; margin-top: 6px; padding: 6px 8px; border: 1px solid var(--border-light, #ddd); border-radius: 6px; background: var(--bg-input, #fff); color: var(--text, #222); font-size: 13px; font-family: inherit; resize: vertical; box-sizing: border-box; }
 .zone-tech-block { margin: 6px 0; padding: 8px; border-radius: 8px; border: 1px solid var(--border-light, #eee); }
 .zone-tech-block.facade { border-left: 3px solid #3b82f6; }

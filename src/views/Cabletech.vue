@@ -540,18 +540,15 @@ function parseMaterielZones(text) {
     .slice(0, 6)
 }
 
-// Charger les libellés du métier actif, repli créneau par créneau :
-// nom du métier → sinon matériel pré-rempli par le master → sinon vide (placeholder Zone1…/FC1…)
+// Charger les libellés du métier actif :
+// noms de zones renseignés par le master (role_labels) → sinon vide (le tech les nomme, placeholder Zone1…)
 function loadLabelsForRole() {
   const a = selectedAffair.value
   if (!a) return
   const rl = (a.role_labels && a.role_labels[activeRole.value]) || {}
-  // Si le tech n'a pas encore nommé ses zones, on pré-remplit depuis le matériel du master
-  const hasZoneLabels = [1, 2, 3, 4, 5, 6].some(i => rl[`lz${i}`])
-  const masterZones = hasZoneLabels ? [] : parseMaterielZones(a[`materiel_${activeRole.value}`])
-  // Zones : renommage métier → matériel master → sinon Zone1…
+  // Zones : noms définis (master ou tech) → sinon Zone1… (le champ Amplis n'alimente plus les colonnes)
   for (let i = 1; i <= 6; i++) {
-    zoneLabels[`lz${i}`] = rl[`lz${i}`] || masterZones[i - 1] || ''
+    zoneLabels[`lz${i}`] = rl[`lz${i}`] || ''
   }
   // Flight-cases : renommage métier → sinon noms de création de l'affaire → sinon FC1…
   for (let i = 1; i <= 7; i++) {
