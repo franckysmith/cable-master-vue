@@ -1,5 +1,5 @@
 <template>
-  <div class="split-view" :style="{ gridTemplateColumns: `repeat(${split.columns}, minmax(0, 1fr))` }">
+  <transition-group name="col" tag="div" class="split-view" :style="{ gridTemplateColumns: `repeat(${split.columns}, minmax(0, 1fr))` }">
     <div v-for="i in split.columns" :key="i" class="split-col">
       <div class="split-col-bar">
         <select class="split-col-select" :value="isDoc(split.routes[i - 1]) ? '__doc' : split.routes[i - 1]" @change="onPick(i - 1, $event)">
@@ -10,7 +10,7 @@
       </div>
       <iframe :src="iframeSrc(split.routes[i - 1])" class="split-col-frame" frameborder="0" :title="`Colonne ${i}`" loading="lazy"></iframe>
     </div>
-  </div>
+  </transition-group>
 </template>
 
 <script setup>
@@ -53,6 +53,11 @@ function onPick(i, e) {
   padding: 4px;
   box-sizing: border-box;
 }
+/* Ouverture douce des colonnes */
+.col-enter-active { transition: opacity 0.28s ease, transform 0.28s ease; }
+.col-leave-active { transition: opacity 0.18s ease; }
+.col-enter-from { opacity: 0; transform: scale(0.96) translateY(10px); }
+.col-leave-to { opacity: 0; }
 .split-col {
   position: relative;
   display: flex;

@@ -1,7 +1,12 @@
 <template>
   <div class="list_container">
     <template v-for="row in rows" :key="row.key">
-      <div v-if="row.type === 'header'" class="brand-group-head">{{ row.brand }}</div>
+      <div v-if="row.type === 'grp-header'" class="ac-group-head" @click="open[row.grp] = !open[row.grp]">
+        <span class="ac-caret">{{ open[row.grp] ? '▼' : '▶' }}</span>
+        <span>🔊 {{ row.title }}</span>
+        <span class="ac-count">{{ row.count }}</span>
+      </div>
+      <div v-else-if="row.type === 'header'" class="brand-group-head">{{ row.brand }}</div>
       <div v-else-if="row.type === 'pieds-header'" class="pieds-head">🎚 {{ row.brand }}</div>
       <div v-else class="cable-row" :class="{ inactive: row.cable.active === false }">
       <input
@@ -45,8 +50,11 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, reactive } from 'vue'
 import { useCableStore } from '../stores/cables'
+
+// Onglets repliables L-Acoustics (fermés par défaut)
+const open = reactive({ cacom: false, sc32: false, speakon: false })
 
 const props = defineProps({
   cables: { type: Array, default: () => [] },
@@ -60,9 +68,32 @@ function isPied(c) { return /pied/i.test(c.name || '') || /pied/i.test(c.brand |
 
 // Lignes à afficher : plat, ou groupé par marque (en-tête + micros) si groupByBrand,
 // avec les pieds de micro tout à la fin sous un séparateur « Pieds ».
+// Câbles L-Acoustics rangés en 2 onglets repliables : CA-COM (DO…) et SC32
+function isSC32(c) { return /^sc32/i.test((c.name || '').trim()) }
+function isCacom(c) { return /^do/i.test((c.name || '').trim()) }
+function isSpeakon(c) { return /^sp/i.test((c.name || '').trim()) }
+
 const rows = computed(() => {
   if (!props.groupByBrand) {
-    return props.cables.map(c => ({ type: 'cable', key: 'c' + c.cableid, cable: c }))
+    const cacom = props.cables.filter(isCacom)
+    const sc32 = props.cables.filter(isSC32)
+    const speakon = props.cables.filter(isSpeakon)
+    const others = props.cables.filter(c => !isCacom(c) && !isSC32(c) && !isSpeakon(c))
+    const out = []
+    if (cacom.length) {
+      out.push({ type: 'grp-header', key: 'g-cacom', grp: 'cacom', title: 'CA-COM (L-Acoustics)', count: cacom.length })
+      if (open.cacom) for (const c of cacom) out.push({ type: 'cable', key: 'c' + c.cableid, cable: c })
+    }
+    if (sc32.length) {
+      out.push({ type: 'grp-header', key: 'g-sc32', grp: 'sc32', title: 'SC32 (L-Acoustics)', count: sc32.length })
+      if (open.sc32) for (const c of sc32) out.push({ type: 'cable', key: 'c' + c.cableid, cable: c })
+    }
+    if (speakon.length) {
+      out.push({ type: 'grp-header', key: 'g-speakon', grp: 'speakon', title: 'Speakon', count: speakon.length })
+      if (open.speakon) for (const c of speakon) out.push({ type: 'cable', key: 'c' + c.cableid, cable: c })
+    }
+    for (const c of others) out.push({ type: 'cable', key: 'c' + c.cableid, cable: c })
+    return out
   }
   const pieds = props.cables.filter(isPied)
   const mics = props.cables.filter(c => !isPied(c))
@@ -114,6 +145,18 @@ function toggleActive(cable) {
   font-size: 13px; font-weight: 800; color: var(--color1);
   padding: 8px 6px 3px; margin-top: 4px;
   border-bottom: 2px solid var(--color1); text-transform: uppercase; letter-spacing: 0.3px;
+}
+.ac-group-head {
+  display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none;
+  font-size: 14px; font-weight: 800; color: #2563eb;
+  padding: 9px 8px; margin: 8px 0 2px;
+  background: rgba(37,99,235,0.08);
+  border: 1px solid rgba(37,99,235,0.25); border-radius: 8px;
+}
+.ac-caret { font-size: 11px; width: 14px; }
+.ac-count {
+  margin-left: auto; font-size: 12px; font-weight: 700;
+  background: #2563eb; color: #fff; border-radius: 10px; padding: 1px 8px;
 }
 .pieds-head {
   font-size: 14px; font-weight: 800; color: #eb910a;

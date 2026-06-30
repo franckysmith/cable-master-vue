@@ -393,8 +393,8 @@
             <h4>📤 Partager</h4>
             <button class="qr-close" @click="showQrCode = false">✕</button>
           </div>
-          <div v-if="shareUrl" class="qr-image">
-            <img :src="'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + encodeURIComponent(shareUrl)" alt="QR Code" />
+          <div v-if="qrDataUrl" class="qr-image">
+            <img :src="qrDataUrl" alt="QR Code" width="220" height="220" />
           </div>
           <div v-else class="qr-loading">Génération du lien...</div>
           <div v-if="shareUrl" class="qr-link" @click="copyToClipboard">
@@ -451,6 +451,7 @@ import { useOrderStore } from '../stores/orders'
 import Affaires from '../components/Affaires.vue'
 import AddAffair from '../components/AddAffair.vue'
 import { openDocSmart } from '../lib/openDoc'
+import QRCode from 'qrcode'
 import CableList from '../components/CableList.vue'
 import FcaseManagement from '../components/FcaseManagement.vue'
 import FcaseDetail from '../components/FcaseDetail.vue'
@@ -1386,6 +1387,7 @@ async function shareCtCaisse(ctIndex) {
 }
 
 const shareUrl = ref('')
+const qrDataUrl = ref('')
 
 async function generateShareLink() {
   const affairName = selectedAffair.value?.name || 'Câblage'
@@ -1404,8 +1406,15 @@ async function generateShareLink() {
   if (!error) {
     shareUrl.value = `${window.location.origin}/share/${token}`
   } else {
-    // Fallback : URL avec le contenu encodé
+    console.warn('Partage : échec enregistrement', error.message)
     shareUrl.value = ''
+  }
+  // QR généré LOCALEMENT (plus de dépendance à un service externe qui peut être bloqué/hors-ligne)
+  if (shareUrl.value) {
+    try { qrDataUrl.value = await QRCode.toDataURL(shareUrl.value, { width: 220, margin: 1 }) }
+    catch (e) { qrDataUrl.value = '' }
+  } else {
+    qrDataUrl.value = ''
   }
 }
 

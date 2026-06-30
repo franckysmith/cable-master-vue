@@ -475,6 +475,10 @@
               <button type="button" class="ze-doc-add" @click="addDetailLink(affair)">+ Enregistrer un lien</button>
             </div>
           </div>
+          <!-- Poubelle : en bas à droite de la carte -->
+          <div class="card-trash-row">
+            <button class="card-trash-btn" @click.stop="deleteAffair(affair)" title="Supprimer / annuler l'affaire">🗑</button>
+          </div>
         </div>
 
         <!-- Panneau Matériel (vue flight-cases) -->
@@ -2580,8 +2584,8 @@ async function deleteAffairCard(affair) {
 // Suppression en mode édition → popup « Prévenir les techniciens »
 const delPop = reactive({ open: false, affair: null, notify: true, msg: '' })
 const delTechs = computed(() => delPop.affair ? allTechs(delPop.affair).filter(p => p.email) : [])
-function deleteAffair() {
-  const a = editing.value
+function deleteAffair(affair = null) {
+  const a = affair || editing.value
   if (!a) return
   delPop.affair = a
   delPop.notify = chatPeers(a).length > 0
@@ -2906,6 +2910,9 @@ h3 { font-size: 16px; margin: 0; }
   box-shadow: none; min-width: auto; flex-shrink: 0; white-space: nowrap;
 }
 .card-zones-row { display: flex; justify-content: flex-end; margin-top: 4px; }
+.card-trash-row { display: flex; justify-content: flex-end; margin-top: 8px; }
+.card-trash-btn { background: transparent; border: 1px solid #ef4444; border-radius: 8px; color: #ef4444; font-size: 16px; padding: 5px 11px; cursor: pointer; box-shadow: none; min-width: auto; }
+.card-trash-btn:active { background: rgba(239,68,68,0.12); }
 .cdl-badge {
   display: inline-flex;
   align-items: center;
