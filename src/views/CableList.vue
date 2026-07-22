@@ -12,7 +12,18 @@
       <template #footer></template>
     </ModalDelete>
 
-    <AddCable v-if="showAddCable" @close="showAddCable = false" />
+    <AddCable v-if="showAddCable" :catalog-id="activeCatalogId" @close="showAddCable = false" />
+
+    <!-- Sélecteur de département (son/lumière/vidéo) — selon les départements du profil -->
+    <div v-if="!micsOnly && deptCatalogs.length > 1" class="dept-tabs">
+      <button
+        v-for="c in deptCatalogs"
+        :key="c.catalogid"
+        class="dept-tab"
+        :class="[c.department, { active: activeCatalogId === c.catalogid }]"
+        @click="selectDept(c.catalogid)"
+      >{{ DEPT_LABELS[c.department] || c.name }}</button>
+    </div>
 
     <ButtonCableType v-if="!micsOnly" :model-value="typeChoose" :show-all="true" :exclude-micro="true" @select="typeChoose = $event" />
 
@@ -48,6 +59,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useCableStore } from '../stores/cables'
+import { useCatalogStore } from '../stores/catalogs'
 import ModalDelete from '../components/ModalDelete.vue'
 import AddCable from '../components/AddCable.vue'
 import MasterCableList from '../components/MasterCableList.vue'
@@ -55,15 +67,36 @@ import ButtonCableType from '../components/ButtonCableType.vue'
 
 const props = defineProps({ micsOnly: { type: Boolean, default: false } })
 const cableStore = useCableStore()
+const catalogStore = useCatalogStore()
 const typeChoose = ref(props.micsOnly ? 'microphone' : 'speaker')
 const showAddCable = ref(false)
 const searchKey = ref('')
 const cableToDelete = ref(null)
 
-const activeCatalogId = parseInt(localStorage.getItem('cablemaster-catalogid')) || 1
+const DEPT_LABELS = { sound: 'Son', light: 'Lumière', video: 'Vidéo' }
+const deptCatalogs = ref([]) // catalogues départements du profil (entreprise ou freelance)
+const activeCatalogId = ref(parseInt(localStorage.getItem('cablemaster-catalogid')) || 1)
 
-onMounted(() => {
-  cableStore.fetchCables(activeCatalogId)
+async function loadDeptCatalogs() {
+  if (props.micsOnly) return
+  const companyId = parseInt(localStorage.getItem('cablemaster-companyid')) || null
+  const userId = localStorage.getItem('cablemaster-userid') || null
+  const cats = await catalogStore.fetchDepartmentCatalogs({ companyId, userId })
+  deptCatalogs.value = cats
+  // Sélection par défaut : le catalogue primaire courant s'il est dans la liste, sinon le 1er.
+  if (cats.length && !cats.find(c => c.catalogid === activeCatalogId.value)) {
+    activeCatalogId.value = cats[0].catalogid
+  }
+}
+
+function selectDept(catId) {
+  activeCatalogId.value = catId
+  cableStore.fetchCables(catId)
+}
+
+onMounted(async () => {
+  await loadDeptCatalogs()
+  cableStore.fetchCables(activeCatalogId.value)
 })
 
 const searchFiltered = computed(() =>
@@ -89,6 +122,28 @@ async function confirmDelete() {
 </script>
 
 <style scoped>
+.dept-tabs {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin: 8px 10px 0;
+}
+.dept-tab {
+  border: 1px solid rgba(128, 128, 128, 0.4);
+  background: transparent;
+  color: var(--text, #333);
+  border-radius: 16px;
+  padding: 4px 16px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  opacity: 0.65;
+}
+.dept-tab.active { opacity: 1; color: #fff; }
+.dept-tab.sound.active { background: #2563eb; border-color: #2563eb; }
+.dept-tab.light.active { background: #d97706; border-color: #d97706; }
+.dept-tab.video.active { background: #7c3aed; border-color: #7c3aed; }
 .ajouter {
   margin: 10px;
 }

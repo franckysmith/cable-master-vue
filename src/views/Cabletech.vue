@@ -180,6 +180,18 @@
       <div class="sticky-header" :class="{ 'sticky-micro': microMode }">
         <ButtonCableType v-if="!microMode" :model-value="typeChoose" :distributed-types="distributedTypes" :over-types="overTypes" :counts="typeCounts" :show-calc="!ctMode && layout === 'cableTechBase'" @select="typeChoose = $event" @calc="ampWiringOpen = true" />
 
+        <!-- Filtre département (son/lumière/vidéo) — visible si l'affaire couvre plusieurs départements -->
+        <div v-if="!microMode && availableDepts.length > 1" class="dept-filter-row">
+          <button class="dept-chip" :class="{ active: deptChoose === '' }" @click="deptChoose = ''">Tous</button>
+          <button
+            v-for="d in availableDepts"
+            :key="d"
+            class="dept-chip"
+            :class="[d, { active: deptChoose === d }]"
+            @click="deptChoose = d"
+          >{{ DEPT_LABELS[d] || d }}</button>
+        </div>
+
 
 
         <!-- Sync-header Zones -->
@@ -445,6 +457,7 @@
 import { ref, reactive, computed, watch, onMounted, inject } from 'vue'
 import { onBeforeRouteLeave } from 'vue-router'
 import { useCableStore } from '../stores/cables'
+import { useCatalogStore } from '../stores/catalogs'
 import { supabase } from '../lib/supabase'
 import { useAffairStore } from '../stores/affairs'
 import { useOrderStore } from '../stores/orders'
@@ -521,6 +534,7 @@ watch(helpMode, (val) => {
 })
 
 const cableStore = useCableStore()
+const catalogStore = useCatalogStore()
 const affairStore = useAffairStore()
 const orderStore = useOrderStore()
 const settingsStore = useSettingsStore()
@@ -539,6 +553,27 @@ onMounted(async () => {
 const affairIsOpen = ref(false)
 const editingAffair = ref(null)
 const typeChoose = ref('speaker')
+// Départements (son/lumière/vidéo) disponibles pour l'affaire + filtre actif ('' = tous)
+const DEPT_LABELS = { sound: 'Son', light: 'Lumière', video: 'Vidéo' }
+const deptCatalogs = ref([]) // [{ catalogid, department, name }]
+const deptChoose = ref('')
+const availableDepts = computed(() => {
+  const seen = []
+  for (const c of deptCatalogs.value) {
+    if (c.department && !seen.includes(c.department)) seen.push(c.department)
+  }
+  return seen
+})
+// Catalogue cible pour un ajout de câble = celui du département filtré, sinon le primaire.
+function activeDeptCatalogId() {
+  if (deptChoose.value) {
+    const c = deptCatalogs.value.find(x => x.department === deptChoose.value)
+    if (c) return c.catalogid
+  }
+  return selectedAffair.value?.catalog_id
+    || deptCatalogs.value[0]?.catalogid
+    || parseInt(localStorage.getItem('cablemaster-catalogid')) || null
+}
 const searchKey = ref('')
 const layout = ref('cableTechBase')
 // Métier sur lequel on travaille (front / monitor / system / stage)
@@ -1119,12 +1154,12 @@ const newMicName = ref('')
 async function quickAddMic() {
   const name = newMicName.value.trim()
   if (!name) return
-  const catalogId = selectedAffair.value?.catalog_id || parseInt(localStorage.getItem('cablemaster-catalogid')) || null
+  const catalogId = activeDeptCatalogId()
   const { error } = await cableStore.addCable({ name, type: 'microphone', mic_category: 'supplementaire', weight: 0, total: 0, reserved: 0, catalog_id: catalogId })
   if (!error) {
     newMicName.value = ''
     showAddInput.value = false
-    await cableStore.fetchCables(catalogId)
+    await cableStore.fetchCablesForCatalogs(deptCatalogs.value)
     if (selectedAffair.value) {
       const { data: orders } = await orderStore.fetchOrders({ affairid: selectedAffair.value.affairid })
       buildJoinedData(orders || [], cableStore.cables)
@@ -1136,12 +1171,12 @@ async function quickAddCable() {
   const name = newCableName.value.trim()
   if (!name) return
   const type = typeChoose.value || 'other'
-  const catalogId = selectedAffair.value?.catalog_id || null
+  const catalogId = activeDeptCatalogId()
   const { error } = await cableStore.addCable({ name, type, weight: 0, total: 0, reserved: 0, catalog_id: catalogId })
   if (!error) {
     newCableName.value = ''
-    // Recharger les câbles du bon catalogue et reconstruire
-    await cableStore.fetchCables(catalogId)
+    // Recharger l'union des catalogues départements et reconstruire
+    await cableStore.fetchCablesForCatalogs(deptCatalogs.value)
     if (selectedAffair.value) {
       const { data: orders } = await orderStore.fetchOrders({ affairid: selectedAffair.value.affairid })
       buildJoinedData(orders || [], cableStore.cables)
@@ -1599,11 +1634,20 @@ async function onAffairSelected(affair) {
     } catch { /* ignore */ }
   }
 
-  // Charger les câbles du catalogue de l'affaire ou de l'entreprise connectée.
-  // Les deux requêtes (câbles + ordres) sont indépendantes → en PARALLÈLE (≈ 2× plus rapide).
-  const catalogId = affair.catalog_id || localStorage.getItem('cablemaster-catalogid') || null
+  // Résoudre le jeu de catalogues départements (son/lumière/vidéo) de l'affaire.
+  const primaryCatalogId = affair.catalog_id
+    || parseInt(localStorage.getItem('cablemaster-catalogid')) || null
+  let depts = await catalogStore.departmentCatalogsForCatalog(primaryCatalogId)
+  // Repli : ancienne affaire / catalogue sans rattachement → catalogue unique.
+  if (!depts.length && primaryCatalogId) {
+    depts = [{ catalogid: parseInt(primaryCatalogId), department: null }]
+  }
+  deptCatalogs.value = depts
+  if (deptChoose.value && !availableDepts.value.includes(deptChoose.value)) deptChoose.value = ''
+
+  // Câbles (union des catalogues) + ordres : requêtes indépendantes → en PARALLÈLE.
   const [, ordersResult] = await Promise.all([
-    cableStore.fetchCables(catalogId ? parseInt(catalogId) : null),
+    cableStore.fetchCablesForCatalogs(depts),
     orderStore.fetchOrders({ affairid: affair.affairid }),
   ])
   buildJoinedData(ordersResult?.data || [], cableStore.cables)
@@ -1656,6 +1700,7 @@ function rebuildJoinedData(cables = cableStore.cables) {
       brand: cable.brand,
       mic_category: cable.mic_category,
       type: cable.type,
+      department: cable.department || null,
       color: cable.color,
       total: cable.total,
       reserved: cable.reserved,
@@ -1746,10 +1791,12 @@ const searchFiltered = computed(() =>
   )
 )
 
-// Zones : filtré par type
+// Zones : filtré par département (son/lumière/vidéo) puis par type
 const filteredJoinedData = computed(() => {
-  if (typeChoose.value === '') return searchFiltered.value
-  return searchFiltered.value.filter(c => c.type === typeChoose.value)
+  let list = searchFiltered.value
+  if (deptChoose.value) list = list.filter(c => c.department === deptChoose.value)
+  if (typeChoose.value !== '') list = list.filter(c => c.type === typeChoose.value)
+  return list
 })
 
 const totalSelected = computed(() =>
@@ -1926,6 +1973,30 @@ function colorForType(type) {
 }
 /* En mode micro, les en-têtes sont dans MicroList → pas d'espace réservé ici */
 .sticky-header.sticky-micro { min-height: 0; padding-bottom: 0; }
+
+/* Filtre département (son/lumière/vidéo) */
+.dept-filter-row {
+  display: flex;
+  gap: 6px;
+  padding: 3px 6px 4px;
+  flex-wrap: wrap;
+}
+.dept-chip {
+  border: 1px solid rgba(128, 128, 128, 0.4);
+  background: transparent;
+  color: var(--text, #333);
+  border-radius: 14px;
+  padding: 2px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  opacity: 0.7;
+}
+.dept-chip.active { opacity: 1; color: #fff; }
+.dept-chip.sound.active { background: #2563eb; border-color: #2563eb; }
+.dept-chip.light.active { background: #d97706; border-color: #d97706; }
+.dept-chip.video.active { background: #7c3aed; border-color: #7c3aed; }
+.dept-chip.active:not(.sound):not(.light):not(.video) { background: #555; border-color: #555; }
 .affair-open-bar {
   display: flex;
   align-items: center;

@@ -11,11 +11,18 @@ import '@quasar/extras/material-icons/material-icons.css'
 
 import './style.css'
 import { startSyncListener, flushQueue } from './lib/syncService'
+import { useAuthStore } from './stores/auth'
 
 const app = createApp(App)
-app.use(createPinia())
+const pinia = createPinia()
+app.use(pinia)
 app.use(Quasar, { lang: quasarLangFr })
 app.use(router)
+
+// Démarre la résolution de session AVANT le montage : la garde du router
+// attend `auth.ready` pour router vers /login, /onboarding ou l'app.
+useAuthStore(pinia).bootstrap()
+
 app.mount('#app')
 
 // Effacer le badge de l'icône (Badging API) dès que l'app est ouverte / revient au premier plan

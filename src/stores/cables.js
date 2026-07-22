@@ -40,6 +40,43 @@ export const useCableStore = defineStore('cables', () => {
     return { data: cables.value, error: null }
   }
 
+  // Charge l'UNION des câbles de plusieurs catalogues (affaire multi-départements).
+  // `catalogList` = tableau d'objets { catalogid, department } (cf. catalogsForContext).
+  // Chaque câble reçoit un champ dérivé `department` (via son catalog_id).
+  async function fetchCablesForCatalogs(catalogList = []) {
+    loading.value = true
+    const ids = catalogList.map((c) => c.catalogid).filter(Boolean)
+    const deptMap = {}
+    for (const c of catalogList) deptMap[c.catalogid] = c.department || null
+    const cacheKey = ids.length ? `cables-multi-${[...ids].sort((a, b) => a - b).join('-')}` : 'cables'
+    try {
+      if (!ids.length) {
+        cables.value = []
+        loading.value = false
+        return { data: [], error: null }
+      }
+      const { data, error } = await supabase
+        .from('cable')
+        .select('*')
+        .in('catalog_id', ids)
+        .order('sortno', { ascending: true })
+        .order('name', { ascending: true })
+      if (!error && data) {
+        const tagged = data.map((c) => ({ ...c, department: deptMap[c.catalog_id] || null }))
+        cables.value = tagged
+        cacheSet(cacheKey, tagged)
+      } else {
+        const cached = cacheGet(cacheKey)
+        if (cached) cables.value = cached
+      }
+    } catch {
+      const cached = cacheGet(cacheKey)
+      if (cached) cables.value = cached
+    }
+    loading.value = false
+    return { data: cables.value, error: null }
+  }
+
   async function addCable(cable) {
     const { data, error } = await supabase
       .from('cable')
@@ -86,5 +123,5 @@ export const useCableStore = defineStore('cables', () => {
     )
   }
 
-  return { cables, loading, fetchCables, addCable, updateCable, deleteCable, cablesByType, searchCables }
+  return { cables, loading, fetchCables, fetchCablesForCatalogs, addCable, updateCable, deleteCable, cablesByType, searchCables }
 })

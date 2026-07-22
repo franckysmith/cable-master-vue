@@ -28,6 +28,33 @@ export const useCatalogStore = defineStore('catalogs', () => {
     loading.value = false
   }
 
+  // Catalogues "département" (son/lumière/vidéo) d'un contexte : entreprise via
+  // company_id, sinon freelance via user_id. Exclut la biblio micros (department null).
+  async function fetchDepartmentCatalogs({ companyId = null, userId = null } = {}) {
+    let query = supabase
+      .from('catalog')
+      .select('catalogid, name, department, company_id, user_id')
+      .not('department', 'is', null)
+    if (companyId) query = query.eq('company_id', companyId)
+    else if (userId) query = query.eq('user_id', userId)
+    else return []
+    const { data, error } = await query.order('department').order('catalogid')
+    return error ? [] : data || []
+  }
+
+  // À partir d'un catalogue "primaire" (celui d'une affaire), retrouve tous les
+  // catalogues départements du même propriétaire (entreprise ou freelance).
+  async function departmentCatalogsForCatalog(catalogId) {
+    if (!catalogId) return []
+    const { data: cat } = await supabase
+      .from('catalog')
+      .select('company_id, user_id')
+      .eq('catalogid', catalogId)
+      .maybeSingle()
+    if (!cat) return []
+    return fetchDepartmentCatalogs({ companyId: cat.company_id, userId: cat.user_id })
+  }
+
   async function addCatalog(catalog) {
     const { data, error } = await supabase
       .from('catalog')
@@ -56,5 +83,9 @@ export const useCatalogStore = defineStore('catalogs', () => {
     return { error }
   }
 
-  return { catalogs, loading, fetchCatalogs, addCatalog, updateCatalog, deleteCatalog }
+  return {
+    catalogs, loading, fetchCatalogs,
+    fetchDepartmentCatalogs, departmentCatalogsForCatalog,
+    addCatalog, updateCatalog, deleteCatalog,
+  }
 })

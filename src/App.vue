@@ -39,7 +39,7 @@
           <!-- Employeurs -->
           <q-expansion-item
             v-if="employerItems.length"
-            label="Employeurs"
+            :label="employerLabel"
             icon="business"
             default-opened
             header-class="drawer-group"
@@ -120,6 +120,14 @@
             <q-item-section avatar><q-icon name="info" /></q-item-section>
             <q-item-section>About</q-item-section>
           </q-item>
+          <q-item
+            clickable
+            class="drawer-about"
+            @click="closeDrawerOnMobile(); logout()"
+          >
+            <q-item-section avatar><q-icon name="logout" /></q-item-section>
+            <q-item-section>Déconnexion</q-item-section>
+          </q-item>
         </q-list>
       </q-scroll-area>
     </q-drawer>
@@ -148,14 +156,15 @@
       <iframe :src="calcUrl" class="calc-frame" frameborder="0"></iframe>
     </div>
 
-    <!-- Menu sélecteur d'utilisateur (super admin) -->
+    <!-- Menu compte (identité réelle + déconnexion) -->
     <div v-if="showUserMenu" class="user-menu">
-      <div class="user-menu-title">Super Admin</div>
-      <div class="user-menu-group">
-        <button v-for="u in users" :key="u.id" class="user-btn" :class="[u.role, { active: currentUser === u.id }]" @click="switchUser(u)">
-          {{ u.label }}
-        </button>
+      <div class="user-menu-title">{{ accountName || 'Mon compte' }}</div>
+      <div class="user-menu-email">{{ accountEmail }}</div>
+      <div class="user-menu-meta">
+        <span class="user-menu-role">{{ userRole === 'master' ? 'Master' : 'Technicien' }}<template v-if="isSuper"> · Admin</template></span>
+        <span v-if="companyName" class="user-menu-company">🏢 {{ companyName }}</span>
       </div>
+      <button class="user-btn logout" @click="logout">Déconnexion</button>
     </div>
   </q-layout>
 </template>
@@ -163,7 +172,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, provide } from 'vue'
 import { useQuasar } from 'quasar'
-import { supabase } from './lib/supabase'
+import { useAuthStore } from './stores/auth'
 import { useAffairStore } from './stores/affairs'
 import { useRouter, useRoute } from 'vue-router'
 import { getQueue } from './lib/offlineCache'
@@ -192,7 +201,11 @@ const pageTitle = computed(() => PAGE_TITLES[currentRoute.path] || '')
 // ===== Vue multi-colonnes (web / grand écran) =====
 const splitView = useSplitViewStore()
 // nochrome=1 → page affichée DANS une colonne iframe : on masque header/drawer/etc.
-const nochrome = computed(() => currentRoute.query.nochrome === '1')
+// Les écrans d'auth (login / onboarding) sont aussi affichés sans le chrome de l'app.
+const AUTH_ROUTES = ['/login', '/onboarding']
+const nochrome = computed(() =>
+  currentRoute.query.nochrome === '1' || AUTH_ROUTES.includes(currentRoute.path)
+)
 const isWide = ref(typeof window !== 'undefined' && window.innerWidth >= 1024)
 function onResizeWide() { isWide.value = window.innerWidth >= 1024 }
 // SplitView affichée seulement sur grand écran, hors iframe, et si ≥ 2 colonnes
@@ -255,34 +268,35 @@ function closeDrawerOnMobile() {
 }
 provide('helpMode', helpMode)
 
-const users = [
-  { id: 'T', label: 'T', role: 'technician', name: 'Franck (Admin)', superadmin: true, techId: 0 },
-  { id: 'T1', label: 'T1FR', role: 'technician', name: 'Franck Richard', techId: 8, email: 'fr.cinod@gmail.com', catalogId: 6, companyId: 1 },
-  { id: 'T2', label: 'T2N', role: 'technician', name: 'Naïma Richard', email: 'naima.cinod@gmail.com', techId: 11, catalogId: 6, companyId: 1 },
-  { id: 'T3', label: 'T3', role: 'technician', name: 'Michel', techId: 3 },
-  { id: 'F', label: 'F', role: 'technician', name: 'Freelance (Franck)', techId: 20, catalogId: 3, freelance: true },
-  { id: 'F1', label: 'F1', role: 'technician', name: 'Léa (freelance)', techId: 21, catalogId: 4, freelance: true },
-  { id: 'F2', label: 'F2', role: 'technician', name: 'Marc (freelance)', techId: 22, catalogId: 5, freelance: true },
-  { id: 'M', label: 'M', role: 'master', name: 'Jean-Paul Rima (master)', superadmin: true, techId: 25, catalogId: 6, companyId: 1 },
-  { id: 'M1', label: 'M1', role: 'master', name: 'Kevin « Kev »', techId: 26, catalogId: 6, companyId: 1 },
-  { id: 'M2', label: 'M2', role: 'master', name: 'Pierre Durand', techId: 1, catalogId: 6, companyId: 1 },
-  { id: 'M3', label: 'M3', role: 'master', name: 'Sophie', techId: 2, catalogId: 6, companyId: 1 },
-  { id: 'G', label: 'G', role: 'gerant', name: 'Edouard (gérant Moon)', techId: 30, catalogId: 6, companyId: 1 },
-]
-
-const currentUser = ref(localStorage.getItem('cablemaster-userid') || 'T')
+const auth = useAuthStore()
 const showUserMenu = ref(false)
 
-const currentUserObj = computed(() => users.find(u => u.id === currentUser.value) || users[0])
-const currentUserLabel = computed(() => currentUserObj.value.label)
-const userRole = ref(localStorage.getItem('cablemaster-role') || 'technician')
-const companyName = ref(localStorage.getItem('cablemaster-company') || '')
+// Identité & contexte réels issus du store auth (fini le menu factice)
+const currentUser = computed(() => auth.user?.id || '')
+const userRole = computed(() => auth.profile?.role || 'technician')
+const companyName = computed(() => auth.profile?.companyName || '')
+const isSuper = computed(() => !!auth.profile?.isSuper)
+const accountName = computed(() => auth.displayName)
+const accountEmail = computed(() => auth.user?.email || '')
+const currentUserLabel = computed(() =>
+  (accountName.value || accountEmail.value || '?').slice(0, 2).toUpperCase()
+)
 
-// Items "Employeurs" selon le rôle / les permissions
-const isSuper = computed(() => !!currentUserObj.value?.superadmin)
+// Freelance = maître de sa propre liste (mêmes outils que l'entreprise, mais sur sa liste).
+const isFreelance = computed(() => auth.profile?.type === 'freelance')
+const employerLabel = computed(() => (isFreelance.value ? 'Ma liste' : 'Employeurs'))
+
+// Items du menu selon le profil.
 const employerItems = computed(() => {
-  // Partie employeur réservée aux rôles master et gérant. En technicien : rien (Home,
-  // Micros, Réglages, About uniquement) — même pour un super-admin tant qu'il est en technicien.
+  // Freelance : ses outils de liste (pas les trucs entreprise : Tech List, page Entreprise).
+  if (isFreelance.value) {
+    return [
+      { label: 'Cable List', to: '/CableList', icon: 'settings_input_component' },
+      { label: 'Micro List', to: '/miclist', icon: 'mic' },
+      { label: 'Cable Kit', to: '/FlightType', icon: 'inventory_2' },
+    ]
+  }
+  // Entreprise : réservé master / gérant. Technicien salarié : rien.
   if (userRole.value !== 'master' && userRole.value !== 'gerant') return []
   return [
     { label: 'Entreprise', to: '/company', icon: 'apartment' },
@@ -294,33 +308,10 @@ const employerItems = computed(() => {
   ]
 })
 
-function switchUser(u) {
-  currentUser.value = u.id
-  userRole.value = u.role
-  localStorage.setItem('cablemaster-userid', u.id)
-  localStorage.setItem('cablemaster-role', u.role)
-  localStorage.setItem('cablemaster-techid', u.techId)
-  if (u.email) localStorage.setItem('cablemaster-email', u.email)
-  else localStorage.removeItem('cablemaster-email')
-  if (u.catalogId) {
-    localStorage.setItem('cablemaster-catalogid', u.catalogId)
-  } else {
-    localStorage.removeItem('cablemaster-catalogid')
-  }
-  if (u.companyId) {
-    localStorage.setItem('cablemaster-companyid', u.companyId)
-  } else {
-    localStorage.removeItem('cablemaster-companyid')
-  }
-  if (u.superadmin) {
-    localStorage.setItem('cablemaster-superadmin', 'true')
-  } else {
-    localStorage.removeItem('cablemaster-superadmin')
-  }
+async function logout() {
   showUserMenu.value = false
-  // Rafraîchir le nom d'entreprise selon le companyid de l'utilisateur (sinon reste sur l'ancienne, ex. Tarpo)
-  if (u.companyId) loadCompany()
-  else { companyName.value = ''; localStorage.removeItem('cablemaster-company') }
+  await auth.signOut()
+  router.push('/login')
 }
 
 provide('userRole', userRole)
@@ -328,24 +319,6 @@ provide('companyName', companyName)
 // État du drawer partagé : la visionneuse de docs se place à droite si la gauche est prise (drawer ouvert)
 provide('drawerOpen', drawer)
 provide('currentUser', currentUser)
-
-async function loadCompany() {
-  // Charger l'entreprise correspondant au companyid courant (pas la 1ʳᵉ venue)
-  const cid = parseInt(localStorage.getItem('cablemaster-companyid')) || null
-  let name = ''
-  if (cid) {
-    const { data } = await supabase.from('company').select('name').eq('companyid', cid).maybeSingle()
-    name = data?.name || ''
-  }
-  if (!name) {
-    const { data } = await supabase.from('company').select('name').order('companyid').limit(1)
-    name = data?.[0]?.name || ''
-  }
-  if (name) {
-    companyName.value = name
-    localStorage.setItem('cablemaster-company', name)
-  }
-}
 
 function refreshPending() { pendingCount.value = getQueue().length }
 async function trySync() {
@@ -363,7 +336,6 @@ onMounted(() => {
   window.addEventListener('resize', onResizeWide)
   // Un PDF/lien cliqué dans une colonne iframe demande au parent de l'ouvrir
   window.addEventListener('message', onFrameMessage)
-  if (userRole.value === 'master') loadCompany()
   // Vérifie périodiquement la file et tente l'envoi si en ligne
   syncTimer = setInterval(() => {
     refreshPending()

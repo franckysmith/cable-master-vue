@@ -62,6 +62,10 @@ import { reactive, ref } from 'vue'
 import { useCableStore } from '../stores/cables'
 import { useSettingsStore } from '../stores/settings'
 
+const props = defineProps({
+  // Catalogue cible de l'ajout (département actif). Défaut : catalogue primaire du profil.
+  catalogId: { type: Number, default: null },
+})
 const emit = defineEmits(['close'])
 const cableStore = useCableStore()
 const settingsStore = useSettingsStore()
@@ -97,8 +101,8 @@ async function submit() {
   if (!payload.brand) delete payload.brand
   if (!payload.info) delete payload.info
   if (!payload.link) delete payload.link
-  // Ajouter au catalogue actif (même résolution que la vue CableList : défaut 1)
-  payload.catalog_id = parseInt(localStorage.getItem('cablemaster-catalogid')) || 1
+  // Ajouter au catalogue du département actif (fourni par la vue), sinon le primaire du profil.
+  payload.catalog_id = props.catalogId || parseInt(localStorage.getItem('cablemaster-catalogid')) || 1
   const { error } = await cableStore.addCable(payload)
   submitting.value = false
   if (!error) {
