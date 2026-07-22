@@ -1,6 +1,10 @@
 # Déploiement Netlify (HTTPS automatique) — requis pour tester les notifications push iOS.
 [build]
-  command = "npm run build"
+  # Installation propre : contourne le bug npm des binaires natifs optionnels
+  # (rolldown/Vite 8) où `npm ci` cross-plateforme ne pose pas le binaire Linux
+  # → "Cannot find module rolldown-binding.linux-x64-gnu.node". On repart d'une
+  # résolution fraîche côté Netlify. Le lockfile du repo reste inchangé (dev local).
+  command = "rm -rf node_modules package-lock.json && npm install && npm run build"
   publish = "dist"
 
 [build.environment]
