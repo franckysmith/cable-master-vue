@@ -130,13 +130,31 @@ async function submitCompany() {
   display: flex; flex-direction: column; align-items: center; gap: 6px;
   padding: 20px; border: 1px solid rgba(0,0,0,0.12); border-radius: 12px;
   background: #fafafa; cursor: pointer; transition: all .15s;
+  /* carte blanche : on impose la couleur du texte, sinon le thème sombre
+     global peint les <button> en blanc → titres invisibles */
+  color: #1a1a2e;
 }
 .onb-choice:hover { border-color: var(--q-primary, #1976d2); background: #f0f6ff; }
-.onb-choice-title { font-weight: 600; font-size: 16px; }
-.onb-choice-desc { color: #777; font-size: 13px; }
+.onb-choice :deep(.q-icon) { color: #4a3d7a; }
+.onb-choice-title { font-weight: 600; font-size: 16px; color: #1a1a2e; }
+.onb-choice-desc { color: #555; font-size: 13px; }
 .onb-input { margin-bottom: 12px; text-align: left; }
 .onb-depts { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 6px 0 16px; }
 .onb-depts-label { color: #666; font-size: 14px; }
 .onb-actions { display: flex; justify-content: space-between; gap: 10px; margin-top: 8px; }
 .onb-error { color: #c62828; margin-top: 14px; font-size: 13px; }
+
+/* La carte est blanche même en mode sombre : on force le texte des composants
+   Quasar en noir, sinon les règles globales `.dark .q-…` les rendent illisibles
+   (gris très clair sur blanc) — cases à cocher Son / Lumière / Vidéo, champs. */
+.onb-card :deep(.q-checkbox__label),
+.onb-card :deep(.q-field__native),
+.onb-card :deep(.q-field__input),
+.onb-card :deep(.q-field__prefix),
+.onb-card :deep(.q-field__suffix) { color: #1a1a2e !important; }
+.onb-card :deep(.q-field__label) { color: #666 !important; }
+.onb-card :deep(.q-field--outlined .q-field__control) { border-color: rgba(0,0,0,0.24) !important; }
+.onb-card :deep(.q-checkbox__inner) { color: rgba(0,0,0,0.6); }
+.onb-card :deep(.q-checkbox__inner--truthy) { color: var(--q-primary, #1976d2); }
+.onb-card :deep(.q-btn--flat) { color: #444 !important; }
 </style>

@@ -49,7 +49,15 @@ export const useAuthStore = defineStore('auth', () => {
     else localStorage.removeItem('cablemaster-company')
   }
 
-  async function resolveProfile() {
+  // Un seul résolution à la fois : les appels concurrents (verifyOtp + événement
+  // onAuthStateChange, onboarding + refresh de token…) partagent la même promesse.
+  let inflight = null
+  function resolveProfile() {
+    if (!inflight) inflight = doResolveProfile().finally(() => { inflight = null })
+    return inflight
+  }
+
+  async function doResolveProfile() {
     profile.value = null
     if (!user.value) { persistContext(null); return }
 
@@ -120,11 +128,18 @@ export const useAuthStore = defineStore('auth', () => {
     } catch {
       /* hors-ligne : on laisse le contexte localStorage tel quel */
     } finally {
-      supabase.auth.onAuthStateChange(async (_event, sess) => {
+      // IMPORTANT : ce callback est appelé PENDANT que supabase-js détient son
+      // verrou d'authentification (navigator.locks). Y faire un `await` sur une
+      // requête Supabase (qui redemande le verrou pour lire le token) provoque
+      // un interblocage : la promesse ne se résout jamais → spinner infini /
+      // page blanche. On sort donc du callback avant toute requête.
+      supabase.auth.onAuthStateChange((_event, sess) => {
         session.value = sess
         user.value = sess?.user || null
-        if (user.value) await resolveProfile()
-        else persistContext(null)
+        setTimeout(() => {
+          if (user.value) resolveProfile()
+          else persistContext(null)
+        }, 0)
       })
       initialized.value = true
       resolveReady()
