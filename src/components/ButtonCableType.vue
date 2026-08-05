@@ -28,6 +28,7 @@
 <script setup>
 import { computed } from 'vue'
 import { useSettingsStore } from '../stores/settings'
+import { typeAllowedInDept } from '../lib/departments'
 
 const props = defineProps({
   modelValue: { type: String, default: 'speaker' },
@@ -38,6 +39,7 @@ const props = defineProps({
   alwaysColor: { type: Boolean, default: false }, // borde toujours les onglets de leur couleur (sans chiffres)
   showCalc: { type: Boolean, default: false }, // bouton « L.calc » (calculateur ampli → câblage) après All
   excludeMicro: { type: Boolean, default: false }, // ne pas proposer le type « Micros » (déplacé dans Micro List)
+  department: { type: String, default: 'sound' }, // restreint les onglets au matériel du département
 })
 defineEmits(['select', 'calc'])
 
@@ -60,7 +62,7 @@ const types = computed(() => {
   const list = typeKeys.map((value, i) => {
     const label = settingsStore.defaultTypeLabels[`type${i + 1}`] || defaultLabels[i]
     return { value, label }
-  }).filter(t => t.label)
+  }).filter(t => t.label && typeAllowedInDept(t.value, props.department))
   if (props.showAll) {
     if (!props.excludeMicro) list.push({ value: 'microphone', label: 'Micros' })
     list.push({ value: 'c_type', label: 'Cablekit' })

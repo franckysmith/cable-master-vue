@@ -42,7 +42,7 @@ This app's backend was **moved to the shared Cinod Supabase hub** and now lives 
 
 **11 tables in `mastercable`:** catalog, cable, affair, "order", mfc, cablemfc, company, technician, message, share, user_settings. RLS = permissive public policies (app uses the anon key, no per-user auth). FKs: order→cable/affair, cablemfc→cable/mfc, technician→company, message→affair, cable/affair/company→catalog.
 **2 Storage buckets:** `documents` (affair attachments), `microphones` (mic PDFs/images).
-**Catalogue convention:** id **1** = "Catalogue principal" (default working catalogue), id **2** = "Bibliothèque Micros" (`LIB_CATALOG_ID = 2`).
+**Catalogue convention:** id **1** = "Catalogue principal" (default working catalogue, department `sound`), id **2** = "Bibliothèque Micros" (`LIB_CATALOG_ID = 2`), id **12** = standard Lumière, id **13** = standard Vidéo. The per-department standard catalogues are the templates copied at sign-up — see `STANDARD_CATALOG_IDS` in `src/lib/provisioning.js`. **Lumière and Vidéo are still empty**: a freelance/company signing up for those departments gets an empty (but correctly typed) catalogue until their content is written.
 **Seeded:** 102 cables in catalogue 1, 22 mics in catalogue 2. No companies/affairs/technicians yet — those are created through the app.
 
 ## Offline sync

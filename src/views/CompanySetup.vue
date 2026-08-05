@@ -220,6 +220,7 @@
 import { ref, reactive, computed, onMounted, inject } from 'vue'
 import { supabase } from '../lib/supabase'
 import { useCableStore } from '../stores/cables'
+import { copyStandardCables } from '../lib/provisioning'
 
 const cableStore = useCableStore()
 const companyName = inject('companyName', ref(''))
@@ -421,15 +422,15 @@ async function submit() {
           name: `${form.name} - ${label}`,
           owner_name: form.name,
           description: `${label} - ${form.name}`,
+          department: dept,
         })
         .select()
 
       if (cat?.[0]) {
         catalogIds[dept] = cat[0].catalogid
-        // Copier la liste standard si Son
-        if (dept === 'sound') {
-          await copyStandardCables(cat[0].catalogid)
-        }
+        // Copier la liste standard du département (sans effet tant que le
+        // standard Lumière / Vidéo est vide)
+        await copyStandardCables(cat[0].catalogid, dept)
       }
     }
 
@@ -466,32 +467,6 @@ async function submit() {
       resetForm()
     }
   }
-}
-
-async function copyStandardCables(catalogId) {
-  // Copier les câbles de la liste standard (catalog_id = 1, hors micros)
-  const { data: cables } = await supabase
-    .from('cable')
-    .select('*')
-    .eq('catalog_id', 1)
-    .neq('type', 'microphone')
-
-  if (!cables?.length) return
-
-  const toInsert = cables.map(c => ({
-    name: c.name,
-    type: c.type,
-    brand: c.brand || '',
-    sortno: c.sortno || 0,
-    weight: c.weight || 0,
-    total: c.total || 0,
-    reserved: c.reserved || 0,
-    info: c.info || '',
-    link: c.link || '',
-    catalog_id: catalogId,
-  }))
-
-  await supabase.from('cable').insert(toInsert)
 }
 
 async function deleteCompany() {

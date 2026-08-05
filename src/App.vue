@@ -46,11 +46,12 @@
           >
             <q-item
               v-for="it in employerItems"
-              :key="it.to"
+              :key="it.label"
               clickable
               :to="it.to"
+              :active="isDrawerItemActive(it)"
               active-class="drawer-active"
-              @click="closeDrawerOnMobile"
+              @click="onDrawerItem(it)"
             >
               <q-item-section avatar><q-icon :name="it.icon" /></q-item-section>
               <q-item-section>{{ it.label }}</q-item-section>
@@ -175,6 +176,7 @@ import { useQuasar } from 'quasar'
 import { useAuthStore } from './stores/auth'
 import { useAffairStore } from './stores/affairs'
 import { useRouter, useRoute } from 'vue-router'
+import { DEPT_LABELS, DEPT_ORDER, activeDept, setActiveDept } from './lib/departments'
 import { getQueue } from './lib/offlineCache'
 import { flushQueue } from './lib/syncService'
 import SplitView from './components/SplitView.vue'
@@ -184,6 +186,7 @@ const $q = useQuasar()
 const affairStore = useAffairStore()
 const router = useRouter()
 const currentRoute = useRoute()
+const DEPT_ICONS = { sound: 'settings_input_component', light: 'lightbulb', video: 'videocam' }
 const PAGE_TITLES = {
   '/': 'Cinod-Prep',
   '/CableList': 'CableList',
@@ -196,7 +199,11 @@ const PAGE_TITLES = {
   '/settings': 'Réglages',
   '/about': 'About',
 }
-const pageTitle = computed(() => PAGE_TITLES[currentRoute.path] || '')
+const pageTitle = computed(() => {
+  // La liste de câbles annonce son métier : « CableList Son », « … Lumière »…
+  if (currentRoute.path === '/CableList') return `CableList ${DEPT_LABELS[activeDept.value] || ''}`.trim()
+  return PAGE_TITLES[currentRoute.path] || ''
+})
 
 // ===== Vue multi-colonnes (web / grand écran) =====
 const splitView = useSplitViewStore()
@@ -286,22 +293,51 @@ const currentUserLabel = computed(() =>
 const isFreelance = computed(() => auth.profile?.type === 'freelance')
 const employerLabel = computed(() => (isFreelance.value ? 'Ma liste' : 'Employeurs'))
 
+// Les trois entrées « Câbles … » pointent toutes vers /CableList : c'est le
+// métier retenu qui distingue l'entrée active, pas l'URL.
+function isDrawerItemActive(it) {
+  if (it.dept) return currentRoute.path === '/CableList' && activeDept.value === it.dept
+  return currentRoute.path === it.to
+}
+
+function onDrawerItem(it) {
+  if (it.dept) setActiveDept(it.dept)
+  closeDrawerOnMobile()
+}
+
+// Une entrée de liste de câbles par métier : c'est ici qu'on bascule entre
+// Son, Lumière et Vidéo (plutôt que des onglets qui mangent de la place dans la
+// page). Tout le monde a les trois départements depuis l'inscription.
+const cableListItems = computed(() =>
+  DEPT_ORDER.map((d) => ({
+    label: `Câbles ${DEPT_LABELS[d]}`,
+    to: '/CableList',
+    icon: DEPT_ICONS[d],
+    dept: d,
+  }))
+)
+
 // Items du menu selon le profil.
 const employerItems = computed(() => {
-  // Freelance : ses outils de liste (pas les trucs entreprise : Tech List, page Entreprise).
+  // Freelance : sa liste. Pas de Cable Kit (les caisses-types sont une affaire
+  // d'entreprise) ni les outils entreprise (Tech List, page Entreprise).
   if (isFreelance.value) {
     return [
-      { label: 'Cable List', to: '/CableList', icon: 'settings_input_component' },
-      { label: 'Micro List', to: '/miclist', icon: 'mic' },
-      { label: 'Cable Kit', to: '/FlightType', icon: 'inventory_2' },
+      ...cableListItems.value,
+      // Les micros ne concernent que le son.
+      ...(activeDept.value === 'sound'
+        ? [{ label: 'Micro List', to: '/miclist', icon: 'mic' }]
+        : []),
     ]
   }
   // Entreprise : réservé master / gérant. Technicien salarié : rien.
   if (userRole.value !== 'master' && userRole.value !== 'gerant') return []
   return [
     { label: 'Entreprise', to: '/company', icon: 'apartment' },
-    { label: 'Cable List', to: '/CableList', icon: 'settings_input_component' },
-    { label: 'Micro List', to: '/miclist', icon: 'mic' },
+    ...cableListItems.value,
+    ...(activeDept.value === 'sound'
+      ? [{ label: 'Micro List', to: '/miclist', icon: 'mic' }]
+      : []),
     { label: 'Cable Kit', to: '/FlightType', icon: 'inventory_2' },
     { label: 'Tech List', to: '/techlist', icon: 'groups' },
     { label: 'MasterAffaire', to: '/MasterAffaire', icon: 'event_note' },

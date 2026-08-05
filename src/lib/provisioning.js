@@ -1,15 +1,25 @@
 import { supabase } from './supabase'
 
-// Copie la liste standard (catalogue 1, hors micros) dans un nouveau catalogue.
+// Catalogues "standard" : les modèles copiés à l'inscription, un par
+// département. Convention du projet : 1 = Son ("Catalogue principal"),
+// 2 = Bibliothèque Micros, 12 = Lumière, 13 = Vidéo.
+// Lumière et Vidéo existent mais sont encore vides : la copie est alors
+// simplement sans effet (catalogue neuf), l'inscription reste fonctionnelle.
+export const STANDARD_CATALOG_IDS = { sound: 1, light: 12, video: 13 }
+
+// Copie la liste standard du département (hors micros) dans un nouveau catalogue.
 // Repris de CompanySetup.vue pour être réutilisé par l'onboarding.
-export async function copyStandardCables(catalogId) {
+export async function copyStandardCables(catalogId, dept = 'sound') {
+  const sourceId = STANDARD_CATALOG_IDS[dept]
+  if (!sourceId) return { copied: 0 }
+
   const { data: cables } = await supabase
     .from('cable')
     .select('*')
-    .eq('catalog_id', 1)
+    .eq('catalog_id', sourceId)
     .neq('type', 'microphone')
 
-  if (!cables?.length) return
+  if (!cables?.length) return { copied: 0 }
 
   const toInsert = cables.map((c) => ({
     name: c.name,
@@ -25,13 +35,14 @@ export async function copyStandardCables(catalogId) {
   }))
 
   await supabase.from('cable').insert(toInsert)
+  return { copied: toInsert.length }
 }
 
 const DOMAIN_LABELS = { sound: 'Son', light: 'Lumière', video: 'Vidéo' }
 
-// Freelance solo : un catalogue perso PAR département coché (copie du standard
-// pour le Son ; lumière/vidéo démarrent vides) + une fiche technicien sans
-// entreprise, le tout lié au compte auth.
+// Freelance solo : un catalogue perso PAR département coché, amorcé avec la
+// liste standard du département, + une fiche technicien sans entreprise, le
+// tout lié au compte auth.
 export async function provisionFreelance({ userId, displayName, email, departments }) {
   const name = (displayName || email || 'Freelance').trim()
   const depts = departments?.length ? departments : ['sound']
@@ -51,7 +62,7 @@ export async function provisionFreelance({ userId, displayName, email, departmen
       .select()
     if (error) return { error }
     catalogIds[dept] = cat[0].catalogid
-    if (dept === 'sound') await copyStandardCables(cat[0].catalogid)
+    await copyStandardCables(cat[0].catalogid, dept)
   }
   // Catalogue primaire = Son si présent, sinon le premier créé
   const primaryCatalogId = catalogIds.sound || Object.values(catalogIds)[0] || null
@@ -72,8 +83,8 @@ export async function provisionFreelance({ userId, displayName, email, departmen
   return { catalogId: primaryCatalogId, techId: tech?.[0]?.techid || null, error: techErr }
 }
 
-// Entreprise : crée un catalogue par département (copie standard sur "Son"),
-// une fiche technicien "master" (le créateur) et l'entreprise reliée.
+// Entreprise : crée un catalogue par département (amorcé avec le standard du
+// département), une fiche technicien "master" (le créateur) et l'entreprise reliée.
 export async function provisionCompany({ userId, name, shortName, departments, resp, email }) {
   const depts = departments?.length ? departments : ['sound']
 
@@ -91,7 +102,7 @@ export async function provisionCompany({ userId, name, shortName, departments, r
       .select()
     if (cat?.[0]) {
       catalogIds[dept] = cat[0].catalogid
-      if (dept === 'sound') await copyStandardCables(cat[0].catalogid)
+      await copyStandardCables(cat[0].catalogid, dept)
     }
   }
   // Catalogue primaire = Son si présent, sinon le premier créé

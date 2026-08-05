@@ -477,6 +477,7 @@ import AmpWiring from '../components/AmpWiring.vue'
 import AmpCalculator from '../components/AmpCalculator.vue'
 import { useSettingsStore } from '../stores/settings'
 import { useMfcStore } from '../stores/mfc'
+import { DEPT_LABELS } from '../lib/departments'
 
 const helpMode = inject('helpMode', ref(false))
 const helpTarget = ref(null)
@@ -554,7 +555,6 @@ const affairIsOpen = ref(false)
 const editingAffair = ref(null)
 const typeChoose = ref('speaker')
 // Départements (son/lumière/vidéo) disponibles pour l'affaire + filtre actif ('' = tous)
-const DEPT_LABELS = { sound: 'Son', light: 'Lumière', video: 'Vidéo' }
 const deptCatalogs = ref([]) // [{ catalogid, department, name }]
 const deptChoose = ref('')
 const availableDepts = computed(() => {

@@ -18,12 +18,14 @@
       <div class="cable-name">{{ row.cable.name }}</div>
       <div class="cable-fields">
         <input
+          v-if="showStock"
           type="number"
           :value="row.cable.reserved"
           @change="update(row.cable, 'reserved', $event)"
           title="seuil"
         />
         <input
+          v-if="showStock"
           type="number"
           :value="row.cable.total"
           :class="stockClass(row.cable)"
@@ -59,6 +61,10 @@ const open = reactive({ cacom: false, sc32: false, speakon: false })
 const props = defineProps({
   cables: { type: Array, default: () => [] },
   groupByBrand: { type: Boolean, default: false }, // Micro List : en-têtes par marque
+  // Seuil + total = notions de stock d'entreprise. Un freelance ne possède pas
+  // de parc : sa liste est un référentiel, les quantités se saisissent dans
+  // l'affaire. On masque alors les deux colonnes.
+  showStock: { type: Boolean, default: true },
 })
 const emit = defineEmits(['delete'])
 const cableStore = useCableStore()

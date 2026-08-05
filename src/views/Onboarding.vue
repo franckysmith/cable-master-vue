@@ -23,12 +23,7 @@
       <!-- Étape 2a : freelance -->
       <template v-else-if="choice === 'freelance'">
         <q-input v-model="displayName" label="Ton nom (affiché sur tes listes)" outlined dense autofocus class="onb-input" />
-        <div class="onb-depts">
-          <span class="onb-depts-label">Tu fais :</span>
-          <q-checkbox v-model="freelanceDepts" val="sound" label="Son" />
-          <q-checkbox v-model="freelanceDepts" val="light" label="Lumière" />
-          <q-checkbox v-model="freelanceDepts" val="video" label="Vidéo" />
-        </div>
+        <p class="onb-note">Tu recevras une liste Son, une Lumière et une Vidéo — tu remplis celles qui te concernent.</p>
         <div class="onb-actions">
           <q-btn flat label="Retour" @click="choice = ''" :disable="loading" />
           <q-btn label="Créer ma liste" color="primary" unelevated :loading="loading" :disable="!freelanceReady" @click="submitFreelance" />
@@ -39,12 +34,7 @@
       <template v-else>
         <q-input v-model="company.name" label="Nom de l'entreprise" outlined dense autofocus class="onb-input" />
         <q-input v-model="company.shortName" label="Nom court (optionnel)" outlined dense class="onb-input" />
-        <div class="onb-depts">
-          <span class="onb-depts-label">Départements :</span>
-          <q-checkbox v-model="company.departments" val="sound" label="Son" />
-          <q-checkbox v-model="company.departments" val="light" label="Lumière" />
-          <q-checkbox v-model="company.departments" val="video" label="Vidéo" />
-        </div>
+        <p class="onb-note">L'entreprise démarre avec un catalogue Son, un Lumière et un Vidéo — tu remplis ceux qui te concernent.</p>
         <div class="onb-actions">
           <q-btn flat label="Retour" @click="choice = ''" :disable="loading" />
           <q-btn label="Créer l'entreprise" color="primary" unelevated :loading="loading" :disable="!companyReady" @click="submitCompany" />
@@ -61,6 +51,7 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { provisionFreelance, provisionCompany } from '../lib/provisioning'
+import { ALL_DEPARTMENTS } from '../lib/departments'
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -69,11 +60,12 @@ const choice = ref('')
 const loading = ref(false)
 const error = ref('')
 
+// Plus de question sur les métiers à l'inscription : chacun repart avec les
+// trois listes (Son / Lumière / Vidéo) et remplit celles qui le concernent.
 const displayName = ref('')
-const freelanceDepts = ref(['sound'])
-const freelanceReady = computed(() => displayName.value.trim() && freelanceDepts.value.length > 0)
-const company = reactive({ name: '', shortName: '', departments: ['sound'] })
-const companyReady = computed(() => company.name.trim() && company.departments.length > 0)
+const freelanceReady = computed(() => !!displayName.value.trim())
+const company = reactive({ name: '', shortName: '' })
+const companyReady = computed(() => !!company.name.trim())
 
 onMounted(() => {
   // Pré-remplir le nom depuis l'e-mail (partie avant @)
@@ -90,7 +82,7 @@ async function submitFreelance() {
     userId: auth.user.id,
     displayName: displayName.value.trim(),
     email: auth.user.email || '',
-    departments: freelanceDepts.value,
+    departments: ALL_DEPARTMENTS,
   })
   if (err) { error.value = err.message || 'Erreur à la création.'; loading.value = false; return }
   await auth.resolveProfile()
@@ -105,7 +97,7 @@ async function submitCompany() {
     userId: auth.user.id,
     name: company.name.trim(),
     shortName: company.shortName.trim(),
-    departments: company.departments,
+    departments: ALL_DEPARTMENTS,
     email: auth.user.email || '',
     resp: {},
   })
@@ -139,8 +131,7 @@ async function submitCompany() {
 .onb-choice-title { font-weight: 600; font-size: 16px; color: #1a1a2e; }
 .onb-choice-desc { color: #555; font-size: 13px; }
 .onb-input { margin-bottom: 12px; text-align: left; }
-.onb-depts { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 6px 0 16px; }
-.onb-depts-label { color: #666; font-size: 14px; }
+.onb-note { color: #555; font-size: 13px; text-align: left; margin: 2px 0 16px; }
 .onb-actions { display: flex; justify-content: space-between; gap: 10px; margin-top: 8px; }
 .onb-error { color: #c62828; margin-top: 14px; font-size: 13px; }
 

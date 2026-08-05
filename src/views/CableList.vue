@@ -14,18 +14,14 @@
 
     <AddCable v-if="showAddCable" :catalog-id="activeCatalogId" @close="showAddCable = false" />
 
-    <!-- Sélecteur de département (son/lumière/vidéo) — selon les départements du profil -->
-    <div v-if="!micsOnly && deptCatalogs.length > 1" class="dept-tabs">
-      <button
-        v-for="c in deptCatalogs"
-        :key="c.catalogid"
-        class="dept-tab"
-        :class="[c.department, { active: activeCatalogId === c.catalogid }]"
-        @click="selectDept(c.catalogid)"
-      >{{ DEPT_LABELS[c.department] || c.name }}</button>
-    </div>
-
-    <ButtonCableType v-if="!micsOnly" :model-value="typeChoose" :show-all="true" :exclude-micro="true" @select="typeChoose = $event" />
+    <ButtonCableType
+      v-if="!micsOnly"
+      :model-value="typeChoose"
+      :show-all="true"
+      :exclude-micro="true"
+      :department="activeDepartment"
+      @select="typeChoose = $event"
+    />
 
     <div class="ajouter">
       <button class="button3" v-if="!showAddCable && !micsOnly" @click="showAddCable = true">
@@ -41,8 +37,8 @@
     <div class="home">
       <div class="head">
         <span class="head-spacer"></span>
-        <div>seuil</div>
-        <div>total</div>
+        <div v-if="showStock">seuil</div>
+        <div v-if="showStock">total</div>
         <div>poids</div>
         <div>ordre</div>
         <span class="head-end"></span>
@@ -50,6 +46,7 @@
       <MasterCableList
         :cables="filteredCables"
         :group-by-brand="micsOnly"
+        :show-stock="showStock"
         @delete="cableToDelete = $event"
       />
     </div>
@@ -57,13 +54,15 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useCableStore } from '../stores/cables'
 import { useCatalogStore } from '../stores/catalogs'
+import { useAuthStore } from '../stores/auth'
 import ModalDelete from '../components/ModalDelete.vue'
 import AddCable from '../components/AddCable.vue'
 import MasterCableList from '../components/MasterCableList.vue'
 import ButtonCableType from '../components/ButtonCableType.vue'
+import { DEPT_ORDER, activeDept, typeAllowedInDept } from '../lib/departments'
 
 const props = defineProps({ micsOnly: { type: Boolean, default: false } })
 const cableStore = useCableStore()
@@ -73,30 +72,57 @@ const showAddCable = ref(false)
 const searchKey = ref('')
 const cableToDelete = ref(null)
 
-const DEPT_LABELS = { sound: 'Son', light: 'Lumière', video: 'Vidéo' }
+// Seuil et total sont des notions de parc : une entreprise possède du matériel,
+// un freelance non — sa liste dit ce qu'il utilise, les quantités se saisissent
+// dans l'affaire.
+const auth = useAuthStore()
+const showStock = computed(() => auth.profile?.type !== 'freelance')
+
 const deptCatalogs = ref([]) // catalogues départements du profil (entreprise ou freelance)
-const activeCatalogId = ref(parseInt(localStorage.getItem('cablemaster-catalogid')) || 1)
+// Le métier affiché est choisi dans le drawer (Câbles Son / Lumière / Vidéo) ;
+// on en déduit le catalogue à charger. `cablemaster-catalogid`, le catalogue
+// "primaire" que lit le reste de l'app, n'est pas touché.
+const activeDepartment = computed(() => (props.micsOnly ? 'sound' : activeDept.value))
+
+const activeCatalogId = computed(() => {
+  const match = deptCatalogs.value.find(c => c.department === activeDepartment.value)
+  return (
+    match?.catalogid ||
+    deptCatalogs.value[0]?.catalogid ||
+    parseInt(localStorage.getItem('cablemaster-catalogid')) ||
+    1
+  )
+})
 
 async function loadDeptCatalogs() {
   if (props.micsOnly) return
   const companyId = parseInt(localStorage.getItem('cablemaster-companyid')) || null
   const userId = localStorage.getItem('cablemaster-userid') || null
   const cats = await catalogStore.fetchDepartmentCatalogs({ companyId, userId })
-  deptCatalogs.value = cats
-  // Sélection par défaut : le catalogue primaire courant s'il est dans la liste, sinon le 1er.
-  if (cats.length && !cats.find(c => c.catalogid === activeCatalogId.value)) {
-    activeCatalogId.value = cats[0].catalogid
-  }
+  deptCatalogs.value = [...cats].sort(
+    (a, b) => DEPT_ORDER.indexOf(a.department) - DEPT_ORDER.indexOf(b.department)
+  )
 }
 
-function selectDept(catId) {
-  activeCatalogId.value = catId
-  cableStore.fetchCables(catId)
+// Le type sélectionné (HP, Modules…) peut ne pas exister dans le département
+// où l'on arrive : on retombe alors sur le premier onglet proposé.
+function ensureValidType() {
+  if (props.micsOnly) return
+  if (!typeAllowedInDept(typeChoose.value, activeDepartment.value)) {
+    typeChoose.value = activeDepartment.value === 'sound' ? 'speaker' : 'electrical'
+  }
 }
 
 onMounted(async () => {
   await loadDeptCatalogs()
+  ensureValidType()
   cableStore.fetchCables(activeCatalogId.value)
+})
+
+// Changement de métier depuis le drawer → on recharge la liste correspondante.
+watch(activeCatalogId, (id) => {
+  ensureValidType()
+  if (id) cableStore.fetchCables(id)
 })
 
 const searchFiltered = computed(() =>
@@ -122,28 +148,6 @@ async function confirmDelete() {
 </script>
 
 <style scoped>
-.dept-tabs {
-  display: flex;
-  gap: 6px;
-  justify-content: center;
-  flex-wrap: wrap;
-  margin: 8px 10px 0;
-}
-.dept-tab {
-  border: 1px solid rgba(128, 128, 128, 0.4);
-  background: transparent;
-  color: var(--text, #333);
-  border-radius: 16px;
-  padding: 4px 16px;
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-  opacity: 0.65;
-}
-.dept-tab.active { opacity: 1; color: #fff; }
-.dept-tab.sound.active { background: #2563eb; border-color: #2563eb; }
-.dept-tab.light.active { background: #d97706; border-color: #d97706; }
-.dept-tab.video.active { background: #7c3aed; border-color: #7c3aed; }
 .ajouter {
   margin: 10px;
 }
