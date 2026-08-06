@@ -1,5 +1,14 @@
 <template>
   <div class="onb-wrap">
+    <!-- Collé tout en haut : lisible d'emblée, fermable, et « Compris » pour ne
+         plus jamais le revoir. FR + EN, une ligne chacune. -->
+    <InfoBanner
+      id="onboarding-depts"
+      class="onb-banner"
+      fr="Tu reçois trois listes — Son, Lumière et Vidéo. Remplis celles qui te concernent."
+      en="You get three lists — Sound, Light and Video. Fill in the ones you need."
+    />
+
     <div class="onb-card">
       <div class="onb-brand"><b>Bienvenue</b></div>
       <p class="onb-sub">Dis-nous qui tu es — tu n'atterriras pas au même endroit.</p>
@@ -23,7 +32,6 @@
       <!-- Étape 2a : freelance -->
       <template v-else-if="choice === 'freelance'">
         <q-input v-model="displayName" label="Ton nom (affiché sur tes listes)" outlined dense autofocus class="onb-input" />
-        <p class="onb-note">Tu recevras une liste Son, une Lumière et une Vidéo — tu remplis celles qui te concernent.</p>
         <div class="onb-actions">
           <q-btn flat label="Retour" @click="choice = ''" :disable="loading" />
           <q-btn label="Créer ma liste" color="primary" unelevated :loading="loading" :disable="!freelanceReady" @click="submitFreelance" />
@@ -34,7 +42,6 @@
       <template v-else>
         <q-input v-model="company.name" label="Nom de l'entreprise" outlined dense autofocus class="onb-input" />
         <q-input v-model="company.shortName" label="Nom court (optionnel)" outlined dense class="onb-input" />
-        <p class="onb-note">L'entreprise démarre avec un catalogue Son, un Lumière et un Vidéo — tu remplis ceux qui te concernent.</p>
         <div class="onb-actions">
           <q-btn flat label="Retour" @click="choice = ''" :disable="loading" />
           <q-btn label="Créer l'entreprise" color="primary" unelevated :loading="loading" :disable="!companyReady" @click="submitCompany" />
@@ -52,6 +59,7 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { provisionFreelance, provisionCompany } from '../lib/provisioning'
 import { ALL_DEPARTMENTS } from '../lib/departments'
+import InfoBanner from '../components/InfoBanner.vue'
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -109,9 +117,11 @@ async function submitCompany() {
 </script>
 
 <style scoped>
-.onb-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; background: linear-gradient(160deg, #1b1030 0%, #2a1650 100%); }
+/* Bandeau collé en haut, carte centrée dans l'espace restant */
+.onb-wrap { min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 12px 12px 24px; background: linear-gradient(160deg, #1b1030 0%, #2a1650 100%); }
+.onb-banner { width: 100%; max-width: 560px; margin-top: env(safe-area-inset-top, 0px); }
 .onb-card {
-  width: 100%; max-width: 440px; text-align: center; color: #222;
+  width: 100%; max-width: 440px; margin: auto 0; text-align: center; color: #222;
   background: #fff; border: 1px solid rgba(0,0,0,0.08); border-radius: 16px;
   padding: 32px 24px; box-shadow: 0 8px 30px rgba(0,0,0,0.08);
 }
@@ -131,7 +141,6 @@ async function submitCompany() {
 .onb-choice-title { font-weight: 600; font-size: 16px; color: #1a1a2e; }
 .onb-choice-desc { color: #555; font-size: 13px; }
 .onb-input { margin-bottom: 12px; text-align: left; }
-.onb-note { color: #555; font-size: 13px; text-align: left; margin: 2px 0 16px; }
 .onb-actions { display: flex; justify-content: space-between; gap: 10px; margin-top: 8px; }
 .onb-error { color: #c62828; margin-top: 14px; font-size: 13px; }
 
