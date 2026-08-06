@@ -1,6 +1,9 @@
 <template>
   <div class="mic-library">
 
+    <!-- Fiche PDF du micro, par-dessus la page -->
+    <DocOverlay :url="docUrl" :title="docTitle" @close="closeDoc" />
+
     <!-- Barre d'outils -->
     <div class="toolbar">
       <span class="search-wrap">
@@ -84,14 +87,17 @@
         :key="mic.cableid"
         class="gallery-card"
         :class="{ added: isInMyList(mic) }"
-        @click="isEdit ? toggleMic(mic) : openMicInfo(mic)"
+        @click="toggleMic(mic)"
       >
+        <!-- Cliquer l'image = choisir ce micro pour sa liste (coche en haut).
+             La fiche PDF ne s'ouvre que par le badge en bas de la vignette. -->
         <button
-          v-if="isEdit"
+          v-if="canSelect"
           class="gallery-add-btn"
           :class="{ added: isInMyList(mic) }"
           @click.stop="toggleMic(mic)"
           :disabled="adding[mic.name]"
+          :title="isInMyList(mic) ? 'Retirer de ma liste' : 'Ajouter à ma liste'"
         >{{ isInMyList(mic) ? '✓' : '+' }}</button>
         <span v-else-if="isInMyList(mic)" class="gallery-badge">✓</span>
         <div class="gallery-thumb">
@@ -152,6 +158,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { supabase } from '../lib/supabase'
 import { useCableStore } from '../stores/cables'
+import DocOverlay from '../components/DocOverlay.vue'
 
 const cableStore = useCableStore()
 const search = ref('')
@@ -280,12 +287,18 @@ const stagedOriginal = ref(new Set())
 function startStaging() { stagedOriginal.value = new Set(myMicIds.value) }
 watch(isEdit, (v, old) => { if (v && !old) startStaging() })
 
+// La bibliothèque sert d'abord à se composer SA liste : un clic sur la vignette
+// choisit ou retire le micro (page autonome → écrit tout de suite). En mode
+// piloté par un parent (affaire), on garde le staging Enregistrer / Annuler.
+const canSelect = computed(() => props.editMode === null || isEdit.value)
+
 function toggleMic(mic) {
-  if (!isEdit.value || adding.value[mic.name]) return
-  if (props.editMode === null) { // page autonome : écriture immédiate (comportement d'avant)
+  if (adding.value[mic.name]) return
+  if (props.editMode === null) { // page autonome : écriture immédiate
     isInMyList(mic) ? removeFromMyList(mic) : addToMyList(mic)
     return
   }
+  if (!isEdit.value) return
   const s = new Set(myMicIds.value)
   if (s.has(mic.name)) s.delete(mic.name); else s.add(mic.name)
   myMicIds.value = s
@@ -312,10 +325,15 @@ async function saveChanges() {
 }
 function cancelChanges() { myMicIds.value = new Set(stagedOriginal.value) }
 function toggleAdd() { showUpload.value = !showUpload.value }
-// Hors édition : clic sur un micro → ouvrir SA FICHE PDF uniquement (sinon rien)
+// Hors édition : clic sur un micro → sa fiche PDF, par-dessus la page (sinon rien)
+const docUrl = ref('')
+const docTitle = ref('')
 function openMicInfo(mic) {
-  if (mic.link) window.open(mic.link, '_blank')
+  if (!mic.link) return
+  docUrl.value = mic.link
+  docTitle.value = [mic.brand, mic.name].filter(Boolean).join(' ')
 }
+function closeDoc() { docUrl.value = '' }
 defineExpose({ saveChanges, cancelChanges, startStaging, toggleAdd })
 
 const filteredMics = computed(() => {

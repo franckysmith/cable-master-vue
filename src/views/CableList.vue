@@ -20,7 +20,9 @@
       :show-all="true"
       :exclude-micro="true"
       :department="activeDepartment"
+      :show-calc="showCalcBtn"
       @select="typeChoose = $event"
+      @calc="openCalc()"
     />
 
     <div class="ajouter">
@@ -54,7 +56,8 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, inject } from 'vue'
+import { useRoute } from 'vue-router'
 import { useCableStore } from '../stores/cables'
 import { useCatalogStore } from '../stores/catalogs'
 import { useAuthStore } from '../stores/auth'
@@ -78,11 +81,27 @@ const cableToDelete = ref(null)
 const auth = useAuthStore()
 const showStock = computed(() => auth.profile?.type !== 'freelance')
 
+// Calculateur L-Acoustics : il n'a de sens que sur les HP du métier Son, donc
+// le bouton n'apparaît que là, juste sous les onglets de type.
+const openCalc = inject('openCalc', () => {})
+const showCalcBtn = computed(
+  () => !props.micsOnly && activeDepartment.value === 'sound' && typeChoose.value === 'speaker'
+)
+
 const deptCatalogs = ref([]) // catalogues départements du profil (entreprise ou freelance)
 // Le métier affiché est choisi dans le drawer (Câbles Son / Lumière / Vidéo) ;
 // on en déduit le catalogue à charger. `cablemaster-catalogid`, le catalogue
 // "primaire" que lit le reste de l'app, n'est pas touché.
-const activeDepartment = computed(() => (props.micsOnly ? 'sound' : activeDept.value))
+// `?dept=` (colonne de la vue multi-colonnes) prime sur le choix du drawer :
+// chaque colonne peut ainsi afficher un métier différent.
+const route = useRoute()
+const forcedDept = computed(() => {
+  const d = route.query.dept
+  return DEPT_ORDER.includes(d) ? d : null
+})
+const activeDepartment = computed(() =>
+  props.micsOnly ? 'sound' : forcedDept.value || activeDept.value
+)
 
 const activeCatalogId = computed(() => {
   const match = deptCatalogs.value.find(c => c.department === activeDepartment.value)

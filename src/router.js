@@ -39,6 +39,9 @@ export const router = createRouter({
 // L'entreprise n'est gérable que par le super-admin (master principal).
 // Outils de liste : accessibles au master d'entreprise ET au freelance (sa propre liste).
 const listEditRoutes = ['/CableList', '/miclist', '/FlightType']
+// Caisses-types : affaire d'entreprise. Un freelance veut la liste des câbles
+// dont il aura besoin, pas des caisses pré-packées.
+const companyOnlyRoutes = ['/FlightType']
 // Pages entreprise : master d'entreprise uniquement.
 const companyMasterRoutes = ['/MasterAffaire', '/techlist']
 const superOnly = ['/company']
@@ -66,5 +69,6 @@ router.beforeEach(async (to) => {
   if (superOnly.includes(to.path) && !isSuper) return '/'
   if (companyMasterRoutes.includes(to.path) && !isMaster) return '/'
   if (listEditRoutes.includes(to.path) && !isMaster && !isFreelance) return '/'
+  if (companyOnlyRoutes.includes(to.path) && isFreelance) return '/CableList'
   return true
 })

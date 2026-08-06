@@ -36,56 +36,47 @@
           <span class="drawer-brand-sub">cinod</span>
         </div>
         <q-list padding>
-          <!-- Employeurs -->
-          <q-expansion-item
-            v-if="employerItems.length"
-            :label="employerLabel"
-            icon="business"
-            default-opened
-            header-class="drawer-group"
-          >
-            <q-item
-              v-for="it in employerItems"
-              :key="it.label"
-              clickable
-              :to="it.to"
-              :active="isDrawerItemActive(it)"
-              active-class="drawer-active"
-              @click="onDrawerItem(it)"
-            >
-              <q-item-section avatar><q-icon :name="it.icon" /></q-item-section>
-              <q-item-section>{{ it.label }}</q-item-section>
-            </q-item>
-          </q-expansion-item>
-
-          <!-- Techniciens -->
-          <q-expansion-item
-            label="Techniciens"
-            icon="engineering"
-            default-opened
-            header-class="drawer-group"
-          >
-            <q-item
-              clickable
-              to="/"
-              active-class="drawer-active"
-              @click="goHome"
-            >
-              <q-item-section avatar><q-icon name="cable" /></q-item-section>
-              <q-item-section>Home</q-item-section>
-            </q-item>
-          </q-expansion-item>
-
-          <!-- Bibliothèque Micros -->
+          <!-- Accès directs, tout en haut : le poste de travail et la bibliothèque -->
           <q-item
             clickable
-            to="/micros"
+            to="/"
             active-class="drawer-active"
-            @click="closeDrawerOnMobile"
+            @click="goHome"
           >
-            <q-item-section avatar><q-icon name="mic" /></q-item-section>
-            <q-item-section>Bibliothèque Micros</q-item-section>
+            <q-item-section avatar><q-icon name="work" /></q-item-section>
+            <q-item-section>Mes affaires</q-item-section>
           </q-item>
+
+          <!-- Mes listes : toujours dépliées (plus de bouton à ouvrir).
+               La bibliothèque de micros n'a plus d'entrée ici : on y bascule
+               depuis « Mes micros ». -->
+
+          <template v-if="employerItems.length">
+            <!-- Freelance : ses listes se suffisent, pas d'intitulé de section -->
+            <q-item-label v-if="!isFreelance" header class="drawer-group">{{ employerLabel }}</q-item-label>
+            <template v-for="it in employerItems" :key="it.label">
+              <q-item
+                clickable
+                :to="splitActive ? undefined : it.to"
+                :active="isDrawerItemActive(it)"
+                active-class="drawer-active"
+                @click="onDrawerItem(it)"
+              >
+                <q-item-section avatar><q-icon :name="it.icon" /></q-item-section>
+                <q-item-section>{{ it.label }}</q-item-section>
+              </q-item>
+              <!-- Multi-colonnes : « dans quelle colonne ? » -->
+              <div v-if="colPickFor === it.label" class="col-pick">
+                <span class="col-pick-label">Colonne :</span>
+                <button
+                  v-for="n in splitView.columns"
+                  :key="n"
+                  class="col-pick-btn"
+                  @click="placeInColumn(it, n)"
+                >{{ n }}</button>
+              </div>
+            </template>
+          </template>
 
           <!-- Calculateur L-Acoustics (panneau latéral sur grand écran, onglet sur mobile) -->
           <q-item clickable active-class="drawer-active" @click="openCalc">
@@ -269,6 +260,9 @@ function openCalc() {
   calcPanelOpen.value = true
   if (!isDesktop.value) drawer.value = false
 }
+// Ouvrable aussi depuis la liste de câbles (onglet HP du métier Son)
+provide('openCalc', openCalc)
+
 const drawer = ref($q.screen.gt.sm)
 function closeDrawerOnMobile() {
   if (!isDesktop.value) drawer.value = false
@@ -300,44 +294,49 @@ function isDrawerItemActive(it) {
   return currentRoute.path === it.to
 }
 
+// En multi-colonnes, cliquer une entrée ne navigue pas : on demande d'abord
+// dans quelle colonne la poser (1, 2 ou 3 selon le nombre de colonnes).
+const colPickFor = ref(null)
+
 function onDrawerItem(it) {
+  if (splitActive.value) {
+    colPickFor.value = colPickFor.value === it.label ? null : it.label
+    return
+  }
   if (it.dept) setActiveDept(it.dept)
+  closeDrawerOnMobile()
+}
+
+function placeInColumn(it, n) {
+  // Le métier voyage dans l'URL : chaque colonne garde le sien.
+  splitView.setRoute(n - 1, it.dept ? `${it.to}?dept=${it.dept}` : it.to)
+  colPickFor.value = null
   closeDrawerOnMobile()
 }
 
 // Une entrée de liste de câbles par métier : c'est ici qu'on bascule entre
 // Son, Lumière et Vidéo (plutôt que des onglets qui mangent de la place dans la
 // page). Tout le monde a les trois départements depuis l'inscription.
+// Les micros suivent immédiatement les câbles Son : c'est le même métier.
 const cableListItems = computed(() =>
-  DEPT_ORDER.map((d) => ({
-    label: `Câbles ${DEPT_LABELS[d]}`,
-    to: '/CableList',
-    icon: DEPT_ICONS[d],
-    dept: d,
-  }))
+  DEPT_ORDER.flatMap((d) => {
+    const item = { label: `Câbles ${DEPT_LABELS[d]}`, to: '/CableList', icon: DEPT_ICONS[d], dept: d }
+    return d === 'sound'
+      ? [item, { label: 'Micros', to: '/miclist', icon: 'mic' }]
+      : [item]
+  })
 )
 
 // Items du menu selon le profil.
 const employerItems = computed(() => {
   // Freelance : sa liste. Pas de Cable Kit (les caisses-types sont une affaire
   // d'entreprise) ni les outils entreprise (Tech List, page Entreprise).
-  if (isFreelance.value) {
-    return [
-      ...cableListItems.value,
-      // Les micros ne concernent que le son.
-      ...(activeDept.value === 'sound'
-        ? [{ label: 'Micro List', to: '/miclist', icon: 'mic' }]
-        : []),
-    ]
-  }
+  if (isFreelance.value) return [...cableListItems.value]
   // Entreprise : réservé master / gérant. Technicien salarié : rien.
   if (userRole.value !== 'master' && userRole.value !== 'gerant') return []
   return [
     { label: 'Entreprise', to: '/company', icon: 'apartment' },
     ...cableListItems.value,
-    ...(activeDept.value === 'sound'
-      ? [{ label: 'Micro List', to: '/miclist', icon: 'mic' }]
-      : []),
     { label: 'Cable Kit', to: '/FlightType', icon: 'inventory_2' },
     { label: 'Tech List', to: '/techlist', icon: 'groups' },
     { label: 'MasterAffaire', to: '/MasterAffaire', icon: 'event_note' },
@@ -611,9 +610,39 @@ select {
   text-transform: uppercase;
   letter-spacing: 1px;
 }
-.drawer-group {
+/* Choix de la colonne, sous l'entrée cliquée en mode multi-colonnes */
+.col-pick {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 16px 8px 56px;
+}
+.col-pick-label { font-size: 12px; font-weight: 700; color: var(--text); opacity: 0.7; }
+.col-pick-btn {
+  width: 30px;
+  height: 30px;
+  min-width: auto;
+  padding: 0;
+  cursor: pointer;
+  font-size: 14px;
   font-weight: 800;
+  color: #fff;
+  background: var(--color1);
+  border: none;
+  border-radius: 8px;
+  box-shadow: none;
+}
+.col-pick-btn:active { transform: scale(0.94); }
+
+/* Intitulé de section (plus un bouton à déplier) : discret mais lisible */
+.drawer-group {
+  padding: 14px 16px 4px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
   color: var(--text);
+  opacity: 0.7;
 }
 .drawer-active {
   color: var(--color1);

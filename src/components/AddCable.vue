@@ -20,7 +20,8 @@
         <label>Marque</label>
         <input v-model="form.brand" placeholder="ex: Shure, Audix, Neutrik..." />
       </div>
-      <div class="form-grid">
+      <!-- Stock et seuil : notions de parc, réservées aux entreprises -->
+      <div class="form-grid" v-if="showStock">
         <div class="form-row half">
           <label>Stock total</label>
           <input v-model.number="form.total" type="number" min="0" />
@@ -58,9 +59,10 @@
 </template>
 
 <script setup>
-import { reactive, ref } from 'vue'
+import { reactive, ref, computed } from 'vue'
 import { useCableStore } from '../stores/cables'
 import { useSettingsStore } from '../stores/settings'
+import { useAuthStore } from '../stores/auth'
 
 const props = defineProps({
   // Catalogue cible de l'ajout (département actif). Défaut : catalogue primaire du profil.
@@ -69,6 +71,10 @@ const props = defineProps({
 const emit = defineEmits(['close'])
 const cableStore = useCableStore()
 const settingsStore = useSettingsStore()
+// Un freelance ne gère pas de parc : ni stock total, ni seuil (mêmes colonnes
+// masquées dans la liste). Les valeurs partent à 0, inoffensives.
+const auth = useAuthStore()
+const showStock = computed(() => auth.profile?.type !== 'freelance')
 
 const typeKeys = ['speaker', 'electrical', 'module', 'special', 'other', 'accessory', 'digital', 'type8', 'type9', 'type10', 'microphone', 'c_type']
 const defaultLabels = ['HP', 'Elec', 'Modules', 'Spéciaux', 'Autres', 'Accessoires', 'Numériques', '', '', '', 'Micros', 'Cablekit']

@@ -178,7 +178,7 @@
 
       <!-- Sticky : boutons type (sélection + quantité + cadre couleur) + en-têtes colonnes -->
       <div class="sticky-header" :class="{ 'sticky-micro': microMode }">
-        <ButtonCableType v-if="!microMode" :model-value="typeChoose" :distributed-types="distributedTypes" :over-types="overTypes" :counts="typeCounts" :show-calc="!ctMode && layout === 'cableTechBase'" @select="typeChoose = $event" @calc="ampWiringOpen = true" />
+        <ButtonCableType v-if="!microMode" :model-value="typeChoose" :distributed-types="distributedTypes" :over-types="overTypes" :counts="typeCounts" :show-calc="!ctMode && layout === 'cableTechBase' && typeChoose === 'speaker'" @select="typeChoose = $event" @calc="ampWiringOpen = true" />
 
         <!-- Filtre département (son/lumière/vidéo) — visible si l'affaire couvre plusieurs départements -->
         <div v-if="!microMode && availableDepts.length > 1" class="dept-filter-row">
@@ -478,13 +478,18 @@ import AmpCalculator from '../components/AmpCalculator.vue'
 import { useSettingsStore } from '../stores/settings'
 import { useMfcStore } from '../stores/mfc'
 import { DEPT_LABELS } from '../lib/departments'
+import { useAuthStore } from '../stores/auth'
 
 const helpMode = inject('helpMode', ref(false))
 const helpTarget = ref(null)
-const hasCompany = computed(() => {
-  const catId = parseInt(localStorage.getItem('cablemaster-catalogid')) || 0
-  return catId > 1
-})
+const auth = useAuthStore()
+// Les caisses-types appartiennent à une entreprise : un freelance n'en a pas.
+// (Avant : « catalogue > 1 », vrai pour tout le monde depuis que chacun a ses
+// propres catalogues — le bouton Câble Kit s'affichait donc à tort.)
+const hasCompany = computed(
+  () => auth.profile?.type === 'company' ||
+    (!auth.profile && !!parseInt(localStorage.getItem('cablemaster-companyid')))
+)
 const hasCtContent = ref(false)
 
 async function checkCtContent() {
