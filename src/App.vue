@@ -39,7 +39,7 @@
           <!-- Accès directs, tout en haut : le poste de travail et la bibliothèque -->
           <q-item
             clickable
-            to="/"
+            :to="splitActive ? undefined : '/'"
             active-class="drawer-active"
             @click="goHome"
           >
@@ -47,36 +47,40 @@
             <q-item-section>Mes affaires</q-item-section>
           </q-item>
 
-          <!-- Mes listes : toujours dépliées (plus de bouton à ouvrir).
-               La bibliothèque de micros n'a plus d'entrée ici : on y bascule
-               depuis « Mes micros ». -->
+          <!-- Mes listes : le référentiel (câbles des 3 métiers + micros). On n'y
+               va que pour ajouter ce qui manque → replié par défaut. -->
+          <q-expansion-item
+            label="Mes listes"
+            icon="list_alt"
+            header-class="drawer-group-head"
+          >
+            <q-item
+              v-for="it in cableListItems"
+              :key="it.label"
+              clickable
+              :to="splitActive ? undefined : it.to"
+              :active="isDrawerItemActive(it)"
+              active-class="drawer-active"
+              @click="onDrawerItem(it)"
+            >
+              <q-item-section avatar><q-icon :name="it.icon" /></q-item-section>
+              <q-item-section>{{ it.label }}</q-item-section>
+            </q-item>
+          </q-expansion-item>
 
-          <template v-if="employerItems.length">
-            <!-- Freelance : ses listes se suffisent, pas d'intitulé de section -->
-            <q-item-label v-if="!isFreelance" header class="drawer-group">{{ employerLabel }}</q-item-label>
-            <template v-for="it in employerItems" :key="it.label">
-              <q-item
-                clickable
-                :to="splitActive ? undefined : it.to"
-                :active="isDrawerItemActive(it)"
-                active-class="drawer-active"
-                @click="onDrawerItem(it)"
-              >
-                <q-item-section avatar><q-icon :name="it.icon" /></q-item-section>
-                <q-item-section>{{ it.label }}</q-item-section>
-              </q-item>
-              <!-- Multi-colonnes : « dans quelle colonne ? » -->
-              <div v-if="colPickFor === it.label" class="col-pick">
-                <span class="col-pick-label">Colonne :</span>
-                <button
-                  v-for="n in splitView.columns"
-                  :key="n"
-                  class="col-pick-btn"
-                  @click="placeInColumn(it, n)"
-                >{{ n }}</button>
-              </div>
-            </template>
-          </template>
+          <!-- Outils d'entreprise (master / gérant uniquement) -->
+          <q-item
+            v-for="it in companyToolItems"
+            :key="it.label"
+            clickable
+            :to="splitActive ? undefined : it.to"
+            :active="isDrawerItemActive(it)"
+            active-class="drawer-active"
+            @click="onDrawerItem(it)"
+          >
+            <q-item-section avatar><q-icon :name="it.icon" /></q-item-section>
+            <q-item-section>{{ it.label }}</q-item-section>
+          </q-item>
 
           <!-- Calculateur L-Acoustics (panneau latéral sur grand écran, onglet sur mobile) -->
           <q-item clickable active-class="drawer-active" @click="openCalc">
@@ -123,6 +127,25 @@
         </q-list>
       </q-scroll-area>
     </q-drawer>
+
+    <!-- Multi-colonnes : cliquer une entrée du menu demande dans quelle colonne
+         charger la page. Boîte centrée sur un voile, plutôt qu'une ligne qui
+         pousse le contenu du drawer. -->
+    <q-dialog v-model="colPickOpen">
+      <q-card class="col-chooser">
+        <q-card-section class="col-chooser-title">
+          Ouvrir « {{ colPickItem?.label }} » dans quelle colonne ?
+        </q-card-section>
+        <q-card-actions align="center" class="col-chooser-actions">
+          <button
+            v-for="n in splitView.columns"
+            :key="n"
+            class="col-pick-btn"
+            @click="placeInColumn(colPickItem, n)"
+          >{{ n }}</button>
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
 
     <!-- ===== Contenu (centré, type application) ===== -->
     <q-page-container>
@@ -213,6 +236,12 @@ provide('isWide', isWide)
 
 // « Home » : revenir à l'accueil = désélectionner l'affaire en cours
 function goHome() {
+  // En multi-colonnes, « Mes affaires » passe par le même choix de colonne que
+  // les autres entrées (sinon le clic n'avait aucun effet visible).
+  if (splitActive.value) {
+    onDrawerItem({ label: 'Mes affaires', to: '/' })
+    return
+  }
   affairStore.selectAffair(null)
   closeDrawerOnMobile()
 }
@@ -285,7 +314,6 @@ const currentUserLabel = computed(() =>
 
 // Freelance = maître de sa propre liste (mêmes outils que l'entreprise, mais sur sa liste).
 const isFreelance = computed(() => auth.profile?.type === 'freelance')
-const employerLabel = computed(() => (isFreelance.value ? 'Ma liste' : 'Employeurs'))
 
 // Les trois entrées « Câbles … » pointent toutes vers /CableList : c'est le
 // métier retenu qui distingue l'entrée active, pas l'URL.
@@ -294,13 +322,15 @@ function isDrawerItemActive(it) {
   return currentRoute.path === it.to
 }
 
-// En multi-colonnes, cliquer une entrée ne navigue pas : on demande d'abord
-// dans quelle colonne la poser (1, 2 ou 3 selon le nombre de colonnes).
-const colPickFor = ref(null)
+// En multi-colonnes, cliquer une entrée ne navigue pas : une boîte centrée
+// demande dans quelle colonne la poser (1, 2 ou 3 selon le nombre de colonnes).
+const colPickOpen = ref(false)
+const colPickItem = ref(null)
 
 function onDrawerItem(it) {
   if (splitActive.value) {
-    colPickFor.value = colPickFor.value === it.label ? null : it.label
+    colPickItem.value = it
+    colPickOpen.value = true
     return
   }
   if (it.dept) setActiveDept(it.dept)
@@ -308,9 +338,10 @@ function onDrawerItem(it) {
 }
 
 function placeInColumn(it, n) {
+  if (!it) return
   // Le métier voyage dans l'URL : chaque colonne garde le sien.
   splitView.setRoute(n - 1, it.dept ? `${it.to}?dept=${it.dept}` : it.to)
-  colPickFor.value = null
+  colPickOpen.value = false
   closeDrawerOnMobile()
 }
 
@@ -327,16 +358,13 @@ const cableListItems = computed(() =>
   })
 )
 
-// Items du menu selon le profil.
-const employerItems = computed(() => {
-  // Freelance : sa liste. Pas de Cable Kit (les caisses-types sont une affaire
-  // d'entreprise) ni les outils entreprise (Tech List, page Entreprise).
-  if (isFreelance.value) return [...cableListItems.value]
-  // Entreprise : réservé master / gérant. Technicien salarié : rien.
+// Outils d'entreprise, hors « Mes listes » : réservés au master / gérant.
+// Un freelance (et un technicien salarié) n'en voit aucun.
+const companyToolItems = computed(() => {
+  if (isFreelance.value) return []
   if (userRole.value !== 'master' && userRole.value !== 'gerant') return []
   return [
     { label: 'Entreprise', to: '/company', icon: 'apartment' },
-    ...cableListItems.value,
     { label: 'Cable Kit', to: '/FlightType', icon: 'inventory_2' },
     { label: 'Tech List', to: '/techlist', icon: 'groups' },
     { label: 'MasterAffaire', to: '/MasterAffaire', icon: 'event_note' },
@@ -610,39 +638,47 @@ select {
   text-transform: uppercase;
   letter-spacing: 1px;
 }
-/* Choix de la colonne, sous l'entrée cliquée en mode multi-colonnes */
-.col-pick {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 16px 8px 56px;
+/* Boîte « dans quelle colonne ? », centrée sur le voile de q-dialog.
+   Teintes violettes de l'app plutôt qu'une carte blanche éblouissante. */
+.col-chooser {
+  min-width: 320px;
+  background: #2a1b4d !important;
+  color: #f2eeff !important;
+  border: 1px solid #5b3fa8;
+  border-radius: 16px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
 }
-.col-pick-label { font-size: 12px; font-weight: 700; color: var(--text); opacity: 0.7; }
+.col-chooser-title {
+  padding: 20px 20px 8px;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.35;
+  text-align: center;
+  color: #f2eeff;
+}
+.col-chooser-actions { gap: 14px; padding: 6px 20px 20px; }
 .col-pick-btn {
-  width: 30px;
-  height: 30px;
+  width: 56px;
+  height: 56px;
   min-width: auto;
   padding: 0;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 22px;
   font-weight: 800;
-  color: #fff;
-  background: var(--color1);
-  border: none;
-  border-radius: 8px;
-  box-shadow: none;
+  color: #fff !important;
+  background: #7c4dff !important;
+  border: none !important;
+  border-radius: 12px;
+  box-shadow: 0 3px 10px rgba(124, 77, 255, 0.45) !important;
+  transition: background 0.15s, transform 0.1s;
 }
+.col-pick-btn:hover { background: #916bff !important; }
 .col-pick-btn:active { transform: scale(0.94); }
 
-/* Intitulé de section (plus un bouton à déplier) : discret mais lisible */
-.drawer-group {
-  padding: 14px 16px 4px;
-  font-size: 12px;
+/* En-tête « Mes listes » (accordéon replié par défaut) */
+.drawer-group-head {
   font-weight: 800;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
   color: var(--text);
-  opacity: 0.7;
 }
 .drawer-active {
   color: var(--color1);

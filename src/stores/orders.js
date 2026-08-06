@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { supabase } from '../lib/supabase'
 import { cacheGet, cacheSet, addToQueue, isOnline } from '../lib/offlineCache'
+import { publishChange } from '../lib/liveSync'
 
 export const useOrderStore = defineStore('orders', () => {
   const orders = ref([])
@@ -42,6 +43,7 @@ export const useOrderStore = defineStore('orders', () => {
         .eq('cableid', order.cableid)
         .eq('affairid', order.affairid)
         .eq('role', role)
+      if (!error) publishChange('orders', { affairid: order.affairid })
       return { error }
     }
 
@@ -49,6 +51,7 @@ export const useOrderStore = defineStore('orders', () => {
       .from('order')
       .upsert(order, { onConflict: 'cableid,affairid,role' })
       .select()
+    if (!error) publishChange('orders', { affairid: order.affairid })
     return { data, error }
   }
 
@@ -67,6 +70,10 @@ export const useOrderStore = defineStore('orders', () => {
       for (const o of ordersList) map[k(o)] = { ...map[k(o)], ...o }
       cacheSet(cacheKey, Object.values(map))
     }
+
+    // Les autres colonnes rechargent tout de suite, même hors-ligne : le cache
+    // local vient d'être mis à jour, elles y liront la même chose.
+    if (affairid) publishChange('orders', { affairid })
 
     // Tenter l'envoi réseau
     if (!isOnline()) {

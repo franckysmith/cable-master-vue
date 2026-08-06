@@ -454,7 +454,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, watch, onMounted, inject } from 'vue'
+import { ref, reactive, computed, watch, onMounted, onUnmounted, inject } from 'vue'
 import { onBeforeRouteLeave } from 'vue-router'
 import { useCableStore } from '../stores/cables'
 import { useCatalogStore } from '../stores/catalogs'
@@ -479,6 +479,7 @@ import { useSettingsStore } from '../stores/settings'
 import { useMfcStore } from '../stores/mfc'
 import { DEPT_LABELS } from '../lib/departments'
 import { useAuthStore } from '../stores/auth'
+import { onChange, publishChange } from '../lib/liveSync'
 
 const helpMode = inject('helpMode', ref(false))
 const helpTarget = ref(null)
@@ -555,6 +556,40 @@ onMounted(async () => {
   }
   console.log('CableTech mounted, joinedData:', joinedData.value.length, 'types:', [...new Set(joinedData.value.map(c => c.type))])
 })
+
+// --- Colonnes synchronisées ---
+// Une autre colonne (mode Select, flight-case…) vient d'écrire : on recharge
+// pour voir la modification tout de suite, sans toucher à l'état de l'écran
+// (mode courant, sélection, filtres).
+let stopLive = null
+onMounted(() => {
+  stopLive = onChange(async (msg) => {
+    const a = selectedAffair.value
+    if (!a) return
+    if (msg.kind === 'grid') {
+      // Application immédiate, sans réseau : on recopie les cases reçues.
+      if (msg.payload?.affairid !== a.affairid) return
+      const byKey = new Map(joinedData.value.map((c) => [`${c.cableid}-${c.role || 'front'}`, c]))
+      for (const row of msg.payload.rows || []) {
+        const target = byKey.get(`${row.cableid}-${row.role}`)
+        if (!target) continue
+        for (const f of LIVE_FIELDS) target[f] = row[f]
+      }
+      return
+    }
+    if (msg.kind === 'orders') {
+      if (msg.payload?.affairid && msg.payload.affairid !== a.affairid) return
+      // Ne pas écraser une saisie en cours : on l'envoie d'abord.
+      if (autoSaveTimer) await autoSaveNow()
+      const res = await orderStore.fetchOrders({ affairid: a.affairid })
+      buildJoinedData(res?.data || [], cableStore.cables)
+    } else if (msg.kind === 'mfc') {
+      await mfcStore.fetchMfcs()
+      checkCtContent()
+    }
+  })
+})
+onUnmounted(() => { stopLive?.() })
 
 const affairIsOpen = ref(false)
 const editingAffair = ref(null)
@@ -1519,7 +1554,18 @@ function scheduleAutoSave() {
 async function autoSaveNow() {
   if (!selectedAffair.value) return
   clearTimeout(autoSaveTimer)
+  autoSaveTimer = null
   saving.value = true
+  try {
+    await runAutoSave()
+  } finally {
+    // Sans ce filet, la moindre erreur réseau laissait le point rouge de
+    // synchronisation allumé en permanence.
+    saving.value = false
+  }
+}
+
+async function runAutoSave() {
 
   // Sauvegarder labels : zones+FC par métier (role_labels), micros communs (mg)
   saveLabelsToRole(activeRole.value)
@@ -1561,8 +1607,6 @@ async function autoSaveNow() {
       }
     }
   }
-
-  saving.value = false
 }
 
 // Auto-save labels quand ils changent
@@ -1574,6 +1618,39 @@ watch([zoneLabels, fcLabels, microGroupLabels], () => {
 
 function onCableUpdated() {
   scheduleAutoSave()
+  broadcastGridSoon()
+}
+
+// --- Diffusion immédiate vers les autres colonnes ---
+// On n'attend pas l'auto-sauvegarde (1,5 s de silence) ni l'aller-retour réseau :
+// dès qu'une case bouge, on envoie les lignes de la grille aux autres colonnes,
+// qui les fusionnent telles quelles. La sauvegarde suit son cours et servira de
+// réconciliation.
+const LIVE_FIELDS = [
+  'z1', 'z2', 'z3', 'z4', 'z5', 'z6',
+  'tfc1', 'tfc2', 'tfc3', 'tfc4', 'tfc5', 'tfc6',
+  'spare_count', 'need', 'proposed', 'sublease', 'detail', 'done', 'tfc_done',
+  // `count` = le total retenu pour ce câble. C'est LUI que lit la vue
+  // flight-case ; sans lui, décrémenter les zones à zéro d'un côté laissait les
+  // caisses inchangées de l'autre.
+  'count',
+]
+let broadcastTimer = null
+function broadcastGridSoon() {
+  clearTimeout(broadcastTimer)
+  broadcastTimer = setTimeout(broadcastGridNow, 120)
+}
+function broadcastGridNow() {
+  const a = selectedAffair.value
+  if (!a) return
+  const rows = joinedData.value.map((c) => {
+    const row = { cableid: c.cableid, role: c.role || 'front' }
+    for (const f of LIVE_FIELDS) row[f] = c[f]
+    // Même calcul qu'à la sauvegarde, pour que l'autre colonne voie le total réel
+    row.count = getZoneTotal(c) > 0 ? getZoneTotal(c) : getTfcTotal(c)
+    return row
+  })
+  publishChange('grid', { affairid: a.affairid, rows })
 }
 
 const selectedAffair = computed(() => affairStore.selectedAffair)

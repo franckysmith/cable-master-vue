@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { supabase } from '../lib/supabase'
+import { publishChange } from '../lib/liveSync'
 
 export const useMfcStore = defineStore('mfc', () => {
   const mfcs = ref([])
@@ -60,6 +61,7 @@ export const useMfcStore = defineStore('mfc', () => {
         .delete()
         .eq('mfcid', mfcid)
         .eq('cableid', cableid)
+      if (!error) publishChange('mfc', { mfcid })
       return { error }
     }
 
@@ -67,6 +69,7 @@ export const useMfcStore = defineStore('mfc', () => {
       .from('cablemfc')
       .upsert({ mfcid, cableid, count }, { onConflict: 'mfcid,cableid' })
       .select()
+    if (!error) publishChange('mfc', { mfcid })
     return { data, error }
   }
 
