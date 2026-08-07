@@ -2,8 +2,8 @@
   <div class="techlist">
     <p class="sub">Le registre des personnes que vous pouvez affecter aux postes d'une affaire.</p>
 
-    <div v-if="!companyId" class="empty">
-      Connectez-vous à une entreprise (page Entreprise) pour gérer sa TechList.
+    <div v-if="!isFreelance && !companyId" class="empty">
+      Connectez-vous à une entreprise (page Entreprise) pour gérer sa Team.
     </div>
 
     <template v-else>
@@ -20,10 +20,16 @@
         <button class="undo-btn" :disabled="!lastDeleted" @click="undoDelete" title="Annuler la dernière suppression">↩︎</button>
       </div>
       <p v-if="selectMode" class="select-hint">Cochez les personnes à inviter (uniquement celles pas encore installées, en italique).</p>
+      <!-- Filtre par poste, rangé par métier (un « Assistant » par métier) -->
       <div class="filter-picker">
         <button type="button" class="filter-btn" :class="{ active: posteFilter === '' }" @click="posteFilter = ''">Tous</button>
-        <button v-for="p in postes" :key="p.value" type="button" class="filter-btn"
-          :class="{ active: posteFilter === p.value }" @click="posteFilter = p.value">{{ p.label }}</button>
+      </div>
+      <div v-for="g in posteGroups" :key="'f-' + g.department" class="filter-group">
+        <span class="poste-group-label">{{ g.label }}</span>
+        <div class="filter-picker">
+          <button v-for="p in g.postes" :key="p.value" type="button" class="filter-btn"
+            :class="[g.department, { active: posteFilter === p.value }]" @click="posteFilter = p.value">{{ p.label }}</button>
+        </div>
       </div>
 
       <!-- Liste -->
@@ -74,8 +80,9 @@
               <button class="ic-btn" @click="remove(t)" title="Retirer"><q-icon name="close" size="18px" /></button>
             </div>
           </div>
+          <!-- Bilan : le métier est rappelé, sinon « Assistant » ne dit pas lequel -->
           <div class="tech-postes">
-            <span v-for="p in sortedPostes(t)" :key="p.value" class="tech-poste" :class="posteState(t, p.value)">{{ p.label }}</span>
+            <span v-for="p in sortedPostes(t)" :key="p.value" class="tech-poste" :class="[p.department, posteState(t, p.value)]">{{ p.fullLabel }}</span>
           </div>
           <div class="tech-contact">{{ t.email }}{{ t.phone ? ' · ' + t.phone : '' }}</div>
         </template>
@@ -119,6 +126,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { supabase } from '../lib/supabase'
+import { useAuthStore } from '../stores/auth'
 import { ALL_POSTES, POSTES_BY_DEPT, DEPT_ORDER, DEPT_LABELS, posteLabelFor } from '../lib/departments'
 
 // Postes des trois métiers (cf. lib/departments.js) : Son, Lumière, Vidéo.
@@ -145,6 +153,11 @@ function sortedPostes(t) {
     .filter(p => posteState(t, p.value))
     .sort((a, b) => rank[posteState(t, a.value)] - rank[posteState(t, b.value)])
 }
+
+const auth = useAuthStore()
+// Un indépendant n'a pas d'entreprise : sa Team est rattachée à SON compte.
+const isFreelance = computed(() => auth.profile?.type === 'freelance')
+const ownerUserId = computed(() => auth.user?.id || localStorage.getItem('cablemaster-userid') || null)
 
 const companyId = ref(parseInt(localStorage.getItem('cablemaster-companyid')) || null)
 const techs = ref([])
@@ -178,6 +191,7 @@ const lastDeleted = ref(null)
 const selectMode = ref(false)
 const selectedIds = ref([])
 const selectCount = computed(() => selectedIds.value.length)
+// Nom affiché dans les invitations : l'entreprise, ou le nom du freelance
 const companyName = ref(localStorage.getItem('cablemaster-company') || 'votre entreprise')
 
 function toggleSelectMode() {
@@ -231,6 +245,19 @@ function posteClass(arr, value) {
 onMounted(load)
 
 async function load() {
+  // Freelance : sa Team lui appartient en propre (owner_user_id), pas d'entreprise.
+  if (isFreelance.value) {
+    if (!ownerUserId.value) return
+    companyName.value = auth.displayName || 'votre collaborateur'
+    const { data } = await supabase
+      .from('technician')
+      .select('*')
+      .eq('owner_user_id', ownerUserId.value)
+      .order('name')
+    techs.value = data || []
+    return
+  }
+
   // Repli : si aucune entreprise active (ex. Super Admin), prendre la 1ʳᵉ entreprise
   if (!companyId.value) {
     const { data: comps } = await supabase.from('company').select('companyid').order('companyid').limit(1)
@@ -262,7 +289,9 @@ async function add() {
     phone: form.phone,
     postes: form.postes,
     poste: form.postes[0] || null,
-    company_id: companyId.value,
+    // Entreprise : la fiche appartient à la société. Freelance : à son compte.
+    company_id: isFreelance.value ? null : companyId.value,
+    owner_user_id: isFreelance.value ? ownerUserId.value : null,
   })
   if (error) { showMessage('Erreur: ' + error.message, 'error'); return }
   resetAdd()
@@ -462,6 +491,14 @@ h2 {
 }
 /* Ligne 2 : postes */
 .tech-postes { display: flex; gap: 6px; flex-wrap: wrap; }
+/* Une teinte par métier, pour repérer d'un coup d'œil qui fait quoi */
+.tech-poste.sound { border-left: 4px solid #2563eb; }
+.tech-poste.light { border-left: 4px solid #d97706; }
+.tech-poste.video { border-left: 4px solid #7c3aed; }
+.filter-group { margin-bottom: 4px; }
+.filter-btn.sound.active { border-color: #2563eb; }
+.filter-btn.light.active { border-color: #d97706; }
+.filter-btn.video.active { border-color: #7c3aed; }
 /* 3 niveaux : blanc (non) → clair (occasionnel) → foncé (principal) */
 .tech-poste {
   font-size: 11px;

@@ -1,5 +1,5 @@
 <template>
-  <transition-group name="col" tag="div" class="split-view" :style="{ gridTemplateColumns: `repeat(${split.columns}, minmax(0, 1fr))` }">
+  <transition-group name="col" tag="div" class="split-view" :style="{ gridTemplateColumns: split.gridTemplate }">
     <!-- Plus de barre de sélection : on choisit la page dans le drawer, qui
          demande ensuite dans quelle colonne la poser. -->
     <div v-for="i in split.columns" :key="i" class="split-col">
@@ -32,6 +32,11 @@ function onPick(i, e) {
 <style scoped>
 .split-view {
   display: grid;
+  /* Filet de sécurité : si le `grid-template-columns` en ligne manquait (le temps
+     d'un rechargement à chaud, par exemple), les colonnes s'empilaient les unes
+     sous les autres. Par défaut, on reste en colonnes. */
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
   gap: 8px;
   width: 100%;
   height: calc(100dvh - 56px); /* sous le header */

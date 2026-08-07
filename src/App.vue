@@ -100,6 +100,15 @@
             <div class="split-toggle-btns">
               <button v-for="n in 3" :key="n" class="split-toggle-btn" :class="{ active: splitView.columns === n }" @click="splitView.setColumns(n)">{{ n }}</button>
             </div>
+            <!-- Largeur : seulement en 2 colonnes (une grande / une petite).
+                 Un clic fait tourner 1ʳᵉ large → 2ᵉ large → égales. -->
+            <!-- Toujours dans le flux, seulement masqué hors mode 2 colonnes :
+                 le faire disparaître déplaçait tout le bas du menu. -->
+            <button
+              class="split-large-btn"
+              :class="{ active: splitView.large !== 0, hidden: splitView.columns !== 2 }"
+              @click="splitView.cycleLarge()"
+            >Largeur : {{ splitView.largeLabel }}</button>
           </div>
 
           <!-- Réglages + À propos (tout en bas) : ouvrables en colonne aussi -->
@@ -369,7 +378,8 @@ const cableListItems = computed(() =>
 // Outils d'entreprise, hors « Mes listes » : réservés au master / gérant.
 // Un freelance (et un technicien salarié) n'en voit aucun.
 const companyToolItems = computed(() => {
-  if (isFreelance.value) return []
+  // Un freelance a aussi sa Team : ses collaborateurs sur une affaire.
+  if (isFreelance.value) return [{ label: 'Team', to: '/techlist', icon: 'groups' }]
   if (userRole.value !== 'master' && userRole.value !== 'gerant') return []
   return [
     { label: 'Entreprise', to: '/company', icon: 'apartment' },
@@ -616,6 +626,30 @@ select {
   margin-bottom: 6px;
 }
 .split-toggle-btns { display: flex; gap: 6px; }
+.split-large-btn {
+  width: 100%;
+  margin-top: 8px;
+  padding: 7px 8px;
+  min-width: auto;
+  border: 1px solid var(--border-light, #ccc);
+  border-radius: 8px;
+  background: var(--bg-input, #fff);
+  color: var(--text, #333);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: none;
+}
+.split-large-btn.active {
+  background: var(--color1);
+  border-color: var(--color1);
+  color: #fff;
+}
+/* Hors mode 2 colonnes : invisible mais la place reste prise (pas de saut) */
+.split-large-btn.hidden {
+  visibility: hidden;
+  pointer-events: none;
+}
 .split-toggle-btn {
   flex: 1;
   padding: 7px 0;

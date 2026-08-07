@@ -46,21 +46,37 @@ export const POSTES_BY_DEPT = {
     { value: 'light_pupitre', label: 'Pupitre' },
     { value: 'light_blocker', label: 'Blocker' },
     { value: 'light_tech', label: 'Technicien' },
+    { value: 'light_assistant', label: 'Assistant' },
   ],
   video: [
     { value: 'video_1', label: 'Vidéo 1' },
     { value: 'video_2', label: 'Vidéo 2' },
     { value: 'video_3', label: 'Vidéo 3' },
+    { value: 'video_assistant', label: 'Assistant' },
   ],
 }
 
-// Liste à plat, dans l'ordre Son → Lumière → Vidéo
+// Liste à plat, dans l'ordre Son → Lumière → Vidéo.
+// `fullLabel` porte le métier : hors du sélecteur groupé, « Assistant » seul
+// serait ambigu — il en existe un par métier.
 export const ALL_POSTES = DEPT_ORDER.flatMap((d) =>
-  POSTES_BY_DEPT[d].map((p) => ({ ...p, department: d }))
+  POSTES_BY_DEPT[d].map((p) => ({
+    ...p,
+    department: d,
+    fullLabel: `${p.label} · ${DEPT_LABELS[d]}`,
+  }))
 )
 
 export function posteLabelFor(value) {
   return ALL_POSTES.find((p) => p.value === value)?.label || value
+}
+
+export function posteFullLabelFor(value) {
+  return ALL_POSTES.find((p) => p.value === value)?.fullLabel || value
+}
+
+export function posteDepartmentFor(value) {
+  return ALL_POSTES.find((p) => p.value === value)?.department || null
 }
 
 // Département affiché dans la liste de câbles. Partagé entre le drawer (App.vue)
