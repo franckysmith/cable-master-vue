@@ -94,6 +94,10 @@
       <!-- Ajouter -->
       <button v-if="!showAdd" class="btn-add" @click="showAdd = true">+ Ajouter une personne</button>
       <div v-if="showAdd" class="add-form">
+        <!-- Reprendre une fiche du carnet d'adresses du téléphone (Android) -->
+        <button v-if="hasContactPicker" class="btn-contacts" @click="pickFromContacts">
+          📇 Prendre dans mes contacts
+        </button>
         <div class="form-grid">
           <div class="form-row half"><label>Prénom *</label><input v-model="form.firstname" placeholder="Prénom" /></div>
           <div class="form-row half"><label>Nom *</label><input v-model="form.lastname" placeholder="Nom" /></div>
@@ -272,6 +276,27 @@ async function load() {
     .eq('company_id', companyId.value)
     .order('name')
   techs.value = data || []
+}
+
+// --- Carnet d'adresses du téléphone ---
+// L'API Contact Picker n'existe que sur Chrome/Android (et en HTTPS) : ailleurs
+// — iOS, ordinateur — aucun navigateur ne donne accès aux contacts, on masque
+// simplement le bouton et la saisie reste manuelle.
+const hasContactPicker = typeof navigator !== 'undefined' && 'contacts' in navigator && 'ContactsManager' in window
+
+async function pickFromContacts() {
+  try {
+    const [c] = await navigator.contacts.select(['name', 'email', 'tel'], { multiple: false })
+    if (!c) return
+    const full = (c.name?.[0] || '').trim()
+    const parts = full.split(/\s+/)
+    form.firstname = parts.shift() || ''
+    form.lastname = parts.join(' ')
+    form.email = c.email?.[0] || form.email
+    form.phone = c.tel?.[0] || form.phone
+  } catch (e) {
+    // Annulation par l'utilisateur, ou permission refusée : rien à signaler.
+  }
 }
 
 function resetAdd() {
@@ -607,6 +632,20 @@ h2 {
   border-color: #3b82f6;
   background: #fff;
   color: #2563eb;
+}
+.btn-contacts {
+  width: 100%;
+  margin-bottom: 10px;
+  padding: 9px;
+  background: var(--bg-input, #fff);
+  color: var(--text, #333);
+  border: 1px dashed var(--border-light, #ccc);
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: none;
+  min-width: auto;
 }
 .btn-add {
   width: 100%;
