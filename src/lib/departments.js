@@ -31,6 +31,38 @@ export function typeAllowedInDept(type, dept) {
   return allowed.includes(type)
 }
 
+// Postes tenus par les membres de la Team, par métier. Un même poste peut être
+// tenu par plusieurs personnes (deux techniciens plateau, par exemple).
+// Vidéo : noms provisoires, en attendant les intitulés du métier.
+export const POSTES_BY_DEPT = {
+  sound: [
+    { value: 'front', label: 'FOH' },
+    { value: 'monitor', label: 'Monitor' },
+    { value: 'system', label: 'Système' },
+    { value: 'stage', label: 'Stage' },
+    { value: 'assistant', label: 'Assistant' },
+  ],
+  light: [
+    { value: 'light_pupitre', label: 'Pupitre' },
+    { value: 'light_blocker', label: 'Blocker' },
+    { value: 'light_tech', label: 'Technicien' },
+  ],
+  video: [
+    { value: 'video_1', label: 'Vidéo 1' },
+    { value: 'video_2', label: 'Vidéo 2' },
+    { value: 'video_3', label: 'Vidéo 3' },
+  ],
+}
+
+// Liste à plat, dans l'ordre Son → Lumière → Vidéo
+export const ALL_POSTES = DEPT_ORDER.flatMap((d) =>
+  POSTES_BY_DEPT[d].map((p) => ({ ...p, department: d }))
+)
+
+export function posteLabelFor(value) {
+  return ALL_POSTES.find((p) => p.value === value)?.label || value
+}
+
 // Département affiché dans la liste de câbles. Partagé entre le drawer (App.vue)
 // et la vue CableList, et conservé d'une session à l'autre.
 const STORAGE_KEY = 'cablemaster-listdept'

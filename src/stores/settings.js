@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, watch, computed } from 'vue'
 import { supabase } from '../lib/supabase'
+import { publishChange, onChange } from '../lib/liveSync'
 
 const STORAGE_KEY = 'cablemaster-settings'
 const SYNC_KEY = 'default' // clé unique pour user_settings
@@ -202,8 +203,28 @@ export const useSettingsStore = defineStore('settings', () => {
   loadFromSupabase()
 
   // Watchers pour sauvegarder
-  watch(colorTheme, (val) => { applyTheme(val); save() })
-  watch(darkMode, (val) => { document.documentElement.classList.toggle('dark', val); save() })
+  watch(colorTheme, (val) => {
+    applyTheme(val)
+    save()
+    publishChange('theme', { colorTheme: val, dark: darkMode.value })
+  })
+  watch(darkMode, (val) => {
+    document.documentElement.classList.toggle('dark', val)
+    save()
+    // Le thème est global : les autres colonnes (iframes) basculent aussi.
+    publishChange('theme', { colorTheme: colorTheme.value, dark: val })
+  })
+
+  // Une autre colonne a changé le thème → on s'aligne. Réaffecter la même
+  // valeur ne déclenche pas le watcher, donc pas de renvoi en boucle.
+  onChange((msg) => {
+    if (msg.kind !== 'theme') return
+    if (msg.payload?.colorTheme && msg.payload.colorTheme !== colorTheme.value) {
+      colorTheme.value = msg.payload.colorTheme
+    }
+    if (typeof msg.payload?.dark === 'boolean') darkMode.value = msg.payload.dark
+  })
+
   watch([visibleZones, visibleFc], save)
   watch([defaultZoneLabels, defaultFcLabels, defaultCtLabels, defaultTypeLabels], save, { deep: true })
   watch(userRole, save)

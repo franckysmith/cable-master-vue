@@ -122,11 +122,12 @@
     </section>
 
     <section class="section">
-      <h3>Mode sombre</h3>
+      <h3>Thème</h3>
       <label class="dark-toggle">
         <input type="checkbox" v-model="settingsStore.darkMode" />
-        <span>{{ settingsStore.darkMode ? 'Activé' : 'Désactivé' }}</span>
+        <span>{{ settingsStore.darkMode ? '🌙 Sombre' : '☀️ Clair' }}</span>
       </label>
+      <p class="theme-hint">Le mauve de Cinod reste dans les deux thèmes — clair, il devient un mauve lumineux sur fond blanc lavande.</p>
     </section>
 
     <p class="hint">Les réglages sont sauvegardés automatiquement.</p>
@@ -458,6 +459,11 @@ h2 {
 .theme-btn.active {
   border-color: #222;
   transform: scale(1.05);
+}
+.theme-hint {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--text-light, #888);
 }
 .dark-toggle {
   display: flex;

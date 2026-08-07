@@ -39,9 +39,12 @@
           </div>
           <div class="form-row">
             <label>Postes (le 1er = principal)</label>
-            <div class="poste-picker">
-              <button v-for="p in postes" :key="p.value" type="button" class="poste-btn"
-                :class="posteClass(edit.postes, p.value)" @click="togglePoste(edit.postes, p.value)">{{ p.label }}</button>
+            <div v-for="g in posteGroups" :key="g.department" class="poste-group">
+              <span class="poste-group-label">{{ g.label }}</span>
+              <div class="poste-picker">
+                <button v-for="p in g.postes" :key="p.value" type="button" class="poste-btn"
+                  :class="posteClass(edit.postes, p.value)" @click="togglePoste(edit.postes, p.value)">{{ p.label }}</button>
+              </div>
             </div>
           </div>
           <div class="form-actions">
@@ -94,9 +97,12 @@
         </div>
         <div class="form-row">
           <label>Postes (le 1er = principal)</label>
-          <div class="poste-picker">
-            <button v-for="p in postes" :key="p.value" type="button" class="poste-btn"
-              :class="posteClass(form.postes, p.value)" @click="togglePoste(form.postes, p.value)">{{ p.label }}</button>
+          <div v-for="g in posteGroups" :key="g.department" class="poste-group">
+            <span class="poste-group-label">{{ g.label }}</span>
+            <div class="poste-picker">
+              <button v-for="p in g.postes" :key="p.value" type="button" class="poste-btn"
+                :class="posteClass(form.postes, p.value)" @click="togglePoste(form.postes, p.value)">{{ p.label }}</button>
+            </div>
           </div>
         </div>
         <div class="form-actions">
@@ -113,15 +119,16 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { supabase } from '../lib/supabase'
+import { ALL_POSTES, POSTES_BY_DEPT, DEPT_ORDER, DEPT_LABELS, posteLabelFor } from '../lib/departments'
 
-const postes = [
-  { value: 'front', label: 'FOH' },
-  { value: 'monitor', label: 'Monitor' },
-  { value: 'system', label: 'Système' },
-  { value: 'stage', label: 'Stage' },
-  { value: 'assistant', label: 'Assistant' },
-]
-const posteLabel = (v) => postes.find(p => p.value === v)?.label || v
+// Postes des trois métiers (cf. lib/departments.js) : Son, Lumière, Vidéo.
+const postes = ALL_POSTES
+const posteLabel = posteLabelFor
+const posteGroups = DEPT_ORDER.map((d) => ({
+  department: d,
+  label: DEPT_LABELS[d],
+  postes: POSTES_BY_DEPT[d],
+}))
 // État d'un poste pour un technicien : 'primary' (foncé, principal) / 'secondary' (clair) / '' (blanc, non)
 function posteState(t, value) {
   const arr = techPostes(t)
@@ -530,6 +537,17 @@ h2 {
 .form-grid { display: flex; gap: 8px; }
 .form-row.half { flex: 1; }
 .poste-picker { display: flex; gap: 6px; flex-wrap: wrap; }
+/* Postes rangés par métier (Son / Lumière / Vidéo) */
+.poste-group { margin-top: 8px; }
+.poste-group-label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--text-light, #888);
+}
 .poste-btn {
   padding: 6px 12px;
   border: 2px solid var(--border-light, #ccc);

@@ -12,6 +12,11 @@
         </span>
         <q-space />
         <span v-if="(userRole === 'master' || userRole === 'gerant') && companyName" class="company-chip" :title="'Entreprise connectée : ' + companyName">🏢 {{ companyName }}</span>
+        <span
+          class="theme-btn"
+          :title="settingsStore.darkMode ? 'Passer en thème clair' : 'Passer en thème sombre'"
+          @click="settingsStore.darkMode = !settingsStore.darkMode"
+        >{{ settingsStore.darkMode ? '☀️' : '🌙' }}</span>
         <span class="help-btn" :class="{ active: helpMode }" @click="helpMode = !helpMode" title="Aide">?</span>
         <span class="user-selector" @click="showUserMenu = !showUserMenu">
           {{ currentUserLabel }}
@@ -41,6 +46,7 @@
             clickable
             :to="splitActive ? undefined : '/'"
             active-class="drawer-active"
+            class="drawer-group-head"
             @click="goHome"
           >
             <q-item-section avatar><q-icon name="work" /></q-item-section>
@@ -96,25 +102,25 @@
             </div>
           </div>
 
-          <!-- Réglages + About (tout en bas) -->
+          <!-- Réglages + À propos (tout en bas) : ouvrables en colonne aussi -->
           <q-item
             clickable
-            to="/settings"
+            :to="splitActive ? undefined : '/settings'"
             active-class="drawer-active"
             class="drawer-about"
-            @click="closeDrawerOnMobile"
+            @click="onDrawerItem({ label: 'Réglages', to: '/settings' })"
           >
             <q-item-section avatar><q-icon name="settings" /></q-item-section>
             <q-item-section>Réglages</q-item-section>
           </q-item>
           <q-item
             clickable
-            to="/about"
+            :to="splitActive ? undefined : '/about'"
             active-class="drawer-active"
-            @click="closeDrawerOnMobile"
+            @click="onDrawerItem({ label: 'À propos', to: '/about' })"
           >
             <q-item-section avatar><q-icon name="info" /></q-item-section>
-            <q-item-section>About</q-item-section>
+            <q-item-section>À propos</q-item-section>
           </q-item>
           <q-item
             clickable
@@ -195,6 +201,7 @@ import { getQueue } from './lib/offlineCache'
 import { flushQueue } from './lib/syncService'
 import SplitView from './components/SplitView.vue'
 import { useSplitViewStore } from './stores/splitView'
+import { useSettingsStore } from './stores/settings'
 
 const $q = useQuasar()
 const affairStore = useAffairStore()
@@ -207,11 +214,11 @@ const PAGE_TITLES = {
   '/miclist': 'Micro List',
   '/FlightType': 'Cablekit',
   '/MasterAffaire': 'Master Affaire',
-  '/techlist': 'TechList',
+  '/techlist': 'Team',
   '/micros': 'Bibliothèque Micros',
   '/company': 'Entreprise',
   '/settings': 'Réglages',
-  '/about': 'About',
+  '/about': 'À propos',
 }
 const pageTitle = computed(() => {
   // La liste de câbles annonce son métier : « CableList Son », « … Lumière »…
@@ -221,6 +228,7 @@ const pageTitle = computed(() => {
 
 // ===== Vue multi-colonnes (web / grand écran) =====
 const splitView = useSplitViewStore()
+const settingsStore = useSettingsStore()
 // nochrome=1 → page affichée DANS une colonne iframe : on masque header/drawer/etc.
 // Les écrans d'auth (login / onboarding) sont aussi affichés sans le chrome de l'app.
 const AUTH_ROUTES = ['/login', '/onboarding']
@@ -366,7 +374,7 @@ const companyToolItems = computed(() => {
   return [
     { label: 'Entreprise', to: '/company', icon: 'apartment' },
     { label: 'Cable Kit', to: '/FlightType', icon: 'inventory_2' },
-    { label: 'Tech List', to: '/techlist', icon: 'groups' },
+    { label: 'Team', to: '/techlist', icon: 'groups' },
     { label: 'MasterAffaire', to: '/MasterAffaire', icon: 'event_note' },
   ]
 })
@@ -435,16 +443,26 @@ function onFrameMessage(e) {
   /* Largeur de la colonne "application" (centrée) */
   --app-max-width: 640px;
 
-  /* Mode clair (défaut) */
-  --bg: #ffffff;
-  --bg-card: #fafafa;
+  /* Mode clair : le mauve reste l'identité, mais traité en clair — surfaces
+     blanc lavande, texte violet foncé, bandeau mauve lumineux (et non le mauve
+     quasi noir du mode sombre). */
+  --bg: #fbfaff;
+  --bg-card: #ffffff;
   --bg-input: #ffffff;
-  --bg-section: #eef0f3;
-  --text: #2c3e50;
-  --text-light: #888;
-  --text-muted: #999;
-  --border: #e8e8e8;
-  --border-light: #ddd;
+  --bg-section: #f2eefc;
+  --text: #241a3d;
+  --text-light: #635a80;
+  --text-muted: #8a83a3;
+  --border: #e4dcf7;
+  --border-light: #ded5f2;
+
+  /* Bandeau du haut (dégradé) + voile du panneau « colonne ? » */
+  --header-top: #6a48c9;
+  --header-a: #6a48c9;
+  --header-b: #8b62f5;
+  --sheet-bg: #ffffff;
+  --sheet-border: #cbb8f5;
+  --sheet-text: #241a3d;
 }
 
 :root.dark {
@@ -459,6 +477,13 @@ function onFrameMessage(e) {
   --border-light: #444;
   --color2: #f3e309;
   --color3: #eb910a;
+
+  --header-top: #160a26;
+  --header-a: #1c0f33;
+  --header-b: #3d2470;
+  --sheet-bg: #2a1b4d;
+  --sheet-border: #5b3fa8;
+  --sheet-text: #f2eeff;
 }
 #app {
   font-family: Avenir, Helvetica, Arial, sans-serif;
@@ -477,16 +502,17 @@ select {
 
 /* ===== Header ===== */
 .app-header {
-  background: #160a26; /* mauve quasi noir : zone de l'heure / safe-area en haut */
+  /* mauve quasi noir en sombre, mauve lumineux en clair (cf. --header-*) */
+  background: var(--header-top);
   color: #fff;
-  border-bottom: 1px solid #160a26;
+  border-bottom: 1px solid var(--header-top);
   transition: transform 0.4s ease;
   /* Descendre sous l'encoche / la barre d'état en plein écran (iOS) */
   padding-top: env(safe-area-inset-top, 0px);
 }
 .app-toolbar {
-  /* Dégradé mauve très foncé : presque noir en haut → mauve un peu plus visible en bas */
-  background: linear-gradient(180deg, #1c0f33 0%, #3d2470 100%);
+  /* Dégradé mauve : très foncé en mode sombre, lumineux en mode clair */
+  background: linear-gradient(180deg, var(--header-a) 0%, var(--header-b) 100%);
 }
 .app-header.header-hidden {
   transform: translateY(-100%);
@@ -642,9 +668,9 @@ select {
    Teintes violettes de l'app plutôt qu'une carte blanche éblouissante. */
 .col-chooser {
   min-width: 320px;
-  background: #2a1b4d !important;
-  color: #f2eeff !important;
-  border: 1px solid #5b3fa8;
+  background: var(--sheet-bg) !important;
+  color: var(--sheet-text) !important;
+  border: 1px solid var(--sheet-border);
   border-radius: 16px;
   box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
 }
@@ -654,7 +680,7 @@ select {
   font-weight: 700;
   line-height: 1.35;
   text-align: center;
-  color: #f2eeff;
+  color: var(--sheet-text);
 }
 .col-chooser-actions { gap: 14px; padding: 6px 20px 20px; }
 .col-pick-btn {
@@ -833,6 +859,24 @@ select {
 .calc-open { color: #fff; text-decoration: none; font-size: 17px; font-weight: 800; }
 .calc-close { background: transparent; border: none; color: #fff; font-size: 17px; cursor: pointer; box-shadow: none; min-width: auto; }
 .calc-frame { flex: 1; width: 100%; border: none; background: #fff; }
+/* Bascule clair / sombre, dans la barre du haut */
+.theme-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.14);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  margin-left: 6px;
+  vertical-align: middle;
+  transition: background 0.2s;
+}
+.theme-btn:hover { background: rgba(255, 255, 255, 0.28); }
+
 .help-btn {
   display: inline-flex;
   align-items: center;

@@ -43,7 +43,7 @@ const listEditRoutes = ['/CableList', '/miclist', '/FlightType']
 // dont il aura besoin, pas des caisses pré-packées.
 const companyOnlyRoutes = ['/FlightType']
 // Pages entreprise : master d'entreprise uniquement.
-const companyMasterRoutes = ['/MasterAffaire', '/techlist']
+const companyMasterRoutes = ['/MasterAffaire']
 const superOnly = ['/company']
 
 router.beforeEach(async (to) => {
