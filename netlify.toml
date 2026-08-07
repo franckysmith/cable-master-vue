@@ -7,6 +7,14 @@
   command = "rm -rf node_modules package-lock.json && npm install && npm run build"
   publish = "dist"
 
+  # Pousser sur GitHub NE DÉPLOIE PAS. Une commande `ignore` qui se termine par
+  # 0 dit à Netlify « rien à reconstruire » : le build automatique déclenché par
+  # un push est annulé et la version en ligne reste celle publiée volontairement.
+  # Mise en ligne explicite depuis le poste :
+  #     npm run build && netlify deploy --prod --dir=dist
+  # Pour revenir au déploiement automatique : supprimer cette ligne.
+  ignore = "exit 0"
+
 [build.environment]
   NODE_VERSION = "20"
 
